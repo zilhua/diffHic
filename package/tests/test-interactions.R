@@ -12,7 +12,7 @@ binid <- function(curcuts, dist) {
 	as.integer((mids-0.1)/dist)+1L
 }
 
-refnames<-c("count1", "count2", "anchor", "target", "nfrags")
+refnames<-c("count1", "count2", "anchor", "target")
 
 # We set up the comparison function to check our results. 
 
@@ -115,8 +115,7 @@ finder <- function(dir1, dir2, dist, cuts, filter=10L) {
 				tempa<-do.call(rbind, current.anchor)
 				tempt<-do.call(rbind, current.target)
 				out<-data.frame(do.call(rbind, current.counts), paste0(cur.k, ":", tempa[,1], "-", tempa[,2]),
-						paste0(cur.l, ":", tempt[,1], "-", tempt[,2]), as.double(unlist(current.area)),
-						stringsAsFactors=FALSE)
+						paste0(cur.l, ":", tempt[,1], "-", tempt[,2]), stringsAsFactors=FALSE)
 				overall[[odex]]<-out
 				odex<-odex+1L
 			}
@@ -151,8 +150,7 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
 	tr<-y$region[y$pairs[,2]]
 	if (nrow(y$pairs)) { 
 		overall<-data.frame(y$counts, paste0(as.character(seqnames(ar)), ":", start(ar), "-", end(ar)),
-			paste0(as.character(seqnames(tr)), ":", start(tr), "-", end(tr)), getArea(y),
-			stringsAsFactors=FALSE)
+			paste0(as.character(seqnames(tr)), ":", start(tr), "-", end(tr)), stringsAsFactors=FALSE)
 	} else {
 		overall <- data.frame(integer(0), integer(0), character(0), character(0), numeric(0),
 			stringsAsFactors=FALSE)
