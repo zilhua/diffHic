@@ -1,0 +1,810 @@
+
+R version 3.1.0 (2014-04-10) -- "Spring Dance"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ###################################################################################################
+> # This tests the interaction counting capabilities of, well, the interaction counter. 
+> 
+> set.seed(1001)
+> Sys.setlocale(category="LC_COLLATE",locale="C")
+[1] "C"
+> chromos<-c(chrA=51, chrB=31)
+> source("simcounts.R")
+> 
+> binid <- function(curcuts, dist) {
++ 	# Need to figure out which fragments belong in which bins.
++ 	mids<-(start(curcuts)+end(curcuts))/2
++ 	as.integer((mids-0.1)/dist)+1L
++ }
+> 
+> refnames<-c("count1", "count2", "anchor", "target", "nfrags")
+> 
+> # We set up the comparison function to check our results. 
+> 
+> finder <- function(dir1, dir2, dist, cuts, filter=10L) {
++ 	overall<-list()
++ 	odex<-1L
++ 	totals<-c(0L, 0L)
++ 	collected<-c(0, cumsum(chromos))
++ 
++ 	# We need to determine who's who.
++ 	x1 <- h5ls(dir1)
++ 	x1 <- x1[x1$otype=="H5I_DATASET",]
++ 	x1 <- data.frame(anchor=basename(x1$group), target=x1$name)
++ 	x2 <- h5ls(dir2)
++ 	x2 <- x2[x2$otype=="H5I_DATASET",]
++ 	x2 <- data.frame(anchor=basename(x2$group), target=x2$name)
++ 	allbins<-binid(cuts, dist)
++ 
++ 	for (k in 1:length(chromos)) {
++ 		cur.k<-names(chromos)[k]
++ 		current.krange<-cuts[cur.k==seqnames(cuts)]
++ 		kbin<-binid(current.krange, dist)
++ 		krle <- rle(kbin)
++ 		kend <- cumsum(krle$length)
++ 		kstart <- kend - krle$length + 1L
++ 
++ 		for (l in 1:k) {
++ 			cur.l<-names(chromos)[l]
++ 			current.lrange<-cuts[seqnames(cuts)==cur.l]
++ 			lbin<-binid(current.lrange, dist)
++ 
++ 			# Loading counts.
++ 			x <- list()
++ 			for (m in 1:2) { 
++ 				x.current <- get(paste0("x", m))
++ 				if (any(x1$anchor==cur.k & x1$target==cur.l)) { 
++ 					x[[m]] <- h5read(get(paste0("dir", m)), file.path(cur.k, cur.l))
++ 				} else {
++ 					x[[m]] <- data.frame(anchor.id=integer(0),target.id=integer(0), count=integer(0))
++ 				}
++ 			}
++ 
++ 			max.anchor<-chromos[[k]]
++ 			anti.a<-collected[k]
++ 			max.target<-chromos[[l]]
++ 			anti.t<-collected[l]
++ 			mat1<-mat2<-matrix(0L, nrow=max.anchor, ncol=max.target);
++ 			for (g in 1:length(x)) {
++ 				for (i in 1:nrow(x[[g]])) {
++ 					a<-x[[g]][i,1]-anti.a
++ 					t<-x[[g]][i,2]-anti.t
++ 					m<-x[[g]][i,3]
++ 					if (g==1) { 
++ 						mat1[a,t]<-mat1[a,t]+m 
++ 						totals[1]<-totals[1]+m
++ 					} else { 
++ 						mat2[a,t]<-mat2[a,t]+m 
++ 						totals[2]<-totals[2]+m
++ 					}
++ 				}
++ 			}
++ 
++ 			# Computing the region for each set of bins (assuming cuts are sorted).
++ 			astart<-start(current.krange)[kstart]
++ 			aend<-end(current.krange)[kend]
++ 			lrle <- rle(lbin)
++ 			lend <- cumsum(lrle$length)
++ 			lstart <- lend - lrle$length + 1L
++ 			tstart <- start(current.lrange)[lstart]
++ 			tend <- end(current.lrange)[lend]
++ 			
++ 			# Computing the counts for each set of bins.
++ 			counts1<-split(mat1, kbin)
++ 			counts2<-split(mat2, kbin)
++ 			current.counts<-list()
++ 			current.anchor<-current.target<-list()
++ 			current.area <- list()
++ 			idex<-1L
++ 
++ 			for (g in 1:length(counts1)) {
++ 				subcounts1<-split(matrix(counts1[[g]], nrow=max.target, byrow=TRUE), lbin)
++ 				subcounts2<-split(matrix(counts2[[g]], nrow=max.target, byrow=TRUE), lbin)
++ 				for (i in 1:length(subcounts1)) {
++ 					count.pair<-c(sum(subcounts1[[i]]), sum(subcounts2[[i]]))
++ 					if (sum(count.pair)<filter) { next }
++ 					current.counts[[idex]]<-count.pair
++ 					current.anchor[[idex]]<-c(astart[g], aend[g])
++ 					current.target[[idex]]<-c(tstart[i], tend[i])
++ 					if (k==l && g==i) { 
++ 						current.area[[idex]] <- krle$length[g] * (krle$length[g] + 1)/2
++ 					} else {
++ 						current.area[[idex]] <- krle$length[g] * lrle$length[i]
++ 					}
++ 					idex<-idex+1L
++ 				}
++ 			}
++ 		
++ 			# Aggregating all data.
++ 			if (length(current.counts)) {
++ 				tempa<-do.call(rbind, current.anchor)
++ 				tempt<-do.call(rbind, current.target)
++ 				out<-data.frame(do.call(rbind, current.counts), paste0(cur.k, ":", tempa[,1], "-", tempa[,2]),
++ 						paste0(cur.l, ":", tempt[,1], "-", tempt[,2]), as.double(unlist(current.area)),
++ 						stringsAsFactors=FALSE)
++ 				overall[[odex]]<-out
++ 				odex<-odex+1L
++ 			}
++ 		}
++ 	}
++ 
++ 	if (length(overall)) { 
++ 		overall<-do.call(rbind, overall)
++ 		overall<-overall[do.call(order, overall),]
++ 		rownames(overall)<-NULL
++ 	} else {
++ 		overall<-data.frame(integer(0), integer(0), character(0), 
++ 				character(0), numeric(0), stringsAsFactors=FALSE)
++ 	}
++ 	colnames(overall)<-refnames
++ 	return(list(table=overall, total=totals))
++ }
+> 
+> suppressPackageStartupMessages(require(diffHic))
+> suppressPackageStartupMessages(require(rhdf5))
+> 
+> dir.create("temp-inter")
+> dir1<-"temp-inter/1.h5"
+> dir2<-"temp-inter/2.h5"
+> 
+> comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
++ 	simgen(dir1, npairs1, chromos)
++ 	simgen(dir2, npairs2, chromos)
++ 	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=filter)
++ 
++ 	ar<-y$region[y$pairs[,1]]
++ 	tr<-y$region[y$pairs[,2]]
++ 	if (nrow(y$pairs)) { 
++ 		overall<-data.frame(y$counts, paste0(as.character(seqnames(ar)), ":", start(ar), "-", end(ar)),
++ 			paste0(as.character(seqnames(tr)), ":", start(tr), "-", end(tr)), getArea(y),
++ 			stringsAsFactors=FALSE)
++ 	} else {
++ 		overall <- data.frame(integer(0), integer(0), character(0), character(0), numeric(0),
++ 			stringsAsFactors=FALSE)
++ 	}
++ 	names(overall)<-refnames
++ 	overall<-overall[do.call(order, overall),]
++ 	rownames(overall)<-NULL
++ 
++ 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter)
++ 	if (!identical(y$totals, ref$total)) { stop("mismatches in library sizes") }
++ 	if (!identical(overall, ref$table)) { stop("mismatches in counts or region coordinates") }
++ 	if (filter<=1L && !identical(as.integer(colSums(y$counts)+0.5), y$totals)) { 
++ 		stop("sum of counts from binning should equal totals without filtering") }
++ 
++ #	# Checking the fidelity of the filter.
++ #	unbridled<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, self.circles=self, filter=0)
++ #	keep<-rowSums(unbridled$counts)>=filter
++ #	if (!identical(y$counts, unbridled$counts[keep,])) { stop("mismatches in counts after filtering") }
++ #	modded<-unbridled$pairs[keep,]
++ #	rownames(modded)<-NULL
++ #	if (!identical(y$pairs, modded)) { stop("mismatches in pair IDs after filtering") }
++ 	return(head(overall))
++ }
+> 
+> ###################################################################################################
+> # Checking a vanilla count.
+> 
+> comp(10, 20, dist=10000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:199855-211697  chrA:91949-103332      4
+2      0      1   chrA:32211-40829   chrA:32211-40829      6
+3      0      1 chrB:130034-140433   chrA:40830-48788      3
+4      0      1 chrB:130034-140433 chrB:122206-130033      6
+5      0      1 chrB:140434-150259 chrA:246665-261394      4
+6      0      1   chrB:39347-48503    chrB:9437-19520      4
+> comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:120942-132785    chrA:8850-19376      4
+2      0      1 chrA:132782-142368        chrA:1-8853      1
+3      0      1 chrA:220502-227509 chrA:220502-227509      1
+4      0      1 chrA:238425-245860   chrA:19373-28894      6
+5      0      1       chrB:1-10639 chrA:159806-171550      6
+6      0      1       chrB:1-10639 chrA:171547-178962      6
+> comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:212646-218176   chrA:50445-60208      6
+2      0      1 chrA:212646-218176   chrA:67962-83027      6
+3      0      1   chrB:31097-41245 chrA:231791-241159      6
+4      0      2 chrA:218175-231792 chrA:112578-123281      4
+5      0      2 chrB:117808-132428        chrB:1-8375      3
+6      0      2   chrB:17435-31098   chrA:18260-30775      6
+> comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:117914-129923    chrA:8948-24348      4
+2      0      5 chrA:239425-251805   chrA:33285-37411      3
+3      0      5  chrA:91692-101636    chrA:8948-24348      2
+4      0      5 chrB:136269-150548 chrB:119948-132340      6
+5      0      5 chrB:150549-160499 chrA:153136-164251      6
+6      0      5 chrB:150549-160499   chrB:60670-72038      6
+> comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(10, 20, dist=5000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:277028-283116        chrA:1-5272      1
+2      0      1 chrB:102434-105936 chrA:177460-182357      1
+3      0      1 chrB:118922-125518   chrB:31090-36798      1
+4      0      1 chrB:118922-125518   chrB:36799-44955      1
+5      0      1   chrB:90089-95096   chrB:80237-85082      1
+6      0      2 chrA:108960-117397   chrA:75746-85242      1
+> comp(10, 20, dist=5000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1        chrB:1-6684 chrA:125842-130215      2
+2      0      1 chrB:109750-118943   chrB:69792-78560      1
+3      0      1   chrB:18852-24506   chrA:82228-88002      1
+4      0      2 chrA:107246-109901   chrA:54134-61362      1
+5      0      2 chrA:125842-130215   chrA:31939-36387      2
+6      0      2 chrA:247334-251177 chrA:119345-125843      1
+> comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrB:130204-138276 chrA:128450-136854      1
+2      0      5 chrB:161791-169849   chrB:34702-38037      1
+3      0      5   chrB:25867-30504 chrA:236305-240500      1
+4      0      5   chrB:47162-57114   chrA:26716-35077      2
+5      0      5    chrB:7532-12038 chrA:119341-124646      2
+6      0      5   chrB:85610-88488 chrA:147956-157231      2
+> comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(10, 20, dist=1000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:249486-253266 chrA:223306-224610      1
+2      0      1 chrB:105999-113376 chrA:258472-266952      1
+3      0      1 chrB:141364-147876   chrB:39801-46405      1
+4      0      1 chrB:141364-147876   chrB:51862-54109      1
+5      0      2 chrA:115624-124009   chrA:30247-34929      1
+6      0      2 chrB:122099-126049   chrB:25379-30228      1
+> comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:246366-253580 chrA:120811-130373      1
+2      0      5 chrA:291684-298507   chrA:68283-76493      1
+3      0      5 chrB:139542-141284 chrB:121476-123158      1
+4      0      5 chrB:151932-156809   chrB:92031-99171      1
+5      0      5   chrB:51908-55640 chrA:177353-184894      1
+6      0      6 chrA:102004-110261    chrA:4615-11276      1
+> comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> 
+> # Repeating a couple of times.
+> comp(10, 10, dist=10000, cuts=simcuts(chromos))
+  count1 count2             anchor           target nfrags
+1      0      1   chrB:59804-70202  chrB:9549-17057      4
+2      0      1   chrB:70203-75176 chrA:51456-58670      2
+3      0      2 chrA:269591-280767 chrA:67020-82625      4
+4      0      2 chrB:109757-120530      chrB:1-9548      2
+5      0      2   chrB:17058-32537  chrA:8271-16868      4
+6      0      2  chrB:96751-109756 chrB:17058-32537      4
+> comp(10, 10, dist=10000, cuts=simcuts(chromos, overlap=4))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:141249-153005   chrA:91414-98948      2
+2      0      1  chrA:98945-112942  chrA:98945-112942      6
+3      0      1 chrB:104044-109608  chrB:92814-104047      3
+4      0      1 chrB:109605-120933   chrA:35760-49426      6
+5      0      1 chrB:153042-157369 chrA:141249-153005      2
+6      0      1   chrB:69793-77784   chrA:49423-61692      4
+> comp(10, 10, dist=10000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1   chrB:59576-72237 chrA:208990-222348      6
+2      0      2 chrB:119117-129085 chrA:222347-229172      4
+3      0      2 chrB:138269-148228   chrA:56330-66760      4
+4      0      2 chrB:159799-168307   chrA:66759-79834      3
+5      0      3 chrB:106714-119118       chrA:1-11031      6
+6      0      4 chrA:149534-158744 chrA:136474-149535      2
+> comp(10, 10, dist=10000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:139281-149168   chrA:36716-51515      6
+2      0      5   chrA:51516-63543   chrA:19937-28437      9
+3      0      5 chrB:137447-153346   chrA:51516-63543      6
+4      0      5   chrB:27630-40049   chrA:36716-51515      4
+5      0      5   chrB:79154-87333   chrB:19152-27629      4
+6      0      5   chrB:87334-98610 chrA:139281-149168      6
+> comp(10, 10, dist=10000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(10, 10, dist=5000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:154962-159842 chrA:110618-113035      1
+2      0      1   chrB:13319-19837   chrA:55226-63623      1
+3      0      1   chrB:29495-34291 chrA:204003-211676      2
+4      0      2 chrA:204003-211676    chrA:4274-12321      2
+5      0      2 chrA:238261-247877        chrA:1-4273      1
+6      0      3 chrA:124633-130104   chrA:85971-89282      1
+> comp(10, 10, dist=5000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1   chrB:35402-42386 chrA:137900-147232      2
+2      0      2 chrA:105050-109318   chrA:86868-96701      1
+3      0      2 chrA:149448-154419   chrA:63131-72278      1
+4      0      2 chrA:282507-290988 chrA:117391-119470      1
+5      0      2 chrA:293317-301679 chrA:222650-227798      1
+6      0      2   chrB:88235-97033   chrA:56050-63132      1
+> comp(10, 10, dist=5000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:202383-205543 chrA:130847-136132      2
+2      0      5 chrB:140604-142329   chrA:37571-43267      1
+3      0      5 chrB:142330-151328 chrA:188369-197115      2
+4      0      5 chrB:151329-156572 chrB:142330-151328      2
+5      0      5   chrB:89941-99658   chrA:23384-31956      1
+6      0      6 chrA:111242-120367   chrA:70958-76080      1
+> comp(10, 10, dist=5000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(10, 10, dist=1000, cuts=simcuts(chromos))
+  count1 count2             anchor           target nfrags
+1      0      1   chrA:48450-49556 chrA:42649-48449      1
+2      0      1  chrA:94433-101151      chrA:1-1993      1
+3      0      1   chrB:75486-83196 chrB:57159-66396      1
+4      0      2 chrA:101152-105970 chrA:73940-83305      1
+5      0      2        chrB:1-5733 chrA:20119-26591      1
+6      0      2 chrB:114965-121897 chrB:72387-75485      1
+> comp(10, 10, dist=1000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5   chrB:16489-22552        chrB:1-5284      1
+2      0      5   chrB:74270-80340   chrB:14285-16488      1
+3      0      5   chrB:82744-91991 chrA:232761-240422      1
+4      0      6 chrB:126175-132651   chrB:71112-74269      1
+5      0      6   chrB:50165-52233   chrB:35321-41067      1
+6      0      6    chrB:5285-14284 chrA:198839-201854      1
+> comp(10, 10, dist=1000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> 
+> comp(10, 20, dist=10000, cuts=simcuts(chromos))
+  count1 count2             anchor            target nfrags
+1      0      1 chrA:100354-110922  chrA:80201-90542      4
+2      0      1 chrA:232842-237634  chrA:66284-80200      3
+3      0      1   chrB:27181-41215   chrA:8088-19080      4
+4      0      1   chrB:56490-72980 chrA:90543-100353      2
+5      0      1  chrB:97619-106151  chrB:72981-80183      2
+6      0      2 chrA:120747-129415       chrA:1-8087      4
+> comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:161801-169368 chrA:127093-138466      2
+2      0      1 chrB:108279-117468   chrB:56226-66877      2
+3      0      1   chrB:17837-32031 chrA:148485-161804      4
+4      0      1   chrB:17837-32031  chrA:88133-102810      6
+5      0      1   chrB:32028-38345 chrA:208295-221864      4
+6      0      1   chrB:38342-51392   chrB:38342-51392      3
+> comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:110963-119176   chrA:37479-46720      2
+2      0      1 chrA:134306-142592   chrA:37479-46720      2
+3      0      1 chrA:191356-199139   chrA:11409-20603      4
+4      0      1 chrA:191356-199139 chrA:178212-191357      4
+5      0      1 chrA:191356-199139   chrA:20602-29477      2
+6      0      1 chrA:247849-259676  chrA:87930-102922      4
+> comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:200850-210383       chrA:1-12579      2
+2      0      5 chrA:210384-219539   chrA:87435-99041      6
+3      0      5 chrA:229530-238177 chrA:127825-137993      6
+4      0      5 chrA:260080-266088   chrA:59638-68063      2
+5      0      5 chrB:141284-154382 chrB:141284-154382      3
+6      0      5 chrB:168753-179896 chrA:137994-152620      4
+> comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(10, 20, dist=5000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrB:116067-125228 chrA:178264-186246      4
+2      0      1 chrB:125229-131309   chrA:39339-43120      1
+3      0      2 chrA:186247-188946 chrA:176299-178263      2
+4      0      2 chrA:188947-195301  chrA:96667-100330      2
+5      0      2 chrB:105835-110590 chrA:211077-216435      1
+6      0      2 chrB:116067-125228 chrA:145779-146790      2
+> comp(10, 20, dist=5000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1  chrA:94472-101784   chrA:22817-32695      1
+2      0      1 chrB:109516-118066   chrA:78293-85441      1
+3      0      1 chrB:149972-156324 chrA:201926-210768      2
+4      0      1   chrB:64410-72873   chrB:29071-37048      1
+5      0      2 chrA:133112-141517 chrA:101783-108052      1
+6      0      2 chrA:235164-239119 chrA:160921-166865      2
+> comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:170657-176811 chrA:170657-176811      1
+2      0      5 chrA:176812-181593 chrA:170657-176811      1
+3      0      5 chrA:275513-283314 chrA:122947-131886      1
+4      0      5 chrA:283315-292056 chrA:224462-232648      1
+5      0      5   chrA:95863-98541    chrA:7831-13433      1
+6      0      5  chrA:98542-104763   chrA:77418-85802      2
+> comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(10, 20, dist=1000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:229917-236278 chrA:137866-147769      1
+2      0      1 chrA:229917-236278 chrA:167649-172319      1
+3      0      1 chrA:246860-253786 chrA:158766-167648      1
+4      0      1 chrB:109233-117704   chrA:63273-67168      1
+5      0      1   chrB:40638-48501   chrA:67169-70935      1
+6      0      1   chrB:74589-77879     chrB:1175-8605      1
+> comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor           target nfrags
+1      0      5 chrA:216792-220737 chrA:35940-40374      1
+2      0      5 chrB:118232-119363 chrA:27220-31303      1
+3      0      5 chrB:128835-138677 chrA:60626-68945      1
+4      0      5   chrB:21269-24226 chrA:56848-58572      1
+5      0      5   chrB:62952-65301 chrA:54661-56847      1
+6      0      6 chrA:116957-122375 chrA:75119-82165      1
+> comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> 
+> ###################################################################################################
+> # Another example, a bit more extreme with more overlaps.
+> 
+> comp(50, 20, dist=10000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1   chrA:72333-79895   chrA:59621-72332      6
+2      0      1 chrB:143402-149272   chrA:48367-59620      2
+3      0      1   chrB:48971-61655   chrB:30595-43783      4
+4      0      1  chrB:99939-109924 chrA:239481-251017      8
+5      0      2 chrB:143402-149272 chrB:120731-126898      1
+6      0      2   chrB:48971-61655 chrA:190756-200361      4
+> comp(50, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:250473-259041   chrA:79380-87117      2
+2      0      1       chrB:1-11774   chrA:29042-39498      4
+3      0      1 chrB:111520-121351 chrA:108131-121653      2
+4      0      1 chrB:140719-149158 chrB:128572-140722      4
+5      0      1 chrB:158651-172375 chrB:111520-121351      2
+6      0      1   chrB:23463-30182   chrB:11771-23466      2
+> comp(50, 20, dist=10000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1  chrA:96640-111753  chrA:96640-111753      6
+2      0      1 chrB:119639-128791 chrA:117420-130378      4
+3      0      1 chrB:128790-140380   chrB:40451-47685      2
+4      0      2 chrA:232502-243566   chrA:80152-91958      4
+5      0      2 chrA:251064-260238        chrA:1-6597      1
+6      0      2   chrA:57069-70235    chrA:6596-20785      4
+> comp(50, 20, dist=10000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:178672-193296 chrA:172470-178671      2
+2      0      5 chrA:217924-232488 chrA:136387-145960      3
+3      0      5   chrA:89231-96193   chrA:52037-64349      4
+4      0      5 chrB:141573-151091 chrA:217924-232488      6
+5      0      5   chrB:68748-80413   chrB:17629-30574      8
+6      0      6 chrA:145961-161928   chrA:39334-52036      6
+> comp(50, 20, dist=10000, cuts=simcuts(chromos), filter=20)
+  count1 count2             anchor           target nfrags
+1     11      9 chrB:119230-129229 chrB:37447-52190     16
+2     17      6   chrB:67291-80390     chrB:1-12764      6
+> comp(50, 20, dist=5000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:166251-168444 chrA:126530-134327      1
+2      0      1 chrA:166251-168444   chrA:90468-92767      1
+3      0      1   chrA:66017-75654        chrA:1-5538      1
+4      0      1 chrB:105416-112689     chrB:6407-9670      2
+5      0      1 chrB:129999-137095   chrB:44383-47232      1
+6      0      1   chrB:18544-25890 chrA:158720-166250      4
+> comp(50, 20, dist=5000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:267221-274112   chrA:31818-41789      1
+2      0      1 chrB:105531-107875   chrA:15192-23652      1
+3      0      1 chrB:114056-116032 chrA:172007-177132      1
+4      0      1 chrB:114056-116032   chrA:52684-56702      1
+5      0      1   chrB:19701-24050        chrA:1-4612      2
+6      0      1   chrB:40080-47404 chrA:108026-116636      1
+> comp(50, 20, dist=5000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrB:103760-106066   chrB:84339-93783      1
+2      0      5 chrB:121534-124889   chrA:44271-48933      1
+3      0      5   chrB:28241-36707   chrB:19851-28240      4
+4      0      5   chrB:69274-76264   chrB:69274-76264      1
+5      0      6 chrA:139709-146085   chrA:69759-78229      2
+6      0      6 chrA:252180-257224 chrA:193509-199409      1
+> comp(50, 20, dist=5000, cuts=simcuts(chromos), filter=20)
+  count1 count2             anchor      target nfrags
+1     22      0 chrB:118147-124799 chrB:1-4586      3
+> comp(50, 20, dist=1000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1   chrA:30807-37704   chrA:28112-30806      1
+2      0      1   chrB:80589-87186 chrA:165305-175069      1
+3      0      2 chrA:126070-127671 chrA:109453-116448      1
+4      0      2 chrB:102296-103338   chrB:22380-23757      1
+5      0      2 chrB:124071-128806 chrA:126070-127671      1
+6      0      2 chrB:128807-134579 chrA:198123-207750      1
+> comp(50, 20, dist=1000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:192376-200261 chrA:114701-121487      1
+2      0      5 chrA:218669-227413 chrA:121488-129385      1
+3      0      5 chrA:229509-237255 chrA:189190-190954      1
+4      0      6        chrB:1-6477  chrA:94452-100139      1
+5      0      6 chrB:160881-164630 chrA:129386-132616      1
+6      0      6 chrB:174432-177203    chrB:6478-14133      1
+> comp(50, 20, dist=1000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> 
+> comp(30, 30, dist=10000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:169408-177135    chrA:7830-22323      4
+2      0      1 chrA:196002-211053 chrA:196002-211053      6
+3      0      1 chrA:211054-219779 chrA:169408-177135      6
+4      0      1 chrA:253230-260371 chrA:211054-219779      6
+5      0      1 chrB:101187-113153   chrA:22324-30834      2
+6      0      1 chrB:137866-154587 chrB:130327-137865      2
+> comp(30, 30, dist=10000, cuts=simcuts(chromos, overlap=4))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:128566-137027 chrA:110181-122552      3
+2      0      1 chrA:220187-229908 chrA:158829-167721      4
+3      0      1 chrA:237804-245866 chrA:199507-208732      1
+4      0      1 chrA:245863-259188 chrA:149852-158832      2
+5      0      1   chrA:50999-56016        chrA:1-8047      4
+6      0      1        chrB:1-8622 chrA:229905-237807      1
+> comp(30, 30, dist=10000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:113458-118535   chrA:72188-78826      4
+2      0      1   chrA:49156-59754   chrA:20133-30724      9
+3      0      1 chrB:102076-112397   chrB:38646-49632      6
+4      0      1 chrB:118209-126299   chrB:28202-38647      2
+5      0      1   chrB:60064-69478 chrA:209921-217883      3
+6      0      1   chrB:69477-78368   chrB:49631-60065      4
+> comp(30, 30, dist=10000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:188737-198236 chrA:181768-188736      2
+2      0      5 chrA:198237-212974   chrA:22353-31581      4
+3      0      5 chrA:270661-276059 chrA:212975-222388      2
+4      0      5       chrB:1-11046  chrA:89203-101860     12
+5      0      5   chrB:11047-22295 chrA:156816-169605      6
+6      0      5 chrB:117312-125524 chrA:128832-143923      4
+> comp(30, 30, dist=10000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(30, 30, dist=5000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:118583-121067   chrA:45963-50582      2
+2      0      1 chrA:206144-215878   chrA:45963-50582      2
+3      0      1 chrA:224997-229320   chrA:45963-50582      2
+4      0      1   chrA:38784-45962   chrA:37335-38783      1
+5      0      1 chrB:115034-121466 chrA:135885-144512      1
+6      0      1 chrB:124089-130891  chrB:98403-102564      1
+> comp(30, 30, dist=5000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:145337-151270   chrA:62864-69948      2
+2      0      1 chrA:175652-177635 chrA:109298-116736      1
+3      0      1 chrA:219643-224680 chrA:184305-193247      1
+4      0      1 chrB:119972-124424  chrB:97455-106273      1
+5      0      1 chrB:129750-138394 chrA:122130-128938      2
+6      0      1 chrB:138393-148049   chrA:69947-75081      1
+> comp(30, 30, dist=5000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:176890-182945 chrA:176890-182945      1
+2      0      5 chrA:199260-205883   chrA:83217-92460      1
+3      0      5 chrA:219845-225437 chrA:111982-119285      2
+4      0      5 chrA:219845-225437 chrA:160379-167681      2
+5      0      5   chrA:32284-40381     chrA:3889-9488      1
+6      0      5   chrA:75368-81591   chrA:62394-69617      1
+> comp(30, 30, dist=5000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> comp(30, 30, dist=1000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:106043-115306   chrA:85249-88139      1
+2      0      1 chrA:144790-148163   chrA:37928-39622      1
+3      0      1 chrA:162993-168501   chrA:27835-30644      1
+4      0      1 chrA:174007-179845    chrA:6362-15182      1
+5      0      1 chrA:207906-212822 chrA:106043-115306      1
+6      0      1 chrB:132761-140326   chrB:66794-69533      1
+> comp(30, 30, dist=1000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:169695-178073 chrA:145238-151677      1
+2      0      5 chrA:194303-202493 chrA:135657-145237      1
+3      0      5 chrA:223276-225588 chrA:161066-163755      1
+4      0      5 chrA:225589-235550 chrA:210402-214562      1
+5      0      5 chrA:289060-292802 chrA:235551-242207      1
+6      0      5 chrB:101670-105309   chrB:68411-76166      1
+> comp(30, 30, dist=1000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> 
+> ###################################################################################################
+> # A final example which is the pinnacle of extremity.
+> 
+> comp(200, 100, dist=10000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:138679-149309   chrA:81522-88185      2
+2      0      1 chrA:156545-170390 chrA:138679-149309      4
+3      0      1 chrA:156545-170390   chrA:16907-29957      4
+4      0      1 chrA:156545-170390   chrA:29958-40933      4
+5      0      1 chrA:181294-190219   chrA:59337-67775      3
+6      0      1 chrA:207890-222631 chrA:170391-181293      4
+> comp(200, 100, dist=10000, cuts=simcuts(chromos, overlap=4))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:179983-188623 chrA:130341-140224      3
+2      0      1 chrA:235707-251589   chrA:22245-28675      2
+3      0      1 chrA:235707-251589 chrA:235707-251589      3
+4      0      1 chrB:120275-126317   chrA:22245-28675      1
+5      0      1 chrB:141733-148473        chrA:1-6202      3
+6      0      1 chrB:141733-148473   chrB:80755-88928      3
+> comp(200, 100, dist=10000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:149507-163861   chrA:68880-79612     12
+2      0      1 chrA:180915-190502   chrA:91425-98211      6
+3      0      1 chrA:190501-203338   chrA:79611-91426      6
+4      0      1 chrA:208367-215893   chrA:41091-46695      2
+5      0      1 chrA:208367-215893    chrA:9271-16708      1
+6      0      1 chrA:245611-260975 chrA:111076-118640      2
+> comp(200, 100, dist=10000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:125879-141753       chrA:1-12922      6
+2      0      5 chrA:196322-209509   chrA:49864-58137      2
+3      0      5 chrA:248149-259119   chrA:39520-49863      4
+4      0      5 chrB:139735-151940 chrA:221163-231374      6
+5      0      5   chrB:17720-32541 chrA:231375-238285      2
+6      0      5   chrB:32542-37937 chrA:238286-248148      2
+> comp(200, 100, dist=10000, cuts=simcuts(chromos), filter=20)
+  count1 count2             anchor             target nfrags
+1      3     29 chrB:109401-119485   chrB:81920-88241      8
+2      6     15 chrB:161527-170356   chrB:81920-88241      4
+3      7     13 chrB:127167-142994   chrB:59035-68106      4
+4      8     14 chrB:109401-119485 chrA:237882-249063      8
+5      8     15 chrB:109401-119485   chrA:62323-71858      8
+6      8     30  chrB:88242-103424   chrB:50191-59034      2
+> comp(200, 100, dist=5000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:111392-115146 chrA:104545-111391      1
+2      0      1 chrA:126474-133009 chrA:111392-115146      1
+3      0      1 chrA:166184-168781   chrA:55567-58780      1
+4      0      1 chrA:168782-178626   chrA:31680-37798      1
+5      0      1 chrA:178627-180440 chrA:126474-133009      1
+6      0      1 chrA:194571-203887  chrA:98668-104544      1
+> comp(200, 100, dist=5000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:132178-141782        chrA:1-6590      2
+2      0      1 chrA:163146-169223 chrA:102005-109981      1
+3      0      1 chrA:176867-182506 chrA:109980-115992      1
+4      0      1 chrA:176867-182506 chrA:155570-161132      1
+5      0      1 chrA:237615-245936 chrA:128761-132179      2
+6      0      1 chrA:237615-245936   chrA:90279-98833      2
+> comp(200, 100, dist=5000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5   chrA:13294-21710    chrA:4452-13293      1
+2      0      5 chrA:180161-186426 chrA:150619-156151      1
+3      0      5 chrA:186427-195187 chrA:146703-150618      1
+4      0      5 chrA:216079-221391 chrA:150619-156151      1
+5      0      5 chrA:216079-221391   chrA:21711-27595      1
+6      0      5 chrA:249681-255545 chrA:248615-249680      1
+> comp(200, 100, dist=5000, cuts=simcuts(chromos), filter=20)
+  count1 count2             anchor             target nfrags
+1      0     23 chrA:180934-189182 chrA:158758-164924      3
+2      3     17 chrB:123376-132786   chrB:68644-75322      2
+3      6     15   chrB:46893-52753 chrA:211791-214516      2
+4      7     18 chrB:117885-123375   chrB:11350-21134      1
+5     10     12 chrA:158758-164924 chrA:141310-145119      6
+6     13      8 chrB:117885-123375   chrB:21135-25572      1
+> comp(200, 100, dist=1000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:117180-123072 chrA:112507-117179      1
+2      0      1 chrA:135878-137826   chrA:50791-60436      1
+3      0      1 chrA:137827-146146   chrA:74841-82696      1
+4      0      1 chrA:233623-234757 chrA:152848-154476      1
+5      0      1 chrA:233623-234757 chrA:225409-229268      1
+6      0      1 chrA:265399-272170 chrA:154477-160703      1
+> comp(200, 100, dist=1000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:136654-138826   chrA:38830-41560      1
+2      0      5 chrA:144739-152167   chrA:18312-19680      1
+3      0      5 chrA:172083-180219 chrA:122481-127919      1
+4      0      5 chrA:180220-185448   chrA:19681-22792      1
+5      0      5 chrA:185449-192627 chrA:117921-122480      1
+6      0      5 chrA:197847-203044   chrA:93278-96454      1
+> comp(200, 100, dist=1000, cuts=simcuts(chromos), filter=20)
+  count1 count2             anchor             target nfrags
+1     18      5 chrB:108446-113882 chrA:217913-219366      1
+> 
+> comp(50, 200, dist=10000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:100346-113274   chrA:83450-88481      6
+2      0      1 chrA:122995-126487       chrA:1-10673      6
+3      0      1 chrA:150985-161204   chrA:49544-62198      6
+4      0      1 chrA:161205-173562   chrA:49544-62198      6
+5      0      1 chrA:179903-188505 chrA:173563-179902      2
+6      0      1 chrA:188506-198076 chrA:179903-188505      4
+> comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=4))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:129384-143298   chrA:30361-42554      4
+2      0      1 chrA:150278-155862        chrA:1-9952      2
+3      0      1 chrA:210693-220355 chrA:107362-118865      9
+4      0      1 chrA:232319-238092 chrA:210693-220355      3
+5      0      1 chrA:248846-258450 chrA:182539-192783      4
+6      0      1 chrA:258447-267283    chrA:9949-18791      2
+> comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:119880-129550 chrA:111852-119881      6
+2      0      1 chrA:129549-142313        chrA:1-7084      2
+3      0      1 chrA:149434-161759   chrA:40656-50859      4
+4      0      1 chrA:149434-161759    chrA:7083-24047      4
+5      0      1 chrA:161758-169557   chrA:81204-88827      6
+6      0      1 chrA:182017-187612 chrA:161758-169557      6
+> comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:110544-118075       chrA:1-12054      6
+2      0      5 chrA:132083-140811   chrA:28293-40070      4
+3      0      5 chrA:177926-190457   chrA:61369-70167      2
+4      0      5 chrA:190458-199616   chrA:70168-78454      1
+5      0      5 chrA:199617-210308 chrA:149530-158497      2
+6      0      5 chrA:199617-210308   chrA:40071-51302      4
+> comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=20)
+  count1 count2             anchor           target nfrags
+1      0     20 chrA:212546-218841 chrA:37952-48887      6
+2      0     20   chrB:40064-54200 chrB:33902-40063      3
+3      0     23 chrA:128122-138743  chrA:9609-17075      4
+4      0     23 chrA:188165-204367 chrA:78901-93387      6
+5      0     23 chrB:137936-150830 chrB:81230-89243      6
+6      0     24   chrB:81230-89243 chrB:18613-33901      4
+> comp(50, 200, dist=5000, cuts=simcuts(chromos))
+  count1 count2             anchor           target nfrags
+1      0      1 chrA:124393-129906 chrA:33864-40692      1
+2      0      1 chrA:129907-137411 chrA:20802-29527      2
+3      0      1 chrA:148320-155573 chrA:43859-52316      4
+4      0      1 chrA:148320-155573 chrA:69626-78192      2
+5      0      1 chrA:148320-155573 chrA:87721-97587      2
+6      0      1 chrA:155574-163025 chrA:19212-20801      1
+> comp(50, 200, dist=5000, cuts=simcuts(chromos, overlap=2))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:125668-132214   chrA:27551-31326      1
+2      0      1 chrA:169108-171617   chrA:31325-38785      1
+3      0      1 chrA:187941-190134 chrA:153755-160222      1
+4      0      1 chrA:187941-190134   chrA:27551-31326      1
+5      0      1 chrA:190133-193621   chrA:67203-76740      1
+6      0      1 chrA:193620-201779 chrA:115455-119382      2
+> comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:110595-113687        chrA:1-5241      2
+2      0      5 chrA:110595-113687    chrA:5242-10288      1
+3      0      5 chrA:127169-132701 chrA:105274-110594      1
+4      0      5 chrA:127169-132701   chrA:53017-61844      1
+5      0      5 chrA:127169-132701   chrA:85859-88549      1
+6      0      5 chrA:132702-134981   chrA:53017-61844      1
+> comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=20)
+  count1 count2           anchor           target nfrags
+1      6     19 chrB:65928-71178 chrB:29847-36124      2
+> comp(50, 200, dist=1000, cuts=simcuts(chromos))
+  count1 count2             anchor             target nfrags
+1      0      1 chrA:126802-136279   chrA:77618-78837      1
+2      0      1 chrA:151088-160619   chrA:89657-93300      1
+3      0      1 chrA:169034-172991   chrA:50373-60316      1
+4      0      1 chrA:172992-174314   chrA:70126-77617      1
+5      0      1 chrA:183474-185339   chrA:77618-78837      1
+6      0      1 chrA:185340-190487 chrA:136280-144034      1
+> comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=5)
+  count1 count2             anchor             target nfrags
+1      0      5 chrA:101318-107781   chrA:93522-95653      1
+2      0      5 chrA:123790-130063   chrA:45541-51664      1
+3      0      5 chrA:130064-136413   chrA:57495-62487      1
+4      0      5 chrA:143292-151722   chrA:33637-37298      1
+5      0      5   chrA:16001-20476   chrA:10862-16000      1
+6      0      5 chrA:163204-168464 chrA:115477-118714      1
+> comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=20)
+[1] count1 count2 anchor target nfrags
+<0 rows> (or 0-length row.names)
+> 
+> ##################################################################################################
+> # Cleaning up.
+> 
+> unlink("temp-inter", recursive=TRUE)
+> 
+> ##################################################################################################
+> # End.
+> 
+> proc.time()
+   user  system elapsed 
+ 61.270   0.664  62.092 

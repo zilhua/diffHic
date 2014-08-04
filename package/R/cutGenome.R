@@ -1,0 +1,31 @@
+cutGenome <- function(bs, pattern, overhang=4L) 
+# This finds the target cut sites in the genome. It currently only searches the
+# sense strand, which is fine because if the patterns is an inverse palindrome.
+# Otherwise, there may be some problems as you'd need to search the reverse
+# strand as well.
+#
+# written by Aaron Lun	
+{
+	if (nchar(pattern)%%2L!=0) { stop("recognition site must be even in size") }
+	ps <- DNAString(pattern)
+	if (reverseComplement(ps)!=ps) { stop("recognition site must be an inverse palindrome") }
+	overhang <- as.integer(overhang)
+	if (overhang > nchar(pattern) || overhang < 0L || overhang%%2L!=0) { stop("overhang must be a non-negative even integer that is not greater than pattern length") }
+	remainder <- (nchar(pattern)-overhang)/2L
+
+	original <- list()
+	maxed <- list()
+	for (chr in seqnames(bs)) {
+        x <- matchPattern(pattern, bs[[chr]]);
+        starts <- c(1L, start(x)+remainder);
+        ends <- c(start(x)+remainder-1L+overhang, length(bs[[chr]]));
+		original[[chr]] <- GRanges(chr, IRanges(starts, ends))
+	}
+		
+	names(original) <- NULL
+	suppressWarnings(original <- do.call(c, original))
+    seqlevels(original) <- seqnames(bs)
+    suppressWarnings(seqinfo(original) <- Seqinfo(seqnames(bs), seqlengths(bs)))
+	return(original)
+}
+

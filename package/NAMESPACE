@@ -1,0 +1,18 @@
+#  Calling the dynamic library.
+useDynLib(diffHic, .registration=TRUE, .fixes="cxx_")
+
+#  All functions exported, sorted by approximate function:
+exportPattern(cutGenome, fillGenome,
+     preparePairs, mergePairs, savePairs, countPairs, getPairData,
+     squareCounts, connectCounts, marginCounts, 
+     countNeighbors, filterCounts, 
+     correctedContact, 
+     getDistance, getArea,
+     boxPairs, clusterPairs,
+     plotPlaid)
+
+#  Requires the Rsamtools and GenomicRanges packages.
+import(Rsamtools,GenomicRanges,Biostrings,BSgenome,edgeR,rhdf5)
+
+
+

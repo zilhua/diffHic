@@ -1,0 +1,196 @@
+
+R version 3.1.0 (2014-04-10) -- "Spring Dance"
+Copyright (C) 2014 The R Foundation for Statistical Computing
+Platform: x86_64-unknown-linux-gnu (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> ####################################################################################################
+> # Tests the iterative correction script.
+> 
+> suppressPackageStartupMessages(require(diffHic))
+> suppressPackageStartupMessages(require(edgeR))
+> 	
+> comp<- function(npairs, nfrags, nlibs, lambda=5, dispersion=0.05, winsorize=0.02, discard=0.02, locality=1) {
++ 	all.pairs <- rbind(t(combn(nfrags, 2)), cbind(1:nfrags, 1:nfrags))
++ 	all.pairs <- data.frame(anchor.id=all.pairs[,2], target.id=all.pairs[,1])	
++ 	npairs <- min(npairs, nrow(all.pairs))
++ 	counts <- do.call(data.frame, lapply(1:nlibs, FUN=function(x) { rbeta(npairs, lambda, 1) + 0.5 }) )
++ 	data <- list(counts=counts, pairs=all.pairs[sample(nrow(all.pairs), npairs),,drop=FALSE], 
++ 		totals=rep(1, nlibs), region=GRanges(sort(sample(c("chrA", "chrB", "chrC"), nfrags, replace=TRUE)),
++ 			IRanges(1:nfrags, 1:nfrags)))
++ 	
++ 	# Constructing the values.	
++ 	actual.mat<-matrix(0, nfrags, nfrags)
++ 	ave.count <- exp(mglmOneGroup(counts, offset=numeric(nlibs), dispersion=dispersion))
++ 	for (x in 1:nrow(data$pairs)) {
++ 		a<-data$pairs$anchor.id[x]
++ 		t<-data$pairs$target.id[x]
++ 		actual.mat[a,t]<-ave.count[x]
++ 		if (a!=t) { actual.mat[t,a]<-ave.count[x] }
++ 	}
++ 	# Negating local interations.
++ 	if (locality >= 0L){
++  		per.chr <- split(1:nfrags, as.integer(seqnames(data$region)))
++ 		for (curloc in 0:locality) {
++ 			failed <- 0L
++ 			for (chr in per.chr) {
++ 				if (length(chr)<=curloc) { 
++ 					failed <- failed + 1L
++ 					next 
++ 				}
++ 				current <- chr[1:(length(chr) - curloc)]
++ 				actual.mat[(current - 1) * nfrags + current + curloc] <- 0
++ 				actual.mat[(current + curloc - 1) * nfrags + current] <- 0
++ 			}
++ 			if (failed==length(per.chr)) { break }
++ 		}		
++ 	}
++ 	
++ 	# Winsorizing.
++ 	temp.mat <- actual.mat[lower.tri(actual.mat, diag=TRUE)]
++ 	is.nonzero <- temp.mat>1e-6
++ 	winsor.val <- max(temp.mat[is.nonzero][sum(is.nonzero) - rank(temp.mat[is.nonzero], ties="first") + 1L > sum(is.nonzero)*winsorize])
++ 	actual.mat[actual.mat > winsor.val] <- winsor.val
++ 
++ 	# Checking those that have a low sum of counts.
++ 	frag.sum <- rowSums(actual.mat) 
++ 	not.empty <- frag.sum > 1e-6
++ 	discard.limit <- min(frag.sum[not.empty][rank(frag.sum[not.empty]) > sum(not.empty)*discard])
++ 	to.discard <- frag.sum < discard.limit
++ 	actual.mat[to.discard,] <- 0
++ 	actual.mat[,to.discard] <- 0
++ 
++ 	# Iterative correction.
++ 	bias<-rep(1, nfrags)
++ 	iters <- 50
++ 	for (i in 1:iters) {
++ 		additional<-sqrt(rowSums(actual.mat))
++ 		bias <- bias*additional
++ 		additional[additional==0]<-1
++ 		actual.mat<-t(t(actual.mat/additional)/additional)
++ 	}
++ 	
++ 	# Comparing to the reference implementation. We use a fairly gentle threshold for differences,
++ 	# due to the iterative nature of things (and numerical instability and so forth).
++ 	test <- correctedContact(data, dispersion=dispersion, winsor=winsorize, ignore=discard, 
++ 			iterations=iters, exclude.local=locality)
++ 	if (!identical(is.na(test$bias), to.discard)) { stop("invalid biases do not match up") }
++ 	is.okay <- !is.na(test$bias)
++ 	if (any(abs(test$bias[is.okay]-bias[is.okay]) > 1e-6 * bias[is.okay])) { stop("biases do not match up") }
++ 	return(head(bias))
++ }
+> 
+> ####################################################################################################
+> 
+> set.seed(0)
+> 
+> # Varying the number of fragments.
+> 
+> comp(100, 20, 2, discard=0.1)
+[1] 3.421835 2.438022 2.705991 2.690039 3.041281 0.000000
+> comp(100, 30, 2, discard=0.1)
+[1] 5.357013 2.562937 1.210053 1.851451 2.362851 3.178462
+> comp(100, 40, 2, discard=0.1)
+[1]  8.3167285  2.1305093  0.7928345  9.8431573 11.1766673  2.5317080
+> 
+> comp(100, 20, 2, winsor=0.05)
+[1] 3.019060 4.778117 2.424711 2.844092 1.513393 2.818375
+> comp(100, 30, 2, winsor=0.1)
+[1] 4.9921004 1.2849539 0.7033604 2.1090719 1.1344362 0.0759640
+> comp(100, 40, 2, winsor=0.01)
+[1] 2.592957 6.439326 3.441576 3.794211 2.801313 3.773221
+> 
+> comp(100, 20, 2, locality=0)
+[1] 1.942354 5.678540 2.607677 2.229314 3.503633 3.534452
+> comp(100, 30, 2, locality=2)
+[1] 2.1521896 3.3151684 0.3265288 1.9481450 1.6400404 3.5917751
+> comp(100, 40, 2, locality=1)
+[1] 106.0116608   0.8246813   1.3411789   1.5618267   0.8423052   1.6177229
+> 
+> # Trying with fewer reads.
+> 
+> #debug(comp)
+> comp(10, 20, 2, discard=0.1)
+[1] 1.270425e-02 8.208100e+03 1.167332e+00 8.043113e-03 0.000000e+00
+[6] 1.155334e+00
+> comp(10, 30, 2, discard=0.1)
+[1] 0.0000000000 0.0000000000 0.0002521053 0.0000000000 0.0000000000
+[6] 0.0000000000
+> comp(10, 40, 2, discard=0.1)
+[1] 1.2195360953 0.0002554445 0.0000000000 0.0000000000 0.0000000000
+[6] 0.0000000000
+> 
+> comp(20, 20, 2, winsor=0.05)
+[1] 1.01410288 0.00000000 0.00000000 0.03580662 0.47999453 1.65505011
+> comp(20, 30, 2, winsor=0.1)
+[1] 3.889357e-01 6.526136e+07 0.000000e+00 1.498597e+04 2.166113e-01
+[6] 5.395972e+00
+> comp(20, 40, 2, winsor=0.01)
+[1] 0.000000e+00 2.499769e-04 7.675703e+03 1.170957e+00 0.000000e+00
+[6] 1.115952e+00
+> 
+> comp(10, 20, 2, locality=0)
+[1] 0.000000 0.000000 0.000000 1.789348 1.523909 1.672097
+> comp(10, 30, 2, locality=2)
+[1] 0 0 0 0 0 0
+> comp(10, 40, 2, locality=1)
+[1] 0.000000 1.097221 0.000000 0.000000 0.000000 1.187342
+> 
+> # Trying with fewer libraries.
+> 
+> comp(50, 20, 1, discard=0.1)
+[1] 0.5959429 1.2642943 7.4435702 7.2472356 2.8706201 2.8815054
+> comp(50, 30, 1, discard=0.1)
+[1] 2.392187 2.456879 3.619032 1.297867 5.388072 2.970141
+> comp(50, 40, 1, discard=0.1)
+[1]  0.471481545  0.000000000  0.004198271 26.025130048 30.067077651
+[6]  0.000000000
+> 
+> comp(50, 20, 1, winsor=0.05)
+[1]  5.638774 16.282561 33.120613 13.734161  1.280129  7.740867
+> comp(50, 30, 1, winsor=0.1)
+[1] 0.8728210 5.7811603 3.5696660 2.7825128 0.1062165 0.9885383
+> comp(50, 40, 1, winsor=0.01)
+[1] 2.147214e+03 5.541884e+01 7.755318e-02 1.594959e-03 3.026886e-03
+[6] 5.406362e-02
+> 
+> comp(50, 20, 1, locality=0)
+[1] 1.013066 4.800938 4.544956 1.664832 1.623224 1.779703
+> comp(50, 30, 1, locality=2)
+[1] 3.8582923 4.7980626 1.4289754 4.7996790 0.9526813 0.3933637
+> comp(50, 40, 1, locality=1)
+[1]  0.622640977  1.220280907  0.000000000  0.003036738  2.192202998
+[6] 19.379079210
+> 
+> # Trying with no special attention.
+> comp(50, 20, 1, discard=0, winsor=0, locality=-1)
+[1] 2.0913554 2.4423305 1.7974518 0.4089526 0.0000000 2.0264371
+> comp(50, 50, 1, discard=0, winsor=0, locality=-1)
+[1] 0.2499542 1.7555959 1.1814948 1.9581102 0.1094620 0.1255706
+> comp(50, 20, 2, discard=0, winsor=0, locality=-1)
+[1]  3.16028218  4.42387479  1.43892298  3.51698818  0.03070515 44.51188767
+> comp(50, 20, 2, discard=0, winsor=0, locality=1000)
+[1] 6.074579e-07 0.000000e+00 3.126642e-02 1.083357e-02 4.878987e-07
+[6] 1.736698e+00
+> comp(100, 20, 2, discard=0, winsor=0, locality=1000)
+[1] 1.841519 1.918694 3.095322 2.470925 3.728519 3.548940
+> 
+> ####################################################################################################
+> # End.
+> 
+> proc.time()
+   user  system elapsed 
+  5.049   0.063   5.124 

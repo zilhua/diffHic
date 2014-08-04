@@ -1,0 +1,98 @@
+###################################################################################################
+# This tests the interaction counting capabilities of the marginal counter.
+
+chromos<-c(chrA=51, chrB=31)
+source("simcounts.R")
+
+# We set up the comparison function to check our results. 
+
+suppressPackageStartupMessages(require(diffHic))
+dir.create("temp-marg")
+dir1<-"temp-marg/1.h5"
+dir2<-"temp-marg/2.h5"
+dir.create(dir1)
+dir.create(dir2)
+
+comp<-function(n1, n2, dist, cuts) {
+	simgen(dir1, n1, chromos)
+	simgen(dir2, n2, chromos)
+	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=1L)
+	frags<-marginCounts(c(dir1, dir2), fragments=cuts, width=dist)
+
+	n<-length(y$region)
+	ref<-matrix(0L, n, 2)
+	for (x in 1:nrow(y$pairs)) {
+		a<-y$pairs$anchor.id[x]
+		t<-y$pairs$target.id[x]
+		ref[a,]<-ref[a,]+y$counts[x,]
+		if (a!=t) { ref[t,]<-ref[t,]+y$counts[x,] }
+	}
+	
+	keep<-which(rowSums(ref)>0.5)
+	if (!identical(ref[keep,], frags$counts)) { stop("mismatches in counts") }
+	if (!identical(frags$totals, y$totals)) { stop("mismatches in total counts") }
+	if (!identical(y$region[keep], frags$region))  { stop("mismatches in final regions") }
+	return(head(frags$counts))
+}
+
+###################################################################################################
+# Checking a vanilla count.
+
+set.seed(126857)
+comp(20, 10, dist=10000, cuts=simcuts(chromos))
+comp(20, 10, dist=10000, cuts=simcuts(chromos))
+comp(20, 10, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(20, 10, dist=5000, cuts=simcuts(chromos))
+comp(20, 10, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+# Repeating a couple of times.
+comp(10, 10, dist=10000, cuts=simcuts(chromos))
+comp(10, 10, dist=10000, cuts=simcuts(chromos))
+comp(10, 10, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(10, 10, dist=5000, cuts=simcuts(chromos))
+comp(10, 10, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+comp(10, 20, dist=10000, cuts=simcuts(chromos))
+comp(10, 20, dist=10000, cuts=simcuts(chromos))
+comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(10, 20, dist=5000, cuts=simcuts(chromos))
+comp(10, 20, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+###################################################################################################
+# Another example, a bit more extreme with more overlaps.
+
+comp(50, 20, dist=10000, cuts=simcuts(chromos))
+comp(50, 20, dist=10000, cuts=simcuts(chromos))
+comp(50, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(50, 20, dist=5000, cuts=simcuts(chromos))
+comp(50, 20, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+comp(30, 30, dist=10000, cuts=simcuts(chromos))
+comp(30, 30, dist=10000, cuts=simcuts(chromos))
+comp(30, 30, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(30, 30, dist=5000, cuts=simcuts(chromos))
+comp(30, 30, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+###################################################################################################
+# A final example which is the pinnacle of extremity.
+
+comp(200, 100, dist=10000, cuts=simcuts(chromos))
+comp(200, 100, dist=10000, cuts=simcuts(chromos))
+comp(200, 100, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(200, 100, dist=5000, cuts=simcuts(chromos))
+comp(200, 100, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+comp(50, 200, dist=10000, cuts=simcuts(chromos))
+comp(50, 200, dist=10000, cuts=simcuts(chromos))
+comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(50, 200, dist=5000, cuts=simcuts(chromos))
+comp(50, 200, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+##################################################################################################
+# Cleaning up.
+
+unlink("temp-marg", recursive=TRUE)
+
+##################################################################################################
+# End.
+
