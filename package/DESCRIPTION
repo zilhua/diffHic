@@ -6,7 +6,7 @@ Author: Aaron Lun <alun@wehi.edu.au>
 Maintainer: Aaron Lun <alun@wehi.edu.au>
 Depends: R (>= 2.15.0), GenomicRanges
 Imports: Rsamtools, Biostrings, BSgenome, edgeR, rhdf5
-Suggests: BSgenome.Ecoli.NCBI.20080805
+Suggests: BSgenome.Ecoli.NCBI.20080805, csaw
 biocViews: Bioinformatics, HighThroughputSequencing, Hi-C
 Description: Tests for differentially enriched interactions across conditions in a Hi-C experiment
 License: LGPL (>= 2)
