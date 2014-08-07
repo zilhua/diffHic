@@ -42,6 +42,6 @@ cutGenome(Ecoli, "AGCT", overhang=0L)
 }
 
 \seealso{
-\code{\link{fillGenome}}
+\code{\link{matchPattern}}
 }
 

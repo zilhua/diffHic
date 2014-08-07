@@ -28,7 +28,7 @@ To save space, it stores the indices of the interacting fragments for each read 
 Indexing is performed by matching up the mapping coordinates for each read with the restriction fragment boundaries. 
 Needless to say, the boundary coordinates in \code{fragments} must correspond to the reference genome being used. 
 In most cases, these can be generated using the \code{\link{cutGenome}} function from any given \code{BSgenome} object. 
-If a modified genome is used for alignment, then the coordinates of the restriction fragments on the modified genome are required, e.g., as produced by \code{\link{fillGenome}}.
+If, for any reason, a modified genome is used for alignment, then the coordinates of the restriction fragments on the modified genome are required.
 
 Each read pair subsequently becomes associated with a pair of restriction fragments.
 The anchor fragment is that with the higher genomic coordinate, i.e., the larger index in \code{fragments}.
