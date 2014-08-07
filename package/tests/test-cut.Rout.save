@@ -46,6 +46,8 @@ Type 'q()' to quit R.
 > require(BSgenome.Ecoli.NCBI.20080805)
 Loading required package: BSgenome.Ecoli.NCBI.20080805
 Loading required package: BSgenome
+Loading required package: Biostrings
+Loading required package: XVector
 > 
 > comp<-function(target, overhang=4L) {
 + 	current<-cutGenome(Ecoli, target, overhang=overhang)
@@ -176,63 +178,8 @@ GRanges with 6 ranges and 0 metadata columns:
      4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
 > 
 > ###################################################################################################
-> # Also some brief checking for fillGenome, though not too much.
-> 
-> dir.create("temp")
-> comp<-function(target, overhang=4L, spacer=25L) {
-+ 	ofile<-"temp/out.fa"
-+ 	out<-fillGenome(Ecoli, target, overhang=overhang, outfile=ofile, spacer=spacer)
-+ 	current1<-out$original
-+ 	current2<-out$modified
-+ 	theoretical<-findRestrictionSites(Ecoli, target)
-+ 
-+ 	# Checking sequence file consistency.
-+ 	stuff<-readDNAStringSet(ofile)
-+ 	chr.len<-sapply(split(end(current2), as.character(seqnames(current2))), FUN=max)			
-+ 	for (x in names(theoretical)) {
-+ 		stopifnot(length(stuff[[x]])==chr.len[[x]])
-+ 		stopifnot(length(stuff[[x]])==tail(theoretical[[x]], 1)+(length(theoretical[[x]])-1)*(spacer+overhang))
-+ 	}
-+ 
-+ 	# Checking the first boundary.
-+ 	chosen<-which(sapply(theoretical, FUN=length) > 1L)[1]
-+ 	if (is.null(chosen)) { return('no sites'); }
-+ 	pos<-theoretical[[chosen]][1]
-+ 	chosen<-stuff[[names(theoretical)[chosen]]]
-+ 
-+ 	nlen<-nchar(target)
-+ 	space.chosen<-subseq(chosen, pos+overhang/2+1, pos+overhang/2+spacer)
-+ 	stopifnot(as.character(space.chosen)==paste(rep("N", spacer), collapse=""))
-+ 
-+ 	left.chosen<-subseq(chosen, pos-nlen/2+1, pos+overhang/2)
-+ 	right.chosen<-subseq(chosen, pos+overhang/2+spacer+1, pos+overhang+spacer+nlen/2)
-+ 	remainder<-(nlen-overhang)/2
-+ 	ref<-paste(substr(target, 1, nlen-remainder), substr(target, remainder+1, nlen), sep="")
-+ 	stopifnot(as.character(xscat(left.chosen, right.chosen))==ref)
-+ 
-+ 	return(subseq(chosen, pos-nlen/2+1,  pos+overhang+spacer+nlen/2))
-+ }
-> 
-> comp("AAGCTT", 4L) # HindIII
-  35-letter "DNAString" instance
-seq: AAGCTNNNNNNNNNNNNNNNNNNNNNNNNNAGCTT
-> 
-> comp("CTAG", 2L) # BfaI
-  31-letter "DNAString" instance
-seq: CTANNNNNNNNNNNNNNNNNNNNNNNNNTAG
-> 
-> comp("GGCGCGCC", 4L, spacer=10) # AscI
-  22-letter "DNAString" instance
-seq: GGCGCGNNNNNNNNNNCGCGCC
-> 
-> ###################################################################################################
-> 
-> unlink("temp", recursive=TRUE);
-> 
-> ###################################################################################################
 > # End.
-> 
 > 
 > proc.time()
    user  system elapsed 
- 73.892   0.594  74.632 
+ 22.244   0.177  22.470 

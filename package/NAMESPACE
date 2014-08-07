@@ -2,7 +2,7 @@
 useDynLib(diffHic, .registration=TRUE, .fixes="cxx_")
 
 #  All functions exported, sorted by approximate function:
-exportPattern(cutGenome, fillGenome,
+exportPattern(cutGenome, 
      preparePairs, mergePairs, savePairs, countPairs, getPairData,
      squareCounts, connectCounts, marginCounts, 
      countNeighbors, filterCounts, 
