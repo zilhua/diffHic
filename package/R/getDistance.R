@@ -21,23 +21,40 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 	return(output)
 }
 
-getArea <- function(data)
+getArea <- function(data, fragments=NULL)
 # Computing the number of restriction fragment pairs in the interaction space.
 # This allows adjustment of abundances for comparison between differently-sized areas.
+# Special behaviour is necessary on the diagonal, as only half the fragments are actually used.
+# 'fragments' should be specified if there is any risk of partial overlaps.
 # Coercion to double is necessary in case the number of fragments overflows the integer type.
 # 
 # written by Aaron Lun
 # 30 July, 2014
+# modified 14 August 2014
 {
-#	is.same <- data$pairs[,1] == data$pairs[,2]
-	curnfrag <- as.double(data$region$nfrags[data$pairs[,1]])
-	returned <- curnfrag * data$region$nfrags[data$pairs[,2]]
-#	returned[is.same] <- curnfrag[is.same]*(curnfrag[is.same]+1)/2
+	ax <- data$pairs[,1]
+	tx <- data$pairs[,2]	
+	is.same <- ax==tx
+	curnfrag <- as.double(data$region$nfrags[ax])
+	returned <- curnfrag * data$region$nfrags[tx]
+	returned[is.same] <- curnfrag[is.same]*(curnfrag[is.same]+1)/2
+
+	if (!is.null(fragments)) { 
+		# Detour to protect against overlapping regions.
+		.checkFragments(fragments)
+
+		left.edge <- pmax(start(data$region[ax]), start(data$region[tx]))
+		right.edge <- pmin(end(data$region[ax]), end(data$region[tx]))
+		is.partial <- !is.same & right.edge >= left.edge & 
+			as.logical(seqnames(data$region[ax])==seqnames(data$region[tx])) 
+		
+		right.olap <- match(right.edge[is.partial], end(fragments))
+		left.olap <- match(left.edge[is.partial], start(fragments))
+ 	    if (any(is.na(right.olap)) || any(is.na(left.olap))) { stop("region boundaries should correspond to restriction fragment boundaries") }
+
+		n.overlap <- right.olap - left.olap + 1	
+		returned[is.partial] <- returned[is.partial] - n.overlap*(n.overlap-1)/2
+	}
+
 	returned
 }
-
-# Special behaviour is necessary on the diagonal, as only half the fragments are actually used.
-# Note that this won't work on partially overlapping ranges, because there's not enough
-# information to determine how many restriction fragments are overlapped. So, I just didn't
-# put it in at all for simplicity.
-
