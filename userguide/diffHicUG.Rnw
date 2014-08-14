@@ -126,7 +126,7 @@ require(edgeR)
 keep <- aveLogCPM(data$counts, lib.size=data$totals) > 0
 y <- DGEList(data$counts[keep,], lib.size=data$totals)
 require(csaw)
-y$offset <- normalizeChIP(y$counts, lib.sizes=y$samples$lib.size)
+y$offset <- normalizeChIP(y$counts, lib.sizes=y$samples$lib.size, type="loess")
 y <- estimateDisp(y, design)
 result <- glmQLFTest(y, design, robust=TRUE)
 @
@@ -462,13 +462,14 @@ The filter statistic should be independent of the $p$-value under the null hypot
 The aim is to enrich for false nulls without affecting type I error for the true nulls. 
 
 Assume that the counts for each bin pair are sampled from the negative binomial (NB) distribution.
-A (probably) independent filter statistic for NB-distributed counts is the average count across all libraries.
-This is often referred to as the average abundance (after a trivial transformation) and can be computed using the \code{aveLogCPM} function in \edgeR{} \citep{mccarthy2012glm}.
-The calculation is demonstrated below using the read pair counts for each pair of 1 Mbp bins.
+Here, the average count across all libraries is (probably) an independent filter statistic.
+This is also called the average abundance and can be computed using the \code{aveLogCPM} function in \edgeR{} \citep{mccarthy2012glm}.
+The calculation is demonstrated below, after adding a prior count to stabilize the estimates at low counts.
 
 <<eval=FALSE,label=avehistplot>>=
 require(edgeR)
-ave.ab <- aveLogCPM(data$counts, lib.size=data$totals)
+prior.count <- 5
+ave.ab <- aveLogCPM(data$counts, lib.size=data$totals, prior.count=prior.count)
 hist(ave.ab, xlab="Average abundance")
 @
 
@@ -483,20 +484,20 @@ hist(ave.ab, xlab="Average abundance")
 Bin pairs with an average abundance less than a certain threshold can be discarded.
 At the very least, the threshold should be chosen to screen out bin pairs with very low absolute counts.
 This is because these bin pairs will never have sufficient evidence to reject the null hypothesis.
-The example below removes those bin pairs with a count sum below 20 across all libraries.
+The example below removes those bin pairs with an average count below 5 across all libraries.
+Note the addition of the prior count for a valid comparison with the computed abndances.
 
 <<>>=
-sum.count <- 2^ave.ab * sum(data$totals)/1e6
-count.keep <- sum.count >= 20
+count.keep <- ave.ab >= log2(5 + prior.count) - mean(log2(data$totals/1e6))
 summary(count.keep)
 dummy <- data
 dummy$counts <- dummy$counts[count.keep,,drop=FALSE]
 dummy$pairs <- dummy$pairs[count.keep,]
 @
 
-This count-based approach is fairly objective yet still removes a reasonably large number of bin pairs. 
-More sophisticated strategies can be implemented where the choice of threshold is motivated by knowledge of the Hi-C protocol.
-These strategies are described in the rest of this chapter, and are combined with the count-based filter to maintain a minimum count size among the retained bin pairs.
+This count-based approach is fairly objective yet is still effective, i.e., removes a large number of bin pairs. 
+More sophisticated strategies can be implemented where the choice of threshold is motivated by some understanding of the Hi-C protocol.
+These strategies are described in the rest of this chapter, and will be combined with the count-based filter to maintain a minimum count size among the retained bin pairs.
 
 \subsection{Finding the interaction distance}
 The linear distance between each pair of the interacting bins is worth mentioning as it can also be used in filtering.
@@ -570,6 +571,7 @@ Larger counts are observed at lower distances, suggesting that a concomitantly h
 This expands the definition of ``uninteresting'' events to include those interactions that are formed by simple compaction of chromatin \citep{lin2012global}.
 
 In this strategy, a trend is first fitted to the normalized abundance for all intra-chromosomal bin pairs using the log-distance as the covariate. 
+Half of the bin size is added as a prior, to avoid undefined values when distances are zero.
 Inter-chromosomal bin pairs will not be involved in trend fitting as the distance will be \code{NA}.
 Nonetheless, the fitted value for these bin pairs is set to the fitted value of the largest intra-chromosomal distance.
 
@@ -666,16 +668,29 @@ An example is shown below, using the thresholds from trend-based filtering.
 
 <<>>=
 new.threshold <- trend.threshold[small2large] - 2*log2(deflation)
-small.ab <- aveLogCPM(smaller.data$counts, lib.size=smaller.data$totals) 
+@
+
+The average abundance must also be computed with some consideration of the differences in bin size.
+Specifically, the prior count must be scaled down before addition.
+This avoids spurious differences in the abundances of small and large bin pairs after downscaling of the latter.
+If the same prior is used, downscaling of the abundances for large bin pairs will reduce the size of the effective prior added to those counts.
+
+<<>>=
+small.ab <- aveLogCPM(smaller.data$counts, lib.size=smaller.data$totals, 
+    prior.count=prior.count/deflation^2) 
+@
+
+Finally, filtering can be performed by comparing the abundances of the smaller bin pairs to the adjusted threshold.
+Though more bin pairs are retained, remember that the bins themselves are smaller than those used in the rest of the examples.
+Thus, the retained area of the interaction space is actually lower.
+Also note that a non-unity \code{filter} is used in \code{squareCounts}, so no additional filtering is necessary to enforce a minimum count size.
+
+<<>>=
 small.keep <- small.ab > new.threshold 
 summary(small.keep)
 smaller.data$counts <- smaller.data$counts[small.keep,,drop=FALSE]
 smaller.data$pairs <- smaller.data$pairs[small.keep,]
 @
-
-Though more bin pairs are retained, remember that the bins themselves are smaller than those used in the rest of the examples.
-Thus, the retained area of the interaction space is actually lower.
-Also keep in mind that a non-unity \code{filter} is used in \code{squareCounts}, so no additional filtering is necessary to enforce a minimum count size.
 
 The same procedure can be applied for direct filtering by replacing \code{new.threshold} with \code{direct.threshold} when computing \code{small.keep}.
 In this case, matching is not required as the threshold is constant for all bin pairs.
@@ -717,7 +732,7 @@ In this case, matching is not required as the threshold is constant for all bin 
 \section{Summary of the filtering strategies}
 Each filtering strategy is arbitrarily tunable, as one can simply increase or decrease the minimum fold change required for retention.
 Nonetheless, they are still useful as they can guide the user towards a sensible interpretation of the filter threshold.
-No such interpretation is available with a completely arbitrary value for the threshold.
+This would be possible if the threshold value was just arbitrarily chosen.
 The effect of each approach can also be summarized by examining the distribution of interaction distances after filtering.
 
 <<>>=
