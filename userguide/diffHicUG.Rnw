@@ -485,7 +485,7 @@ Bin pairs with an average abundance less than a certain threshold can be discard
 At the very least, the threshold should be chosen to screen out bin pairs with very low absolute counts.
 This is because these bin pairs will never have sufficient evidence to reject the null hypothesis.
 The example below removes those bin pairs with an average count below 5 across all libraries.
-Note the addition of the prior count for a valid comparison with the computed abndances.
+Note that a prior count is added for a valid comparison with the computed abundances.
 
 <<>>=
 count.keep <- ave.ab >= log2(5 + prior.count) - mean(log2(data$totals/1e6))
@@ -499,7 +499,7 @@ This count-based approach is fairly objective yet is still effective, i.e., remo
 More sophisticated strategies can be implemented where the choice of threshold is motivated by some understanding of the Hi-C protocol.
 These strategies are described in the rest of this chapter, and will be combined with the count-based filter to maintain a minimum count size among the retained bin pairs.
 
-\subsection{Finding the interaction distance}
+\subsection{Computing the interaction distance}
 The linear distance between each pair of the interacting bins is worth mentioning as it can also be used in filtering.
 This is obtained using the \code{getDistance} function, which computes the distance between the bin midpoints by default.
 Inter-chromosomal interactions are marked here as \code{NA} for completeness.
