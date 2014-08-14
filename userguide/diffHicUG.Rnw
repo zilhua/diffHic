@@ -702,39 +702,42 @@ smaller.data$pairs <- smaller.data$pairs[small.keep,]
 The same procedure can be applied for direct filtering by replacing \code{new.threshold} with \code{direct.threshold} when computing \code{small.keep}.
 In this case, matching is not required as the threshold is constant for all bin pairs.
 
-%\section{Filtering for pre-specified regions}
-%The methods described above for calculation of filter thresholds rely on bin pair counts.
-%Filtering for arbitrary regions is slightly difficult as the width of the regions is not guaranteed to be reasonably constant.
-%One must adjust the threshold for the different read counting areas, as shown below with the \code{getArea} function.
-%
-%<<>>=
-%re.ab <- aveLogCPM(redata$counts, lib.size=redata$totals) 
-%re.norm.ab <- re.ab - log2(getArea(redata))
-%summary(re.norm.ab)
-%@
-%
-%Filtering can then be performed with \code{re.norm.ab}, in the same manner as described for the bin pairs.
-%However, users should keep in mind that only a subset of the interaction space is counted here.
-%Calculation of the filter thresholds may be inaccurate, e.g., if only high-abundance areas are counted.
-%Similarly, threshold estimation may be imprecise if too few areas are non-empty.
-%%Finally, local filtering is also impossible as \code{countNeighbors} depends on regularly spaced bins.
-%
-%On a related note, filtering with bin pairs should technically be performed after adjusting for the area of each bin pair.
-%This is because some bins may correspond to a smaller number of restriction fragments, despite all bins having near-identical base pair widths.
-%In practice, this is unnnecessary for large bins as the vast majority will contain similar numbers of restriction fragments.
-%Area-based adjustment adjustment also fails to account for other differences between bins, e.g., in mappability or sequenceability.
-%
-%<<label=nfragplot,eval=FALSE>>=
-%hist(data$region$nfrags, breaks=100, xlab="Restriction fragments per bin")
-%@
-%
-%\setkeys{Gin}{width=0.5\textwidth}
-%\begin{center}
-%<<echo=FALSE,fig=TRUE>>=
-%<<nfragplot>>
-%@
-%\end{center}
-%\setkeys{Gin}{width=0.8\textwidth}
+\section{Filtering for pre-specified regions}
+The methods described above for calculation of filter thresholds rely on bin pair counts.
+Filtering for arbitrary regions is slightly difficult as the width of the regions is not guaranteed to be reasonably constant.
+One must adjust the threshold for the different read counting areas, as shown below with the \code{getArea} function.
+
+<<>>=
+re.ab <- aveLogCPM(redata$counts, lib.size=redata$totals) 
+re.norm.ab <- re.ab - log2(getArea(redata, fragments=mm.frag))
+summary(re.norm.ab)
+@
+
+Filtering can then be performed with \code{re.norm.ab}, in the same manner as described for the bin pairs.
+However, users should keep in mind that only a subset of the interaction space is counted here.
+Calculation of the filter thresholds may be inaccurate, e.g., if only high-abundance areas are counted.
+Similarly, threshold estimation may be imprecise if not enough areas are non-empty.
+%Finally, local filtering is also impossible as \code{countNeighbors} depends on regularly spaced bins.
+
+On a related note, filtering with bin pairs should technically be performed after adjusting for the area of each bin pair.
+This is because some bins may match up to fewer restriction fragments, despite all bins having similar base pair widths.
+In practice, this is unnnecessary for large bins as the vast majority will contain similar numbers of restriction fragments.
+Normalization like that for \code{re.norm.ab} above tends to select for bins with very few fragments, e.g., telomeres, centromeres.
+
+<<label=nfragplot,eval=FALSE>>=
+hist(getArea(data), breaks=100, xlab="Restriction fragments per bin")
+@
+
+\setkeys{Gin}{width=0.5\textwidth}
+\begin{center}
+<<echo=FALSE,fig=TRUE>>=
+<<nfragplot>>
+@
+\end{center}
+\setkeys{Gin}{width=0.8\textwidth}
+
+Note that area-based adjustment adjustment fails to account for other differences between bins, e.g., in mappability or sequenceability.
+Full consideration of these bin-specific biases requires methods such as iterative correction (see Section~\ref{sec:itercor}).
 
 \section{Summary of the filtering strategies}
 Each filtering strategy is arbitrarily tunable, as one can simply increase or decrease the minimum fold change required for retention.
@@ -828,6 +831,7 @@ adj.counts <- log2(data$counts + 0.5) - nb.off/log(2)
 \section{Removing genomic biases within libraries}
 
 \subsection{Iterative correction of interaction intensities}
+\label{sec:itercor}
 While not the forte of \pkgname{}, a method is also provided here for removal of biases between genomic regions.
 The \code{correctedContact} function performs the iterative correction procedure described by \citep{imakaev2012iterative} with some modifications.
 Briefly, if multiple libraries are used to generate the \code{data} object, then correction is performed using the average count for each bin pair.
