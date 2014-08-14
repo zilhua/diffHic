@@ -502,7 +502,6 @@ These strategies are described in the rest of this chapter, and will be combined
 \subsection{Computing the interaction distance}
 The linear distance between each pair of the interacting bins is worth mentioning as it can also be used in filtering.
 This is obtained using the \code{getDistance} function, which computes the distance between the bin midpoints by default.
-Inter-chromosomal interactions are marked here as \code{NA} for completeness.
 
 <<eval=FALSE,label=distplot>>=
 dist <- getDistance(data, type="mid")
@@ -516,6 +515,14 @@ hist(dist/1e6, xlab="Distance (Mbp)")
 @
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
+
+Inter-chromosomal bin pairs are marked here as \code{NA} for completeness.
+These tend to dominate the output as they constitute most of the interaction space.
+Of course, the majority of these bin pairs will have low counts due to the sparseness of the data.
+
+<<>>=
+summary(is.na(dist))
+@
 
 %The second statistic is the area of the interaction space that is covered by each bin pair.
 %This can be easily computed with the \code{getArea} function.
