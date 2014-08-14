@@ -5,7 +5,7 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 # written by Aaron Lun
 # 22 April, 2014
 {
-	is.same <- as.logical(seqnames(data$region[data$pairs[,1]])==seqnames(data$region[data$pairs[,2]]))
+	is.same <- as.logical(seqnames(data$region)[data$pairs[,1]]==seqnames(data$region)[data$pairs[,2]])
 	all.as <- data$region[data$pairs[is.same,1]]
 	all.ts <- data$region[data$pairs[is.same,2]]
 	output <- rep(NA, nrow(data$pairs))
@@ -21,7 +21,7 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 	return(output)
 }
 
-getArea <- function(data, fragments=NULL)
+getarea <- function(data, fragments=null)
 # Computing the number of restriction fragment pairs in the interaction space.
 # This allows adjustment of abundances for comparison between differently-sized areas.
 # Special behaviour is necessary on the diagonal, as only half the fragments are actually used.
@@ -41,20 +41,31 @@ getArea <- function(data, fragments=NULL)
 
 	if (!is.null(fragments)) { 
 		# Detour to protect against overlapping regions.
-		.checkFragments(fragments)
+		fdata <- .checkFragments(fragments)
 
-		left.edge <- pmax(start(data$region[ax]), start(data$region[tx]))
-		right.edge <- pmin(end(data$region[ax]), end(data$region[tx]))
+		left.edge <- pmax(start(data$region)[ax], start(data$region)[tx])
+		right.edge <- pmin(end(data$region)[ax], end(data$region)[tx])
 		is.partial <- !is.same & right.edge >= left.edge & 
-			as.logical(seqnames(data$region[ax])==seqnames(data$region[tx])) 
-		
-		right.olap <- match(right.edge[is.partial], end(fragments))
-		left.olap <- match(left.edge[is.partial], start(fragments))
- 	    if (any(is.na(right.olap)) || any(is.na(left.olap))) { stop("region boundaries should correspond to restriction fragment boundaries") }
+			as.logical(seqnames(data$region)[ax]==seqnames(data$region)[tx]) 
 
-		n.overlap <- right.olap - left.olap + 1	
-		returned[is.partial] <- returned[is.partial] - n.overlap*(n.overlap-1)/2
+		right.edge <- right.edge[is.partial]
+		left.edge <- left.edge[is.partial]
+		by.chr <- split(1:sum(is.partial), as.character(seqnames(data$region)[ax][is.partial]))
+
+		for (x in 1:length(fdata$chr)) {
+			current.chr <- fdata$chr[x]
+			curdex <- by.chr[[current.chr]]
+			if (is.null(curdex)) { next }
+		
+			indices <- fdata$start[x]:fdata$end[x]
+			right.olap <- match(right.edge[curdex], end(fragments)[indices])
+			left.olap <- match(left.edge[curdex], start(fragments)[indices])
+ 	    	if (any(is.na(right.olap)) || any(is.na(left.olap))) { stop("region boundaries should correspond to restriction fragment boundaries") }
+		
+			n.overlap <- right.olap - left.olap + 1	
+			returned[is.partial][curdex] <- returned[is.partial][curdex] - n.overlap*(n.overlap-1)/2
+		}
 	}
 
-	returned
+	return(returned)
 }
