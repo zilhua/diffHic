@@ -9,6 +9,6 @@ To install this package, make sure that the latest version of R is installed. Th
 ```R
 source("http://bioconductor.org/biocLite.R")
 useDevel()
-biocLite(c('edgeR', 'Rsamtools', 'GenomicRanges', 'rhdf5'))
+biocLite(c('edgeR', 'Rsamtools', 'GenomicRanges', 'rhdf5', 'Biostrings', 'BSgenome'))
 devtools::install_github("LTLA/diffHic/package")
 ```
