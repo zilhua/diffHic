@@ -10,7 +10,7 @@ getDistance(data, type=c("mid", "gap", "span"))
 }
 
 \arguments{
-\item{data}{a named list as produced by \code{\link{squareCounts}}}
+\item{data}{a \code{DIList} object}
 \item{type}{a character string specifying the type of distance to compute}
 }
 

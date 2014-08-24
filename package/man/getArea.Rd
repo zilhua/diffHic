@@ -10,7 +10,7 @@ getArea(data, fragments=NULL)
 }
 
 \arguments{
-\item{data}{a named list as produced by \code{\link{squareCounts}}}
+\item{data}{a \code{DIList} object}
 \item{fragments}{a \code{GRanges} object containing the restriction fragment coordinates}
 }
 

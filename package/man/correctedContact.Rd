@@ -11,7 +11,7 @@ correctedContact(data, iterations=50, exclude.local=1, ignore.low=0.02,
 }
 
 \arguments{
-	\item{data}{a list of bin pair data produced by \code{\link{squareCounts}}}
+	\item{data}{a \code{DIList} object produced by \code{\link{squareCounts}}}
 	\item{iterations}{an integer scalar specifying the number of correction iterations}
 	\item{exclude.local}{an integer scalar, indicating the distance off the diagonal under which bin pairs are excluded}
 	\item{ignore.low}{a numeric scalar, indicating the proportion of low-abundance bins to ignore}

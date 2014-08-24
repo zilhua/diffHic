@@ -17,11 +17,7 @@ connectCounts(files, fragments, regions, filter=1L, type="any")
 }
 
 \value{
-A list is returned containing:
-\item{counts}{an integer matrix containing read pair counts for each interaction between two regions}
-\item{totals}{an integer vector containing the number of read pairs per library}
-\item{pairs}{a dataframe of integer indices specifying the interacting regions}
-\item{region}{a \code{GRanges} object of the boundaries of \code{region}, rounded to a restriction site based on \code{type}}
+A \code{DIList} is returned, specifying the number of read pairs mapped between pairs of \code{regions} for each library.
 }
 
 \details{
@@ -29,19 +25,26 @@ Interactions of interest are defined as those formed by pairs of elements in \co
 The number of read pairs connecting each pair of elements can then be counted in each library. 
 This can be useful for quantifying/summarizing interactions between genomic features, e.g., promoters or gene bodies.
 
-Each row of \code{counts} contains the counts across all libraries for a particular interaction.
-The interaction is defined in the corresponding row of \code{pairs}, where two indices point to the interacting regions.
-Indices are denoted as anchor/target in the output \code{pairs} based on the genomic order of the corresponding \code{regions}.
+For a pair of intervals in \code{regions}, the interaction count is defined as the number of read pairs with one read in each interval (after rounding each interval to a fragment; see below).
+To avoid reporting weak interactions, pairs can be filtered to retain only those with a count sum across all libraries above \code{filter}.
+In each pair, the anchor interval is defined as that with the higher start position.
+Note that the end position may not be higher, due to the possibility of nested intervals in \code{regions}.
 
 The value of \code{type} feeds into \code{\link{findOverlaps}} and controls the manner in which restriction fragments are assigned to each region. 
 By default, a restriction fragment is assigned to one or more regions if said fragment overlaps with any part of those regions.
 This means that the boundaries of each region are expanded outwards to obtain the effective coordinates in the output \code{region}.
 In contrast, setting \code{type="within"} would contract each region inwards.
+
+The modified regions can be extracted from the \code{regions} slot in the output \code{DIList} object.
+Note that these will be reordered compared to the input \code{regions}.
+The ordering permutation can be recovered from the \code{original} metadata field of the \code{GRanges} object.
+Similarly, the number of restriction fragments assigned to each interval is stored in the \code{nfrags} metadata field.
 }
 
 \seealso{
 \code{\link{squareCounts}},
-\code{\link{findOverlaps}}
+\code{\link{findOverlaps}},
+\code{\link{DIList-class}}
 }
 
 \author{Aaron Lun}

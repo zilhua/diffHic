@@ -18,11 +18,7 @@ squareCounts(files, fragments, width=50000, restrict=NULL, filter=1L)
 }
 
 \value{
-A list is returned containing:
-    \item{counts}{an integer matrix containing read pair counts for each square, i.e., interaction between two bins}
-    \item{totals}{an integer vector containing the number of read pairs per library}
-    \item{pairs}{a dataframe containing 2 integer indices \code{anchor.id} and \code{target.id}, representing the pair of interacting regions; each index points to an entry in \code{region}}
-	\item{region}{a \code{GRanges} object containing coordinates for the region corresponding to each bin}
+A \code{DIList} object is returned containing the number of read pairs for each bin pair, across all libraries.
 }
 
 \details{
@@ -83,7 +79,8 @@ unlink(fout, recursive=TRUE)
 
 \seealso{
 \code{\link{countPairs}}, 
-\code{\link{cutGenome}}
+\code{\link{cutGenome}},
+\code{\link{DIList-class}}
 }
 
 \references{

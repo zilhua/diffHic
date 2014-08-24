@@ -34,7 +34,6 @@ Each read pair subsequently becomes associated with a pair of restriction fragme
 The anchor fragment is that with the higher genomic coordinate, i.e., the larger index in \code{fragments}.
 The target fragment is that with the smaller coordinate/index. 
 This definition avoids the need to consider both permutations of indices in a pair during downstream processing.
-Note that the anchor/target notation will also be used to bins or chromosomes with higher/lower genomic coordinates.
 }
 
 \section{Handling of read pairs}{

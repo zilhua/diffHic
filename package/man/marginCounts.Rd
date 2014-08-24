@@ -1,7 +1,7 @@
 \name{marginCounts}
 \alias{marginCounts}
 
-\title{Calculate counts per bint}
+\title{Collect marginal counts for each bin}
 
 \description{Count the number of read pairs mapped to each bin across multiple Hi-C libraries.}
 
@@ -17,22 +17,22 @@ marginCounts(files, fragments, width=500000, restrict=NULL)
 }
 
 \value{
-A list containing:
-    \item{counts}{an integer matrix containing read pair counts for each bin}
-    \item{totals}{an integer vector containing the number of read pairs per library}
-	\item{region}{a \code{GRanges} object containing coordinates for each bin}
+A \code{DIList} object containing the marginal counts for each bin.
 }
 
 \details{
-The genome is first split into non-overlapping adjacent bins of size
-\code{width}. These bins are rounded to the nearest restriction site. The
-number of read pairs with at least one end mapped within the bin is then
-counted for each bin.
+The genome is first split into non-overlapping adjacent bins of size \code{width}. 
+These bins are rounded to the nearest restriction site. 
+The marginal count for each bin is defined as the number of read pairs with at least one end mapped within the bin.
 
-Larger counts can be collected by increasing the \code{width} value. However,
-this comes at the cost of spatial resolution (and potentially detection
-power) as adjacent events in the same concatenation can no
-longer be distinguished. 
+Even though counts do not correspond to interactions, a \code{DIList} object is still used to store the output for convenience.
+Bin coordinates can be extracted as the anchor or target intervals in the output.
+Each row of the output refers to a single bin in the linear genome, instead of a bin pair in the interaction space.
+
+% Cleaner than pulling out a SummarizedExperiment from the middle of nowhere.
+
+Larger marginal counts can be collected by increasing the \code{width} value. 
+However, this comes at the cost of spatial resolution (and potentially detection power) as adjacent events in the same concatenation can no longer be distinguished. 
 }
 
 \examples{
@@ -40,7 +40,7 @@ hic.file<-system.file("exdata", "hic_sort.bam", package="diffHic")
 originals<-readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
 
 # Setting up the parameters
-fout <- "output"
+fout <- "output.h5"
 preparePairs(hic.file, originals, fout)
 countPairs(fout)
 
@@ -50,12 +50,15 @@ marginCounts(fout, originals, width=50)
 marginCounts(fout, originals, width=50, restrict="chrA")
 marginCounts(fout, originals, width=100)
 
+\dontshow{
 unlink(fout, recursive=TRUE)
+}
 }
 
 \author{Aaron Lun}
 
 \seealso{
-\code{\link{squareCounts}}
+\code{\link{squareCounts}},
+\code{\link{DIList-class}}
 }
 
