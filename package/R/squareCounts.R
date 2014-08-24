@@ -52,14 +52,14 @@ squareCounts <- function(files, fragments, width=50000, restrict=NULL, filter=1L
 	# Collating all the other results.
 	out.a <- unlist(out.a)
 	out.t <- unlist(out.t)
-	out.pairs <- data.frame(anchor.id=out.a, target.id=out.t)
 	out.counts <- do.call(rbind, out.counts)
-	if (!nrow(out.pairs)) { 
-		out.pairs <- data.frame(anchor.id=integer(0), target.id=integer(0)) 
+	if (!nrow(out.counts)) { 
+		out.a <- out.t <- integer(0)
 		out.counts <- matrix(0L, ncol=nlibs, nrow=0L)
 	}
 
-	return(list(counts=out.counts, totals=full.sizes, pairs=out.pairs, region=new.pts$region))
+	return(.DIList(counts=out.counts, totals=full.sizes, 
+		anchors=out.a, targets=out.t, regions=new.pts$region))
 }
 
 ## PROOF:

@@ -16,12 +16,12 @@ boxPairs <- function(reference, ..., fragments)
 	all.a <- all.t <- all.mode <- all.idx <- list()
 	for (x in 1:nk) {
 		current <- all.hits[[x]]
-		ncur <- nrow(current$pairs)
-		olap <- findOverlaps(current$region, parents, type="within", select="first")
+		ncur <- npairs(current)
+		olap <- findOverlaps(regions(current), parents, type="within", select="first")
 		if (any(is.na(olap))) { stop("smaller bins must be fully contained within larger bins") }
 		
-		all.a[[x]] <- olap[current$pairs$anchor.id]
-		all.t[[x]] <- olap[current$pairs$target.id]
+		all.a[[x]] <- olap[current@anchor.id]
+		all.t[[x]] <- olap[current@target.id]
 		all.mode[[x]] <- rep(x, ncur)
 		all.idx[[x]] <- 1:ncur
 	}

@@ -20,28 +20,26 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
 	if (winsor.high >= 1) { stop("proportion of high coverage interactions to winsorize should be less than 1") }
 	exclude.local <- as.integer(exclude.local)
     
-	# Setting up.
-	stopifnot(all(data$pairs$anchor.id >= data$pairs$target.id))
+	# Computing the average counts, if requested. Otherwise, going through each individual library.
 	is.local <- !is.na(getDistance(data))
-
-    # Computing the average counts, if requested. Otherwise, going through each individual library.
 	if (average) { 
-   		log.lib <- log(data$totals)
+   		log.lib <- log(totals(data))
 		if (length(log.lib)>1L) {
-			ave.counts <- exp(edgeR::mglmOneGroup(data$counts, offset=log.lib - mean(log.lib), dispersion=dispersion))
+			ave.counts <- exp(edgeR::mglmOneGroup(counts(data), offset=log.lib - mean(log.lib), dispersion=dispersion))
 			ave.counts[is.na(ave.counts)] <- 0
 		} else {
-			ave.counts <- as.double(data$counts[,1])
+			ave.counts <- as.double(counts(data))
 		}
-		out<-.Call(cxx_iterative_correction, ave.counts, data$pairs$anchor.id, data$pairs$target.id, is.local,
-			length(data$region), iterations, exclude.local, ignore.low, winsor.high)
+		out<-.Call(cxx_iterative_correction, ave.counts, data@anchor.id, data@target.id, 
+			is.local, length(regions(data)), iterations, exclude.local, ignore.low, winsor.high)
  		if (is.character(out)) { stop(out) }
 	} else {
 		collected.truth <- collected.bias <- collected.max <- list()
-		for (lib in 1:length(data$totals)) { 
-			nzero <- data$counts[,lib]!=0L
-			per.it <-.Call(cxx_iterative_correction, as.double(data$counts[nzero,lib]), data$pairs$anchor.id[nzero], data$pairs$target.id[nzero], 
-				is.local[nzero], length(data$region), iterations, exclude.local, ignore.low, winsor.high)
+		for (lib in 1:nlibs(data)) {
+			curcount <- counts(data)[,lib]
+			nzero <- curcount!=0L
+			per.it <-.Call(cxx_iterative_correction, as.double(curcount[nzero]), data@anchor.id[nzero], data@target.id[nzero], 
+				is.local[nzero], length(regions(data)), iterations, exclude.local, ignore.low, winsor.high)
  			if (is.character(per.it)) { stop(per.it) }		
 
 			full.truth <- rep(NA, length(nzero)) 

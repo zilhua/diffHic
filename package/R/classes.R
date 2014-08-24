@@ -6,22 +6,23 @@ setValidity("DIList", function(object) {
 	if (nrow(object@counts)!=length(object@anchor.id)) {
 		return('rows in count matrix not equal to length of anchor vector')
 	} 
-	if (ncol(object@counts)!=length(object@totals)) { 
-		return('columns of count matrix not equal to length of totals vector')
-	}
 	if (nrow(object@counts)!=length(object@target.id)) { 
 		return('rows in count matrix not equal to length of target vector')
 	}
+	if (ncol(object@counts)!=length(object@totals)) { 
+		return('columns of count matrix not equal to length of totals vector')
+	}
+
 	if (!all(object@anchor.id >= 1L)) { 
 		return('not all anchors are positive integers')
 	} 
 	if (!all(object@target.id >= 1L)) {
 		return('not all targets are positive integers')
 	}
-	if (max(object@anchor.id) > length(object@region)) {
+	if (!all(object@anchor.id <= length(object@region))) {
 		return('not all anchors refer to valid regions')
 	} 
-	if (max(object@target.id) > length(object@region)) { 
+	if (!all(object@target.id <= length(object@region))) { 
 		return('not all targets refer to valid regions')
 	}
 	if (!all(object@anchor.id >= object@target.id)) { 
@@ -74,21 +75,25 @@ setMethod("show", signature("DIList"), function(object) {
 })
 
 # Assorted subsetting methods.
-setMethod("[", c("DIList", "missing", "numeric", "ANY"), function(x, i, j, ..., drop=TRUE) {
-	initialize(x, counts=x@counts[,j,drop=FALSE], totals=x@totals[j],
-		anchor.id=x@anchor.id, target.id=x@target.id, 
-		region=x@region)
-})
+setMethod("[", "DIList", function(x, i, j, ..., drop=TRUE) {
+	if (missing(i)) {
+		new.counts <- x@counts				
+		new.anchors <- x@anchor.id
+		new.targets <- x@target.id	
+	} else {
+		new.counts <- x@counts[i,,drop=FALSE]	
+		new.anchors <- x@anchor.id[i]
+		new.targets <- x@target.id[i]
+	}
 
-setMethod("[", c("DIList", "numeric", "missing", "ANY"), function(x, i, j, ..., drop=TRUE) {
-	initialize(x, counts=x@counts[i,,drop=FALSE], totals=x@totals,
-		anchor.id=x@anchor.id[i], target.id=x@target.id[i], 
-		region=x@region)
-})
-
-setMethod("[", c("DIList", "numeric", "numeric", "ANY"), function(x, i, j, ..., drop=TRUE) {
-	initialize(x, counts=x@counts[i,j,drop=FALSE], totals=x@totals[j],
-		anchor.id=x@anchor.id[i], target.id=x@target.id[i], 
+	if (missing(j)) { 
+		new.totals <- x@totals
+	} else {
+		new.counts <- new.counts[,j,drop=FALSE]
+		new.totals <- x@totals[j]
+	}
+	initialize(x, counts=new.counts, totals=new.totals, 
+		anchor.id=new.anchors, target.id=new.targets,
 		region=x@region)
 })
 
@@ -136,9 +141,3 @@ setMethod("nlibs", signature("DIList"), function(object) {
 	totals <- as.integer(totals)
 	new("DIList", counts=counts, totals=totals, anchor.id=anchors, target.id=targets, region=regions)
 }
-
-# Testing:
-# blah <- diffHic:::.DIList(matrix(c(1,1,2,2,3,3,4,4), ncol=2), anchors=c(1,2,3,4), targets=c(1,1,2,2), regions=GRanges("chrA", IRanges(10+1:4, 2+20:23)))
-# blah[1,]
-
-

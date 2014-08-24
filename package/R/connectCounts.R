@@ -51,22 +51,22 @@ connectCounts <- function(files, fragments, regions, filter=1L, type="any")
 			out <- .Call(cxx_count_connect, pairs, by.frag$start, by.frag$end, by.frag$hits, filter)
 			if (is.character(out)) { stop(out) }
 			out.counts[[idex]] <- out[[3]]
-			out.left[[idex]] <- o[out[[1]]]
-			out.right[[idex]] <- o[out[[2]]]
+			out.left[[idex]] <- out[[1]]
+			out.right[[idex]] <- out[[2]]
 			idex <-  idex + 1L
 		}
 	}
 
 	out.counts <- do.call(rbind, out.counts)
-	out.pairs <- data.frame(anchor.id=unlist(out.left), target.id=unlist(out.right)) 
-	o.all <- order(out.pairs$anchor.id, out.pairs$target.id)
-	out.pairs <- out.pairs[o.all,]
-	rownames(out.pairs) <- NULL
+	anchor.id <- unlist(out.left)
+	target.id <- unlist(out.right)
+	o.all <- order(anchor.id, target.id)
 
 	# Generating a new set of regions.
 	new.regs <- .redefineRegions(olaps, fragments, regions)
-	new.regs[o] <- new.regs
-	return(list(counts=out.counts[o.all,,drop=FALSE], totals=full.sizes, pairs=out.pairs, region=new.regs))
+	new.regs$original <- o
+	return(.DIList(counts=out.counts[o.all,,drop=FALSE], totals=full.sizes, 
+		anchors=anchor.id[o.all], targets=target.id[o.all], regions=new.regs))
 }
 
 .retrieveHits <- function(olaps) { 

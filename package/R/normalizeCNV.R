@@ -6,17 +6,22 @@ normalizeCNV <- function(data, margins, ref.col=1, span=0.5, prior.count=3,
 # systematic differences in interaction intensity. The aim is to get rid
 # of any CNV-induced bias, quantified by the differences in the marginals.
 {
-	if (abundance) { 
-		ab <- aveLogCPM(data$counts, lib.size=data$totals)
+	# Checking to ensure that the regions are the same.
+	if (!identical(regions(data), regions(margins))) {
+		stop("regions must be the same for bin pair and marginal counts") 
 	}
-	adjc <- log(data$counts + 0.5)
-	offsets <- matrix(0, nrow=nrow(data$counts), ncol=ncol(data$counts))
-	mab <- cpm(margins$counts, lib.size=margins$totals, log=TRUE, prior.count=prior.count)
-	is.matched <- findOverlaps(data$region, margins$region, type="equal", select="first")
-	ma.adjc <- mab[is.matched[data$pairs$anchor.id],,drop=FALSE] 
-	mt.adjc <- mab[is.matched[data$pairs$target.id],,drop=FALSE]
 
-	for (lib in 1:ncol(data$counts)) {
+	# Generating covariates.
+	if (abundance) { 
+		ab <- aveLogCPM(counts(data), lib.size=totals(data))
+	}
+	adjc <- log(counts(data) + 0.5)
+	offsets <- matrix(0, nrow=npairs(data), ncol=nlibs(data))
+	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count)
+	ma.adjc <- mab[data@anchor.id,,drop=FALSE] 
+	mt.adjc <- mab[data@target.id,,drop=FALSE]
+
+	for (lib in 1:nlibs(data)) {
 		if (lib==ref.col) { next }
 		ma.fc <- ma.adjc[,lib] - ma.adjc[,ref.col]
 		mt.fc <- mt.adjc[,lib] - mt.adjc[,ref.col]
@@ -34,7 +39,7 @@ normalizeCNV <- function(data, margins, ref.col=1, span=0.5, prior.count=3,
 			all.cov[[length(all.cov) + 1]] <- ab 
 		}
 	
-		# Fitting a loess curve with the specified covariates.	
+		# Fitting a loess surface with the specified covariates.	
 		i.fc <- adjc[,lib] - adjc[,ref.col]
 		cov.fun <- do.call(lp, all.cov)
 		fit <- locfit(i.fc ~ cov.fun, alpha=span, deg=1) 

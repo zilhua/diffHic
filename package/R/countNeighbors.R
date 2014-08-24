@@ -12,37 +12,36 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 	type <- match.arg(type)
 	flank <- as.integer(flank)
 	if (flank <= 0L) { stop("flank width must be a positive integer") }
-	rdata <- .checkFragments(data$region)
+	rdata <- .checkFragments(regions(data))
 	last.id <- rdata$end
 	first.id <- rdata$start
 	names(last.id) <- names(first.id) <- rdata$chr
 
-	stopifnot(all(data$pairs$anchor.id >= data$pairs$target.id))
-	rownames(data$pairs) <- NULL
-	by.chr <- split(data$pairs, as.character(seqnames(data$region[data$pairs$anchor.id])))
-	np <- nrow(data$pairs)
-	output <- matrix(0L, ncol=ncol(data$counts), nrow=np)
+	np <- npairs(data)
+	by.chr <- split(1:np, as.character(seqnames(anchors(data))))
+	output <- matrix(0L, ncol=nlibs(data), nrow=np)
    	out.n <- numeric(np)
 
 	# Running through each pair of chromosomes.
 	for (anchor in names(by.chr)) {
 		next.chr <- by.chr[[anchor]]
-		next.chr <- split(next.chr, as.character(seqnames(data$region[next.chr$target.id])))
+		next.chr <- split(next.chr, as.character(seqnames(targets(data[next.chr,]))))
 		if (!anchor %in% names(last.id)) { stop("chromosome missing in the fragment list") }
 
 		for (target in names(next.chr)) {
 			cur.chr <- next.chr[[target]]
+			all.a <- data@anchor.id[cur.chr]
+			all.t <- data@target.id[cur.chr]
 
 			# We need to double it, to account for reflection around the diagonal. 
 			# We obviously don't need to add the diagonal points twice.
-			on.diag <- cur.chr$anchor.id==cur.chr$target.id
-			reflected <- !on.diag & (cur.chr$target.id + flank >= cur.chr$anchor.id)
-			combined.anchor <- c(cur.chr$anchor.id, cur.chr$target.id[reflected])
-			combined.target <- c(cur.chr$target.id, cur.chr$anchor.id[reflected])
-			keep <- 1:nrow(cur.chr)
-			relevant <- as.integer(rownames(cur.chr))
-			rel.counts <- data$counts[relevant,,drop=FALSE]
-			combined.counts <- rbind(rel.counts, rel.counts[reflected,,drop=FALSE])
+			on.diag <- all.a==all.t
+			reflected <- !on.diag & (all.t + flank >= all.a)
+			combined.anchor <- c(all.a, all.t[reflected])
+			combined.target <- c(all.t, all.a[reflected])
+			keep <- 1:length(cur.chr)
+			rel.counts <- counts(data)[cur.chr,,drop=FALSE]
+			combined.counts <- rbind(rel.counts, counts(data)[reflected,,drop=FALSE])
 
 			# Computing the local background, for fixed anchor or target.
 			all.counts <- all.n <- 0L
@@ -53,8 +52,8 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 				collected[o,] <- collected
 				all.counts <- collected[keep,] - rel.counts
 
-				upper <- pmin(cur.chr$target.id+flank, last.id[[target]]) 
-				lower <- pmax(cur.chr$target.id-flank, first.id[[target]]) 
+				upper <- pmin(all.t+flank, last.id[[target]]) 
+				lower <- pmax(all.t-flank, first.id[[target]]) 
 				all.n <- upper - lower
 			}
 			if (type!="target") { 
@@ -64,8 +63,8 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 				collected[o,] <- collected
 				all.counts <- all.counts + collected[keep,] - rel.counts
 				
-				upper <- pmin(cur.chr$anchor.id+flank, last.id[[anchor]]) 
-				lower <- pmax(cur.chr$anchor.id-flank, first.id[[anchor]]) 
+				upper <- pmin(all.a+flank, last.id[[anchor]]) 
+				lower <- pmax(all.a-flank, first.id[[anchor]]) 
 				all.n <- all.n + upper - lower
 			}
 
@@ -74,8 +73,8 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 				all.counts[on.diag,] <- all.counts[on.diag,]/2L
 				all.n[on.diag] <- all.n[on.diag]/2L
 			}
-			output[relevant,] <- all.counts
-			out.n[relevant] <- all.n
+			output[cur.chr,] <- all.counts
+			out.n[cur.chr] <- all.n
 		}
 	}
 
