@@ -2,17 +2,26 @@
 useDynLib(diffHic, .registration=TRUE, .fixes="cxx_")
 
 #  All functions exported, sorted by approximate function:
-exportPattern(cutGenome, 
+export(cutGenome, 
     preparePairs, mergePairs, savePairs, countPairs, getPairData,
     squareCounts, connectCounts, marginCounts, 
-#   countNeighbors, filterCounts, 
+    countNeighbors, #filterCounts, 
     correctedContact, normalizeCNV, 
     getDistance, getArea,
     boxPairs, clusterPairs,
     plotPlaid)
 
+# Exporting the DIList class.
+exportClasses(
+    DIList
+)
+
+exportMethods(
+    anchors, targets, counts, regions, totals, "[", show, npairs, nlibs
+)
+
 #  Requires the Rsamtools and GenomicRanges packages.
-import(Rsamtools,GenomicRanges,Biostrings,BSgenome,edgeR,rhdf5,locfit)
+import(Rsamtools,GenomicRanges,Biostrings,BSgenome,edgeR,rhdf5,locfit,methods)
 
 
 
