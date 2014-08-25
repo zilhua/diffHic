@@ -21,18 +21,23 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
 	exclude.local <- as.integer(exclude.local)
     
 	# Computing the average counts, if requested. Otherwise, going through each individual library.
+	# Zeros are pruned out before further work.
 	is.local <- !is.na(getDistance(data))
 	if (average) { 
    		log.lib <- log(totals(data))
 		if (length(log.lib)>1L) {
 			ave.counts <- exp(edgeR::mglmOneGroup(counts(data), offset=log.lib - mean(log.lib), dispersion=dispersion))
-			ave.counts[is.na(ave.counts)] <- 0
+			nzero <- !is.na(ave.counts)
 		} else {
+			nzero <- counts(data) != 0L
 			ave.counts <- as.double(counts(data))
 		}
-		out<-.Call(cxx_iterative_correction, ave.counts, data@anchor.id, data@target.id, 
-			is.local, length(regions(data)), iterations, exclude.local, ignore.low, winsor.high)
+		out<-.Call(cxx_iterative_correction, ave.counts[nzero], data@anchor.id[nzero], data@target.id[nzero], 
+			is.local[nzero], length(regions(data)), iterations, exclude.local, ignore.low, winsor.high)
  		if (is.character(out)) { stop(out) }
+		full.truth <- rep(NA, length(nzero))
+		full.truth[nzero] <- out[[1]]
+		out[[1]] <- full.truth
 	} else {
 		collected.truth <- collected.bias <- collected.max <- list()
 		for (lib in 1:nlibs(data)) {
