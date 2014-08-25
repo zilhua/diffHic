@@ -1,5 +1,4 @@
-normalizeCNV <- function(data, margins, ref.col=1, span=0.5, prior.count=3,
- 	   split=TRUE, abundance=TRUE)
+normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, ...)
 # This performs two-dimensional loess smoothing, using the counts and the 
 # marginal counts to compute the abundance and the marginal fold-changes,
 # respectively. Both are used as covariates in the model to smooth out any
@@ -10,6 +9,10 @@ normalizeCNV <- function(data, margins, ref.col=1, span=0.5, prior.count=3,
 	if (!identical(regions(data), regions(margins))) {
 		stop("regions must be the same for bin pair and marginal counts") 
 	}
+	amatch <- match(data@anchor.id, margins@anchor.id)
+	if (any(is.na(amatch))) { stop("non-empty anchor in data that is not in margins") }
+	tmatch <- match(data@target.id, margins@target.id)
+	if (any(is.na(tmatch))) { stop("non-empty target in data that is not in margins") }
 
 	# Generating covariates.
 	if (abundance) { 
@@ -18,8 +21,8 @@ normalizeCNV <- function(data, margins, ref.col=1, span=0.5, prior.count=3,
 	adjc <- log(counts(data) + 0.5)
 	offsets <- matrix(0, nrow=npairs(data), ncol=nlibs(data))
 	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count)
-	ma.adjc <- mab[data@anchor.id,,drop=FALSE] 
-	mt.adjc <- mab[data@target.id,,drop=FALSE]
+	ma.adjc <- mab[amatch,,drop=FALSE] 
+	mt.adjc <- mab[tmatch,,drop=FALSE]
 
 	for (lib in 1:nlibs(data)) {
 		if (lib==ref.col) { next }
@@ -42,7 +45,7 @@ normalizeCNV <- function(data, margins, ref.col=1, span=0.5, prior.count=3,
 		# Fitting a loess surface with the specified covariates.	
 		i.fc <- adjc[,lib] - adjc[,ref.col]
 		cov.fun <- do.call(lp, all.cov)
-		fit <- locfit(i.fc ~ cov.fun, alpha=span, deg=1) 
+		fit <- locfit(i.fc ~ cov.fun, deg=1, ..., lfproc=locfit.robust) 
 		offsets[,lib] <- fitted(fit)
 	}
 	offsets <- offsets - rowMeans(offsets)
