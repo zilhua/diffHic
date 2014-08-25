@@ -3,6 +3,7 @@
 # produces a list which describes the necessary HDF5 object corresponding to
 # each chromosome combination for each library. 
 {
+	y <- path.expand(y)
 	overall <- list()
 	ni<-length(y)
 	for (ix in 1:ni) {
@@ -24,20 +25,26 @@
 	return(overall)
 }
 
-.getPairs <- function(y, anchor, target) { h5read(y, file.path(anchor, target)) }
+.getPairs <- function(y, anchor, target) { 
+	y <- path.expand(y)
+	h5read(y, file.path(anchor, target)) 
+}
 
 .initializeH5 <- function(y) {
+	y <- path.expand(y)
 	if (file.exists(y)) { unlink(y, recursive=TRUE) } 
 	if (!h5createFile(y)) { stop(sprintf("failed to create '%s'", y)) }
 	return(invisible(NULL))
 }
 
 .addGroup <- function(y, anchor) {
+	y <- path.expand(y)
 	if (!h5createGroup(y, anchor)) { stop("failed to add '%s' group to '%s'", anchor, y) }
 	return(invisible(NULL))
 }
 
 .writePairs <- function(pairs, y, anchor, target) {
+	y <- path.expand(y)
 	rownames(pairs) <- NULL
 	if (h5write(pairs, y, file.path(anchor, target))) { stop("failed to add tag pair data to '%s'", y) }
 	return(invisible(NULL))
