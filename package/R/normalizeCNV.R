@@ -9,10 +9,12 @@ normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, ab
 	if (!identical(regions(data), regions(margins))) {
 		stop("regions must be the same for bin pair and marginal counts") 
 	}
-	amatch <- match(data@anchor.id, margins@anchor.id)
-	if (any(is.na(amatch))) { stop("non-empty anchor in data that is not in margins") }
-	tmatch <- match(data@target.id, margins@target.id)
-	if (any(is.na(tmatch))) { stop("non-empty target in data that is not in margins") }
+	all.indices <- integer(length(data@region))
+	all.indices[margins@anchor.id] <- 1:length(margins@anchor.id)
+	amatch <- all.indices[data@anchor.id]
+	if (any(amatch==0L)) { stop("non-empty anchor in data that is not in margins") }
+	tmatch <- all.indices[data@target.id]
+	if (any(tmatch==0L)) { stop("non-empty target in data that is not in margins") }
 
 	# Generating covariates.
 	if (abundance) { 
