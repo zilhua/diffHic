@@ -15,10 +15,9 @@ boxPairs(reference, ..., fragments)
 }
 
 \value{
-A list object with several components:
+A list object containing:
 \item{indices}{a named list of integer vectors for every \code{DIList} in the ellipsis, see Details} 
-\item{pairs}{a dataframe of integer \code{anchor.id} and \code{target.id} fields, describing the parent bin pair}
-\item{region}{a \code{GRanges} object containing the coordinates for each parent bin}
+\item{pairs}{a \code{DIList} describing the parent bin pairs in which the input bin pairs are nested}
 }
 
 \details{
@@ -30,6 +29,11 @@ The aim is to identify the parent bin pair in which each input bin pair is neste
 One vector will be present in the output \code{indices} for each input \code{DIList} in the ellipsis.
 In each vector, each entry represents an index for a single input bin pair in the corresponding \code{DIList}.
 This index points to a row of \code{pairs} and indicates the parent bin pair in which that input bin pair is nested.
+
+Note that the counts in the returned \code{pairs} are repurposed for this function.
+For each parent bin pair, the count matrix in \code{pairs} specifies the number of nested bin pairs for a given input \code{DIList}.
+Similarly, the \code{totals} vector contains the total number of input bin pairs in each input \code{DIList}.
+All columns/entries are named according to the name of the corresponding input \code{DIList}.
 
 All input \code{DIList} objects in the ellipsis must be constructed carefully.
 In particular, the value of \code{width} in \code{\link{squareCounts}} must be such that \code{reference} is an exact multiple of each \code{width}.

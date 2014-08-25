@@ -46,17 +46,19 @@ Type 'q()' to quit R.
 + 		curlist <- collected[[x]]
 + 
 + 		# Checking that each bin pair is truly nested within its reported parent.
-+ 		parent.a <- output$region[output$pairs$anchor.id[curdex]]
-+ 		parent.t <- output$region[output$pairs$target.id[curdex]]
-+ 		
++ 		parent.a <- anchors(output$pairs)[curdex]
++ 		parent.t <- targets(output$pairs)[curdex]
 + 		current.a <- anchors(curlist)
 + 		current.t <- targets(curlist)
 + 		
 + 		if (! all(start(parent.a) <= start(current.a) & end(parent.a) >= end(current.a)) ) { stop("anchor ranges not nested in parent") }
 + 		if (! all(start(parent.t) <= start(current.t) & end(parent.t) >= end(current.t)) ) { stop("target ranges not nested in parent") }
++ 
++ 		# Subtracting it from the counts.
++ 		if (!identical(counts(output$pairs)[,x], tabulate(output$indices[[x]], nbins=npairs(output$pairs)))) { stop("incidence counts don't match up") }
 + 	}
 + 
-+ 	return(head(output$pairs))
++ 	return(head(data.frame(anchor.id=output$pairs@anchor.id, target.id=output$pairs@target.id)))
 + }
 > 
 > set.seed(74653812)
@@ -172,4 +174,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 22.592   0.093  22.723 
+ 22.896   0.078  23.017 

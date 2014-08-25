@@ -14,6 +14,7 @@ boxPairs <- function(reference, ..., fragments)
 
 	# Collating all results in terms of parents.
 	all.a <- all.t <- all.mode <- all.idx <- list()
+	num.pairs <- list()
 	for (x in 1:nk) {
 		current <- all.hits[[x]]
 		ncur <- npairs(current)
@@ -24,11 +25,13 @@ boxPairs <- function(reference, ..., fragments)
 		all.t[[x]] <- olap[current@target.id]
 		all.mode[[x]] <- rep(x, ncur)
 		all.idx[[x]] <- 1:ncur
+		num.pairs[[x]] <- ncur
 	}
 	all.a <- unlist(all.a)
 	all.t <- unlist(all.t)
 	all.mode <- unlist(all.mode)
 	all.idx <- unlist(all.idx)
+	num.pairs <- unlist(num.pairs)
 
 	# Ordering by anchor, target.
 	o <- order(all.a, all.t)
@@ -42,15 +45,18 @@ boxPairs <- function(reference, ..., fragments)
 	by.mode <- split(1:length(is.diff), all.mode)
 	
 	indices <- list()
+	total.pairs <- sum(is.diff)
+	freqs <- matrix(0L, nrow=total.pairs, ncol=nk)
 	for (x in 1:nk) {
 		chosen <- by.mode[[as.character(x)]]
 		current.out <- integer(length(chosen))
 		current.out[all.idx[chosen]] <- now.index[chosen]
-		oname <- names(all.hits)[x]
-		indices[[oname]] <- current.out
+		indices[[x]] <- current.out
+		freqs[,x] <- tabulate(current.out, nbins=total.pairs)
 	}
 
 	# Collating all unique pairs.
-	pairs <- data.frame(anchor.id=all.a[is.diff], target.id=all.t[is.diff])
-	return(list(indices=indices, pairs=pairs, region=parents))
+	colnames(freqs) <- names(num.pairs) <- names(indices) <- names(all.hits)
+	return(list(indices=indices, pairs=.DIList(counts=freqs, totals=num.pairs, 
+			anchors=all.a[is.diff], targets=all.t[is.diff], regions=parents)))
 }
