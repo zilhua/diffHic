@@ -41,7 +41,7 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 			combined.target <- c(all.t, all.a[reflected])
 			keep <- 1:length(cur.chr)
 			rel.counts <- counts(data)[cur.chr,,drop=FALSE]
-			combined.counts <- rbind(rel.counts, counts(data)[reflected,,drop=FALSE])
+			combined.counts <- rbind(rel.counts, rel.counts[reflected,,drop=FALSE])
 
 			# Computing the local background, for fixed anchor or target.
 			all.counts <- all.n <- 0L
