@@ -53,8 +53,10 @@ excessive weight during correction, if not removed.  This can be done by
 removing all bin pairs where the difference between the anchor and target
 indices is less than \code{exclude.local}.
 
-If multiple directories are used to generate \code{data}, an average count will be computed for each bin pairs across all libraries using \code{\link{mglmOneGroup}} with the specified \code{dispersion}.The average count will then be used for correction if \code{average=TRUE}.
-Otherwise, correction will be performed for each library in \code{data} and the output will be returned in the form of matrices.
+If multiple libraries are used to generate \code{data}, and \code{average=TRUE}, an average count will be computed for each bin pairs across all libraries using \code{\link{mglmOneGroup}} with the specified \code{dispersion}.
+The average count will then be used for correction.
+Otherwise, correction will be performed separately for each library in \code{data} and the output will be returned in the form of matrices.
+Each column of each matrix will correspond to a library in \code{data}.
 
 The maximum step size in the output can be used as a measure of convergence.
 Ideally, the step size should approach 1 as iterations pass. This indicates
