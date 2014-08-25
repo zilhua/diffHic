@@ -15,7 +15,7 @@ normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE
 \item{prior.count}{a numeric scalar specifying the prior count to use in computing marginal log-ratios}
 \item{split}{a logical scalar indicating whether the marginal log-ratios should be kept as separate covariates}
 \item{abundance}{a logical scalar indicating whether the average abundance should be used as a covariate}
-\code{...}{other arguments to pass to \code{\link{locfit}}}
+\item{...}{other arguments to pass to \code{\link{locfit}}}
 }
 
 \details{
