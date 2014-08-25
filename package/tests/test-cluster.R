@@ -29,7 +29,8 @@ simgen <- function(alln, chromos, width, min.space, max.space) {
    	chosen.t <- chosen.t[o]
    	is.diff <- c(TRUE, diff(chosen.a)!=0 | diff(chosen.t)!=0)
    	pairs <- data.frame(anchor.id=chosen.a, target.id=chosen.t)
-	return(list(pairs=pairs, region=output))
+	return(diffHic:::.DIList(anchors=chosen.a, targets=chosen.t, 
+		counts=matrix(0, nrow=alln, ncol=1), totals=0, region=output))
 }
 
 crisscross <- function(id1, id2) {
@@ -44,22 +45,24 @@ crisscross <- function(id1, id2) {
 	return(TRUE)
 }
 
-clustercomp <- function(pairs, region, tol, maxw, debug=FALSE) {
+clustercomp <- function(data, tol, maxw, debug=FALSE) {
 	# Simulating cluster formation first, by expanding each region and checking for overlaps.
 	# We use a simple quadratic-time algorithm; slow, but gets the job done.
+	region <- regions(data)
+	np <- npairs(data)
 	expanded <- resize(region, fix="center", width(region)+tol*2)
 	allap <- findOverlaps(expanded, region)
-	impossible <- nrow(pairs)+1L
-	myids <- rep(impossible, nrow(pairs))
+	impossible <- np+1L
+	myids <- rep(impossible, np)
 	last.id <- 1L
 
-	for (x in 1:nrow(pairs)) {
-		cura <- pairs$anchor.id[x]
+	for (x in 1:np) {
+		cura <- data@anchor.id[x]
 		keep.a <- subjectHits(allap)[queryHits(allap)==cura]
-		curt <- pairs$target.id[x]
+		curt <- data@target.id[x]
 		keep.t <- subjectHits(allap)[queryHits(allap)==curt]
 
-		partners <- which(pairs$anchor.id %in% keep.a & pairs$target.id %in% keep.t)
+		partners <- which(data@anchor.id %in% keep.a & data@target.id %in% keep.t)
 		partners <- partners[partners>=x]
 		curids <- myids[partners]
 		curids <- curids[curids!=impossible]
@@ -75,7 +78,7 @@ clustercomp <- function(pairs, region, tol, maxw, debug=FALSE) {
 		myids[partners]	<- chosen
 	}
 
-	comp <- clusterPairs(pairs, region, tol=tol, upper=NULL)
+	comp <- clusterPairs(data, tol=tol, upper=NULL)
 	if (!crisscross(comp, myids)) { stop("mismatches in cluster IDs without bin size restriction") }
 
 # Some error checking functions; just define 'current' as the pairs of interest.
@@ -85,15 +88,15 @@ clustercomp <- function(pairs, region, tol, maxw, debug=FALSE) {
 # rect(start(region)[current$t], start(region)[current$t], end(region)[current$a], end(region)[current$t], col=rgb(1,0,0,0.5))
 
 	# Now, splitting each cluster to keep them under maxw.
-	clusters <- split(1:nrow(pairs), comp)
+	clusters <- split(1:np, comp)
 	all.starts <- start(region)
 	all.ends <- end(region)+1L
 	last <- 0
 	myid2 <- myids
 	for (x in names(clusters)) {
 		active <- clusters[[x]]
-		active.a <- pairs$anchor.id[active]
-		active.t <- pairs$target.id[active]
+		active.a <- data@anchor.id[active]
+		active.t <- data@target.id[active]
 
 		cluster.as <- min(all.starts[active.a])
 		cluster.ae <- max(all.ends[active.a])
@@ -117,8 +120,8 @@ clustercomp <- function(pairs, region, tol, maxw, debug=FALSE) {
 		last <- last + mult.t*mult.a
 	}
 
-	# Comparing  it to the actual clustering.
-	comp2 <- clusterPairs(pairs, region, tol=tol, upper=maxw)
+	# Comparing it to the actual clustering.
+	comp2 <- clusterPairs(data, tol=tol, upper=maxw)
 	if (!crisscross(comp2, myid2)) { stop("mismatches in cluster IDs when a maximum bin size is applied") }
 	return(summary(tabulate(comp)))
 }
@@ -129,65 +132,65 @@ set.seed(3413094)
 
 chromos <- c(chrA=10, chrB=20, chrC=40)
 data <- simgen(100, chromos, 20, 50, 100)
-clustercomp(data$pairs, data$region, tol=70, maxw=200)
-clustercomp(data$pairs, data$region, tol=100, maxw=200)
-clustercomp(data$pairs, data$region, tol=200, maxw=200)
+clustercomp(data, tol=70, maxw=200)
+clustercomp(data, tol=100, maxw=200)
+clustercomp(data, tol=200, maxw=200)
 
 data <- simgen(100, chromos, 10, 50, 100)
-clustercomp(data$pairs, data$region, tol=70, maxw=500)
-clustercomp(data$pairs, data$region, tol=100, maxw=500)
-clustercomp(data$pairs, data$region, tol=200, maxw=500)
+clustercomp(data, tol=70, maxw=500)
+clustercomp(data, tol=100, maxw=500)
+clustercomp(data, tol=200, maxw=500)
 
 data <- simgen(500, chromos, 20, 50, 100)
-clustercomp(data$pairs, data$region, tol=70, maxw=200)
-clustercomp(data$pairs, data$region, tol=100, maxw=200)
-clustercomp(data$pairs, data$region, tol=200, maxw=200)
+clustercomp(data, tol=70, maxw=200)
+clustercomp(data, tol=100, maxw=200)
+clustercomp(data, tol=200, maxw=200)
 
 data <- simgen(500, chromos, 10, 50, 100)
-clustercomp(data$pairs, data$region, tol=70, maxw=500)
-clustercomp(data$pairs, data$region, tol=100, maxw=500)
-clustercomp(data$pairs, data$region, tol=200, maxw=500)
+clustercomp(data, tol=70, maxw=500)
+clustercomp(data, tol=100, maxw=500)
+clustercomp(data, tol=200, maxw=500)
 
 data <- simgen(1000, chromos, 20, 50, 100)
-clustercomp(data$pairs, data$region, tol=70, maxw=200)
-clustercomp(data$pairs, data$region, tol=100, maxw=200)
-clustercomp(data$pairs, data$region, tol=200, maxw=200)
+clustercomp(data, tol=70, maxw=200)
+clustercomp(data, tol=100, maxw=200)
+clustercomp(data, tol=200, maxw=200)
 
 data <- simgen(1000, chromos, 10, 50, 100)
-clustercomp(data$pairs, data$region, tol=70, maxw=500)
-clustercomp(data$pairs, data$region, tol=100, maxw=500)
-clustercomp(data$pairs, data$region, tol=200, maxw=500)
+clustercomp(data, tol=70, maxw=500)
+clustercomp(data, tol=100, maxw=500)
+clustercomp(data, tol=200, maxw=500)
 
 # And again, with flipped settings.	
 data <- simgen(100, chromos, 50, 10, 20)
-clustercomp(data$pairs, data$region, tol=0, maxw=200)
-clustercomp(data$pairs, data$region, tol=20, maxw=200)
-clustercomp(data$pairs, data$region, tol=50, maxw=200)
+clustercomp(data, tol=0, maxw=200)
+clustercomp(data, tol=20, maxw=200)
+clustercomp(data, tol=50, maxw=200)
 
 data <- simgen(100, chromos, 100, 10, 20)
-clustercomp(data$pairs, data$region, tol=0, maxw=500)
-clustercomp(data$pairs, data$region, tol=20, maxw=500)
-clustercomp(data$pairs, data$region, tol=50, maxw=500)
+clustercomp(data, tol=0, maxw=500)
+clustercomp(data, tol=20, maxw=500)
+clustercomp(data, tol=50, maxw=500)
 
 data <- simgen(500, chromos, 50, 10, 20)
-clustercomp(data$pairs, data$region, tol=0, maxw=200)
-clustercomp(data$pairs, data$region, tol=20, maxw=200)
-clustercomp(data$pairs, data$region, tol=50, maxw=200)
+clustercomp(data, tol=0, maxw=200)
+clustercomp(data, tol=20, maxw=200)
+clustercomp(data, tol=50, maxw=200)
 
 data <- simgen(500, chromos, 100, 10, 20)
-clustercomp(data$pairs, data$region, tol=0, maxw=500)
-clustercomp(data$pairs, data$region, tol=20, maxw=500)
-clustercomp(data$pairs, data$region, tol=50, maxw=500)
+clustercomp(data, tol=0, maxw=500)
+clustercomp(data, tol=20, maxw=500)
+clustercomp(data, tol=50, maxw=500)
 
 data <- simgen(1000, chromos, 50, 10, 20)
-clustercomp(data$pairs, data$region, tol=0, maxw=200)
-clustercomp(data$pairs, data$region, tol=20, maxw=200)
-clustercomp(data$pairs, data$region, tol=50, maxw=200)
+clustercomp(data, tol=0, maxw=200)
+clustercomp(data, tol=20, maxw=200)
+clustercomp(data, tol=50, maxw=200)
 
 data <- simgen(1000, chromos, 100, 10, 20)
-clustercomp(data$pairs, data$region, tol=0, maxw=500)
-clustercomp(data$pairs, data$region, tol=20, maxw=500)
-clustercomp(data$pairs, data$region, tol=50, maxw=500)
+clustercomp(data, tol=0, maxw=500)
+clustercomp(data, tol=20, maxw=500)
+clustercomp(data, tol=50, maxw=500)
 
 ####################################################################################################
 ####################################################################################################

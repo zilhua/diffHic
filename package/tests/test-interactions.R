@@ -146,10 +146,10 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
 	simgen(dir2, npairs2, chromos)
 	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=filter)
 
-	ar<-y$region[y$pairs[,1]]
-	tr<-y$region[y$pairs[,2]]
-	if (nrow(y$pairs)) { 
-		overall<-data.frame(y$counts, paste0(as.character(seqnames(ar)), ":", start(ar), "-", end(ar)),
+	ar <- anchors(y)
+	tr <- targets(y)
+	if (npairs(y)) {
+		overall<-data.frame(counts(y), paste0(as.character(seqnames(ar)), ":", start(ar), "-", end(ar)),
 			paste0(as.character(seqnames(tr)), ":", start(tr), "-", end(tr)), stringsAsFactors=FALSE)
 	} else {
 		overall <- data.frame(integer(0), integer(0), character(0), character(0), numeric(0),
@@ -160,9 +160,9 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
 	rownames(overall)<-NULL
 
 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter)
-	if (!identical(y$totals, ref$total)) { stop("mismatches in library sizes") }
+	if (!identical(totals(y), ref$total)) { stop("mismatches in library sizes") }
 	if (!identical(overall, ref$table)) { stop("mismatches in counts or region coordinates") }
-	if (filter<=1L && !identical(as.integer(colSums(y$counts)+0.5), y$totals)) { 
+	if (filter<=1L && !identical(as.integer(colSums(counts(y))+0.5), totals(y))) { 
 		stop("sum of counts from binning should equal totals without filtering") }
 
 #	# Checking the fidelity of the filter.

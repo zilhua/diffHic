@@ -36,6 +36,8 @@ reconstruct <- function(pairs, counts) {
 
 refline <- function(dirs, cuts, ranges, filter=20L, type="any") {
 	everypair <- everycount <- list()
+	o <- order(ranges)
+	ranges <- ranges[o]
 
 	# Determining which ranges each restriction fragment overlaps.
 	cur.olap <- findOverlaps(cuts, ranges, type=type)
@@ -115,6 +117,7 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any") {
 	full.num <- integer(length(ranges2))
 	full.num[acquired] <- as.integer(new.num)
 	ranges2$nfrags <- full.num
+	ranges2$original <- o
 
 	# Aggregating results between libraries.
 	everypair <- do.call(rbind, everypair)
@@ -160,9 +163,10 @@ samecomp <- function(nreads, cuts, ranges, filter=0L, type="any") {
 	
 	out <- connectCounts(c(dir1, dir2), fragments=cuts, regions=ranges, filter=filter, type=type)
 	ref <- refline(c(dir1, dir2), cuts=cuts, ranges=ranges, filter=filter, type=type)
-	if (!identical(ref$pairs, out$pairs)) { stop("mismatch in pair identities") }
-	if (!identical(ref$counts, out$counts)) { stop("mismatch in counts") }
-	if (!identical(ref$region, out$region)) { stop("mismatch in region output") }	
+	if (!identical(ref$pairs$anchor.id, out@anchor.id)) { stop("mismatch in anchor identities") }
+	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
+	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
+	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
 
 	return(cbind(head(ref$pairs), head(ref$counts)))
 }

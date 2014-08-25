@@ -15,10 +15,9 @@ comp <- function(reference, widths) {
 		all.a <- as.integer(runif(n, 1, length(bindata$region)))
 		all.t <- as.integer(runif(n, 1, all.a))
 
-		output$pairs <- data.frame(anchor.id=all.a, target.id=all.t)
-		output$region <- bindata$region
 		oname <- paste0("w", w)
-		collected[[oname]] <- output
+		collected[[oname]] <- diffHic:::.DIList(counts=matrix(0, nrow=n, ncol=1), totals=0, 
+			anchors=all.a, targets=all.t, region=bindata$region)
 	}	
 
 	output<- do.call(boxPairs, c(collected, fragments=cutted, reference=reference))
@@ -31,8 +30,8 @@ comp <- function(reference, widths) {
 		parent.a <- output$region[output$pairs$anchor.id[curdex]]
 		parent.t <- output$region[output$pairs$target.id[curdex]]
 		
-		current.a <- curlist$region[curlist$pairs$anchor.id]
-		current.t <- curlist$region[curlist$pairs$target.id]
+		current.a <- anchors(curlist)
+		current.t <- targets(curlist)
 		
 		if (! all(start(parent.a) <= start(current.a) & end(parent.a) >= end(current.a)) ) { stop("anchor ranges not nested in parent") }
 		if (! all(start(parent.t) <= start(current.t) & end(parent.t) >= end(current.t)) ) { stop("target ranges not nested in parent") }
