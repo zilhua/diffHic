@@ -123,10 +123,11 @@ design <- model.matrix(~factor(c("flox", "flox", "ko", "ko")))
 require(diffHic)
 data <- squareCounts(input, width=1e6, fragments=fragments)
 require(edgeR)
-keep <- aveLogCPM(data$counts, lib.size=data$totals) > 0
-y <- DGEList(data$counts[keep,], lib.size=data$totals)
+keep <- aveLogCPM(counts(data), lib.size=totals(data)) > 0
+data <- data[keep,]
+y <- DGEList(counts(data), lib.size=totals(data))
 require(csaw)
-y$offset <- normalizeChIP(y$counts, lib.sizes=y$samples$lib.size, type="loess")
+y$offset <- normalizeChIP(counts(data), lib.sizes=totals(data), type="loess")
 y <- estimateDisp(y, design)
 result <- glmQLFTest(y, design, robust=TRUE)
 @
@@ -295,8 +296,7 @@ This is equivalent to summing the counts for each pair of restriction fragment i
 An example is provided with technical replicates for GM06990 cells in the \citeauthor{lieberman2009comprehensive} dataset.
 
 <<>>=
-prepped <- preparePairs("SRR027958.bam", hs.frag, 
-    file="SRR027958.h5", dedup=TRUE, minq=10)
+prepped <- preparePairs("SRR027958.bam", hs.frag, file="SRR027958.h5", dedup=TRUE, minq=10)
 counted <- countPairs("SRR027958.h5", "SRR027958_counted.h5", max.length=600, 
     min.ingap=min.ingap, min.outgap=min.outgap)
 mergePairs(files=c("SRR027957_counted.h5", "SRR027958_counted.h5"), "merged.h5")
@@ -349,18 +349,14 @@ Counting of read pairs between bin pairs can be achieved using the \code{squareC
 <<>>=
 bin.size <- 1e6
 data <- squareCounts(input, mm.frag, width=bin.size, filter=1)
-head(data$counts)
+data
 @
 
-The \code{counts} matrix and the \code{totals} vector are fairly self-explanatory, i.e., the count matrix and the vector of total library sizes, respectively.
-Each row of the count matrix represents the counts for a bin pair that is defined in the corresponding row of \code{pairs}.
-More specifically, each row of \code{pairs} contains a pair of indices that point to the bin coordinates in \code{region}.
-Again, anchor and target notation is used whereby the anchor bin is that with the higher genomic coordinate.
-
-<<>>=
-head(data$pairs)
-data$region
-@
+This generates a \code{DIList} object containing the relevant information.
+Each row of the count matrix represents the counts for an interaction, while each column represents a library.
+Each interaction is characterized as a pair of genomic intervals, i.e., bins.
+Again, anchor and target notation is used for these intervals, whereby the anchor bin is that with the higher genomic coordinate.
+The total vector just contains the total number of read pairs in each library.
 
 Bin pairs can also be filtered to remove those with to a count sum below \code{filter}.
 This removes uninformative bin pairs with very few read pairs, and reduces the memory footprint of the function.
@@ -377,6 +373,11 @@ Determination of the ideal bin size is not trivial as the features of interest a
 Instead, repeated analyses with multiple bin sizes is recommended to provide some degree of robustness (see Section~\ref{sec:mergebins}).
 In practice, the boundary of each bin is rounded to the closest restriction site on the genome.
 This is due to the inherent limits on spatial resolution in a Hi-C experiment.
+The number of restriction fragments in each bin is recorded in the \code{nfrags} field of the metadata.
+
+<<>>=
+head(regions(data))
+@
 
 \section{Counting with pre-defined regions}
 On occasion, prior knowledge may be available with respect to the regions of interest.
@@ -394,13 +395,21 @@ gene.body <- GRanges(paste0("chr", chrstart$Chromosome),
 
 Counting can be directly performed for these defined regions using the \code{connectCounts} function.
 Interactions are defined between each pair of regions in the pre-specified set.
-This can be easier to interpret than bins as the interacting regions have some biological meaning.
-The indices in \code{pairs} in the output list refers to the interacting regions in the input set of regions, i.e., \code{gene.body}.
+This can be easier to interpret than pairs of bins as the interacting regions have some biological significance.
 The count matrix and the vector of totals are defined as previously described.
 
 <<>>=
 redata <- connectCounts(input, fragments=mm.frag, regions=gene.body)
-head(redata$pairs)
+redata
+@
+
+Again, anchor and target notation applies where the interval with the larger start coordinate in the genome is defined as the anchor.
+Note that the anchor may not have a larger end coordinate if the supplied \code{regions} are nested.
+In addition, each region is rounded to the nearest restriction site.
+Resorting is also performed though the indices of the original regions is supplied in the metadata as \code{original}.
+
+<<>>=
+head(regions(redata))
 @
 
 One obvious limitation of this approach is that interactions involving unspecified regions will be ignored.
@@ -411,14 +420,15 @@ For example, interactions will not be detected around smaller genes as the count
 Conversely, interactions between distinct loci within a single large gene body will not be resolved.
 
 \section{Counting into single bins}
+\label{sec:marginal}
 For each bin, the number of read pairs with at least one read mapped inside that bin can be counted with the \code{marginalCounts} function.
 This effectively uses the Hi-C data to examine the genomic coverage of each bin.
-One can use these counts to determine whether there are systematic differences in coverage between libraries for a given bin.
+One can use these ``marginal'' counts to determine whether there are systematic differences in coverage between libraries for a given bin.
 This implies that copy number variations are present, which may confound detection of differential interactions.
 
 <<>>=
 margin.data <- marginCounts(input, fragments=mm.frag, width=bin.size)
-head(margin.data$counts)
+margin.data
 @
 
 For this dataset, there are no changes in coverage for the vast majority of bins.
@@ -427,9 +437,8 @@ The lack of changes indicate that a direct comparison of the interaction intensi
 Remedial action in the presence of possible copy number variations is not trivial and will be discussed in Section~\ref{sec:copy}.
 
 <<eval=FALSE,label=mamargin>>=
-adjc <- cpm(margin.data$counts, lib.size=margin.data$totals, 
-    log=TRUE, prior.count=5)
-smoothScatter(0.5*(adjc[,1]+adjc[,3]), adjc[,1]-adjc[,3], 
+adjc <- cpm(counts(margin.data), lib.size=totals(margin.data), log=TRUE, prior.count=5)
+smoothScatter(0.5*(adjc[,1]+adjc[,3]), adjc[,1]-adjc[,3],
     xlab="A", ylab="M", main="Flox (1) vs. Ko (1)")
 @
 
@@ -439,16 +448,26 @@ smoothScatter(0.5*(adjc[,1]+adjc[,3]), adjc[,1]-adjc[,3],
 @
 \end{center}
 
-\section{Summary}
-Counting into bin pairs is the most general method for interaction quantification.
-It does not require any prior knowledge and it can be easily adjusted to obtain the desired spatial resolution.
-Thus, it will be the method of choice for the rest of this guide.
-Note that all methods should return the same library size.
-This is important for synchronization when comparing between different sets of counts.
+To avoid any confusion in the notation, the count for each bin pair is defined as the interaction count.
+It may be necessary later to process the interaction count based on the marginal counts for the corresponding bins in the pair.
+In such cases, one should ensure that the same \code{width} (and other parameters) is used in \code{squareCounts} and \code{marginCounts}.
+One can check that this is the case by ensuring that the regions and totals are the same.
 
 <<>>=
-rbind(data$totals, redata$totals, margin.data$totals)
+identical(regions(data), regions(margin.data))
+identical(totals(data), totals(margin.data))
 @
+
+Also note that, technically speaking, the anchor and target notation here is superfluous.
+This is because the counts refer to bins on the linear genome, rather than pairs of bins in the interaction space.
+Nonetheless, a \code{DIList} is still returned by \code{marginCounts} for convenience and consistency.
+
+\section{Summary}
+Counting into bin pairs is the most general method for interaction quantification.
+It does not require any prior knowledge regarding the regions of interest.
+The bin size can be easily adjusted to obtain the desired spatial resolution.
+It is also easier/safer to compare between bin pairs (e.g., during filtering) when each bin is roughly of the same size.
+Thus, bin-based counting will be the method of choice for the rest of this guide.
 
 \chapter{Filtering out uninteresting interactions}
 \label{sec:filter}
@@ -469,7 +488,7 @@ The calculation is demonstrated below, after adding a prior count to stabilize t
 <<eval=FALSE,label=avehistplot>>=
 require(edgeR)
 prior.count <- 5
-ave.ab <- aveLogCPM(data$counts, lib.size=data$totals, prior.count=prior.count)
+ave.ab <- aveLogCPM(counts(data), lib.size=totals(data), prior.count=prior.count)
 hist(ave.ab, xlab="Average abundance")
 @
 
@@ -488,11 +507,9 @@ The example below removes those bin pairs with an average count below 5 across a
 Note that a prior count is added for a valid comparison with the computed abundances.
 
 <<>>=
-count.keep <- ave.ab >= log2(5 + prior.count) - mean(log2(data$totals/1e6))
+count.keep <- ave.ab >= log2(5 + prior.count) - mean(log2(totals(data)/1e6))
 summary(count.keep)
-dummy <- data
-dummy$counts <- dummy$counts[count.keep,,drop=FALSE]
-dummy$pairs <- dummy$pairs[count.keep,]
+dummy <- data[count.keep,]
 @
 
 This count-based approach is fairly objective yet is still effective, i.e., removes a large number of bin pairs. 
@@ -683,7 +700,7 @@ This avoids spurious differences in the abundances of small and large bin pairs 
 If the same prior is used, downscaling of the abundances for large bin pairs will reduce the size of the effective prior added to those counts.
 
 <<>>=
-small.ab <- aveLogCPM(smaller.data$counts, lib.size=smaller.data$totals, 
+small.ab <- aveLogCPM(counts(smaller.data), lib.size=totals(smaller.data),
     prior.count=prior.count/deflation^2) 
 @
 
@@ -695,11 +712,10 @@ Also note that a non-unity \code{filter} is used in \code{squareCounts}, so no a
 <<>>=
 small.keep <- small.ab > new.threshold 
 summary(small.keep)
-smaller.data$counts <- smaller.data$counts[small.keep,,drop=FALSE]
-smaller.data$pairs <- smaller.data$pairs[small.keep,]
+smaller.data <- smaller.data[small.keep,]
 @
 
-The same procedure can be applied for direct filtering by replacing \code{new.threshold} with \code{direct.threshold} when computing \code{small.keep}.
+The same procedure can be used in direct filtering by replacing \code{trend.threshold[...]} with \code{direct.threshold} when computing \code{new.threshold}.
 In this case, matching is not required as the threshold is constant for all bin pairs.
 
 \section{Filtering for pre-specified regions}
@@ -708,7 +724,7 @@ Filtering for arbitrary regions is slightly difficult as the width of the region
 One must adjust the threshold for the different read counting areas, as shown below with the \code{getArea} function.
 
 <<>>=
-re.ab <- aveLogCPM(redata$counts, lib.size=redata$totals) 
+re.ab <- aveLogCPM(counts(redata), lib.size=totals(redata)) 
 re.norm.ab <- re.ab - log2(getArea(redata, fragments=mm.frag))
 summary(re.norm.ab)
 @
@@ -762,8 +778,7 @@ On a practical level, the simplicity of the direct approach is attractive and wi
 
 <<>>=
 original <- data
-data$counts <- data$counts[direct.keep,,drop=FALSE] 
-data$pairs <- data$pairs[direct.keep,] 
+data <- data[direct.keep,]
 @
 
 The original unfiltered data is also retained for later use.
@@ -785,9 +800,9 @@ lines(ab[o], fit$fitted[o], col="red")
 @
 
 <<eval=FALSE,label=maunnorm>>=
-ab <- aveLogCPM(data$counts, lib.size=data$totals)
+ab <- aveLogCPM(counts(data), lib.size=totals(data))
 o <- order(ab)
-adj.counts <- cpm(data$counts, lib.size=data$totals, log=TRUE)
+adj.counts <- cpm(counts(data), lib.size=totals(data), log=TRUE)
 <<makema>>
 @
 
@@ -807,7 +822,7 @@ A large offset for an observation is equivalent to downscaling the corresponding
 
 <<>>=
 require(csaw)
-nb.off <- normalizeChIP(data$counts, lib.size=data$totals, type="loess")
+nb.off <- normalizeChIP(counts(data), lib.size=totals(data), type="loess")
 head(nb.off)
 @
 
@@ -818,7 +833,7 @@ Any systematic differences must be technical in origin and should be removed.
 However, if this assumption does not hold, removal of the trend may result in loss genuine differences between conditions.
 
 <<eval=FALSE,label=manorm>>=
-adj.counts <- log2(data$counts + 0.5) - nb.off/log(2)
+adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
 <<makema>>
 @
 
@@ -828,9 +843,7 @@ adj.counts <- log2(data$counts + 0.5) - nb.off/log(2)
 @
 \end{center}
 
-\section{Removing genomic biases within libraries}
-
-\subsection{Iterative correction of interaction intensities}
+\section{Iterative correction of interaction intensities}
 \label{sec:itercor}
 While not the forte of \pkgname{}, a method is also provided here for removal of biases between genomic regions.
 The \code{correctedContact} function performs the iterative correction procedure described by \citep{imakaev2012iterative} with some modifications.
@@ -905,60 +918,93 @@ This means that iterative correction will have no effect as it operates on the d
 % single-sample analyses. For differential analyses, why go second-best? You can
 % use the abundance directly and skip the middleman.
 
-\subsection{Accounting for copy number variations}
+\section{Accounting for copy number variations}
 \label{sec:copy}
-Biases computed by iterative correction represent the divisors that were used to convert the counts into contact probabilities.
-As such, they can be log-transformed and used as GLM offsets.
-The aim is to use the biases to account for changes in copy number within each bin.
-Spurious differences and inflated variances can then be avoided during the statistical analysis.
 
-Calculation of library-specific offsets from the biases can be performed with the output of \code{correctedContact}.
-This requires setting \code{average=FALSE} such that iterative correction is performed separately for each library.
-Any missing biases for low abundance bins are set to 0, i.e., the mean offset for each bin pair.
-This ensures that further processing can be performed in the absence of information for these bins.
+As one might imagine, copy number variations (CNVs) in the interacting regions will affect the interaction intensity. 
+These CNV-driven differences in intensities are generally uninteresting and must be removed to avoid spurious detection.
+This is done using the \code{normalizeCNV} function, which simultaneously removes the trended biases described earlier.
+The function is based on multi-dimensional smoothing across several covariates with the \code{locfit} package \citep{loader1999local}.
 
 <<>>=
-corrected <- correctedContact(original, average=FALSE)
-log.bias <- log(corrected$bias)
-log.bias <- log.bias - rowMeans(log.bias, na.rm=TRUE)
-log.bias[is.na(log.bias)] <- 0
-cnv.off <- log.bias[data$pairs$anchor.id,,drop=FALSE] + log.bias[data$pairs$target.id,,drop=FALSE]
-head(cnv.off)
+cnv.offs <- normalizeCNV(data, margin.data)
+head(cnv.offs)
 @
 
-It must be stressed that there are several obvious limitations with this approach. 
-In particular:
-\begin{itemize}
-\item Changes in copy number are assumed to have a multiplicative effect on interaction intensity.
-This may not be the case, e.g., a change in copy number may be handled by negative feedback mechanisms such that no change occurs in the interaction intensity.
-\item The correction procedure is usually dominated by contributions from short-range interactions.
-Any stochastic changes in the intensity of these interactions will have an inappropriately large effect on the results for all bin pairs.
-\item There is no simple way to combine these offsets with those from non-linear normalization.
-Indeed, there is no guarantee that the two offsets do not oppose each other's effects.
-\item Some biases cannot be computed for some libraries where they have counts of zero.
-Imputation for missing values is \textit{ad hoc} whereby values are set to the average offset (zero, above).
-\end{itemize}
-An alternative approach is to simply identify the bins that have potential copy number changes.
-This can be done by performing a differential analysis on the counts from \code{marginCounts}.
-Any pairs that involve affected bins can be marked to indicate that caution is required during interpretation.
-This strategy avoids the aforementioned problems and may be preferable when only a few bins are affected.
+For any two libraries, the ratio of marginal counts for a bin can be used as a proxy for the relative CNV between libraries in that bin.
+Each bin pair is subsequently associated with two marginal log-ratios.
+Note that the marginal counts should be collected with the same parameters as the bin pair (i.e., interaction) counts.
+The third covariate for each bin pair is that of the average abundance across all libraries.
+This will account for any abundance-dependent trends in the biases.
 
-% You might be wondering why we just don't divide it through by the coverage 
-% of each bin. However, this is not a good idea. Check out the example below,
-% where a matrix of 1's has been multiplied by a true bias. You need a couple
-% of iterations to recover the true bias, even under true factorizability.
+The response for each bin pair is defined as the log-ratio of interaction counts between two libraries.
+A locally weighted surface is fitted to the response against all three covariates.
+The idea is that, at any combination of covariate values, most bin pairs are not expected to be differential.
+Any systematic differences between libraries is attributable to CNV (or trended) biases and is removed.
+The function does so by returning GLM offsets, which can be supplied to the statistical analysis to eliminate the bias.
 
-<<eval=FALSE,echo=FALSE>>=
-true.bias <- c(1.5, 2, 1)
-blah <- t(true.bias * t(matrix(1, 3, 3) * true.bias))
-combined <- 1L
-for (it in 1:25) {
-	collected <- sqrt(rowSums(blah))
-	blah <- t(t(blah/collected)/collected)
-	combined <- combined*collected
-	print(combined/min(combined))
-}
-@
+The use of a empirical trend fit reduces the number of assumptions involved in translating a CNV into its effect on interaction intensities.
+For example, iterative correction can also be used to correct for CNVs by accounting for differences in coverage of each bin.
+It does so by assuming factorizability \citep{imakaev2012iterative}, i.e., the effect on intensity is a product of the CNVs of the interacting regions.
+This may not be reliable given that random ligation is not the only mechanism for read pair generation.
+
+That said, the use of many covariates may lead to overfitting and removal of genuine differences.
+The function also assumes that CNVs in different parts of the genome have the same effect.
+Caution is therefore required when using \code{normalizeCNV}. 
+The safest choice is to avoid it when CNVs are not present, according to the diagnostic plots in Section~\ref{sec:marginal}.
+
+% Biases computed by iterative correction represent the divisors that were used to convert the counts into contact probabilities.
+% As such, they can be log-transformed and used as GLM offsets.
+% The aim is to use the biases to account for changes in copy number within each bin.
+% Spurious differences and inflated variances can then be avoided during the statistical analysis.
+% 
+% Calculation of library-specific offsets from the biases can be performed with the output of \code{correctedContact}.
+% This requires setting \code{average=FALSE} such that iterative correction is performed separately for each library.
+% Any missing biases for low abundance bins are set to 0, i.e., the mean offset for each bin pair.
+% This ensures that further processing can be performed in the absence of information for these bins.
+% 
+% <<>>=
+% corrected <- correctedContact(original, average=FALSE)
+% log.bias <- log(corrected$bias)
+% log.bias <- log.bias - rowMeans(log.bias, na.rm=TRUE)
+% log.bias[is.na(log.bias)] <- 0
+% cnv.off <- log.bias[data@anchor.id,,drop=FALSE] + log.bias[data@target.id,,drop=FALSE]
+% head(cnv.off)
+% @
+% 
+% It must be stressed that there are several obvious limitations with this approach. 
+% In particular:
+% \begin{itemize}
+% \item Changes in copy number are assumed to have a multiplicative effect on interaction intensity.
+% This may not be the case, e.g., a change in copy number may be handled by negative feedback mechanisms such that no change occurs in the interaction intensity.
+% \item The correction procedure is usually dominated by contributions from short-range interactions.
+% Any stochastic changes in the intensity of these interactions will have an inappropriately large effect on the results for all bin pairs.
+% \item There is no simple way to combine these offsets with those from non-linear normalization.
+% Indeed, there is no guarantee that the two offsets do not oppose each other's effects.
+% \item Some biases cannot be computed for some libraries where they have counts of zero.
+% Imputation for missing values is \textit{ad hoc} whereby values are set to the average offset (zero, above).
+% \end{itemize}
+% An alternative approach is to simply identify the bins that have potential copy number changes.
+% This can be done by performing a differential analysis on the counts from \code{marginCounts}.
+% Any pairs that involve affected bins can be marked to indicate that caution is required during interpretation.
+% This strategy avoids the aforementioned problems and may be preferable when only a few bins are affected.
+% 
+% % You might be wondering why we just don't divide it through by the coverage 
+% % of each bin. However, this is not a good idea. Check out the example below,
+% % where a matrix of 1's has been multiplied by a true bias. You need a couple
+% % of iterations to recover the true bias, even under true factorizability.
+% 
+% <<eval=FALSE,echo=FALSE>>=
+% true.bias <- c(1.5, 2, 1)
+% blah <- t(true.bias * t(matrix(1, 3, 3) * true.bias))
+% combined <- 1L
+% for (it in 1:25) {
+% 	collected <- sqrt(rowSums(blah))
+% 	blah <- t(t(blah/collected)/collected)
+% 	combined <- combined*collected
+% 	print(combined/min(combined))
+% }
+% @
 
 \chapter{Assessing biological variability}
 
@@ -986,7 +1032,7 @@ Each feature of the \code{DGEList} corresponds to an interaction - in this case,
 Note the inclusion of the normalization offsets that were previously computed with the NB-loess method.
 
 <<>>=
-y <- DGEList(data$counts, lib.size=data$totals)
+y <- DGEList(counts(data), lib.size=totals(data))
 y$offset <- nb.off
 @
 
@@ -1101,41 +1147,68 @@ These can be saved to file as necessary.
 The resorting by $p$-value just makes it easier to parse the final, as the most interesting differential interactions are placed at the top.
 
 <<>>=
-ax <- data$region[data$pairs$anchor.id]
-tx <- data$region[data$pairs$target.id]
+ax <- anchors(data)
+tx <- targets(data)
 final <- data.frame(anchor.chr=seqnames(ax), anchor.start=start(ax), anchor.end=end(ax),
     target.chr=seqnames(tx), target.start=start(tx), target.end=end(tx), result$table, FDR=adj.p)
 o <- order(final$PValue)
 write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
-\subsection{Merging results from different bin widths}
-\label{sec:mergebins}
-Recall that these counts have been collected using 1 Mbp bins.
+\subsection{Aggregating small bin pairs}
 Smaller bins may be more useful as they can identify sharp features that would otherwise be ``averaged out'' from counting with larger bins.
-Improved spatial resolution can lead to an increase in detection power.
-However, there are two problems with the use of smaller bins:
-\begin{itemize}
-\item Loss of power for detection of diffuse interactions. 
-This is not a problem for larger bins where the counts are collected across the entirety of the interaction.
-\item Difficulty in interpreting the results for diffuse interactions. 
-Recall that the FDR refers to the proportion of bin pairs that are false positives.
-The underlying assumption is that each bin pair roughly corresponds to an interaction.
-This is reasonable when large bins are used.
-If multiple smaller bin pairs will cover a diffuse interaction, the assumption will no longer hold.
-This can result in misinterpretation of the FDR such that control is lost \citep{lun2014denovo}.
-\end{itemize}
-
-These issues can be resolved by combining the differential testing results between small and large bin pairs.
 For purposes of demonstration, a quick-and-dirty analysis of the previously loaded 100 kbp bin pairs is performed here.
-
 <<>>=
-y.small <- DGEList(smaller.data$counts, smaller.data$totals)
-y.small$offset <- normalizeChIP(smaller.data$counts, smaller.data$totals, type="loess")
+y.small <- DGEList(counts(smaller.data), lib.size=totals(smaller.data))
+y.small$offset <- normalizeChIP(counts(smaller.data), lib.sizes=totals(smaller.data), type="loess")
 y.small <- estimateDisp(y.small, design)
 result.small <- glmQLFTest(y.small, design, robust=TRUE)
 @
 
+Use of smaller bin pairs can lead to problems when diffuse interactions are present.
+Recall that the FDR refers to the proportion of bin pairs that are false positives.
+As the bin pair is just an analytical construct, and the actual statistic of interest is the equivalent proportion for the underlying interactions.
+The FDR over bin pairs can be used as a proxy for the FDR over interactions, if one assumes that each bin pair roughly corresponds to an interaction.
+This is reasonable for pairs of large bins, but is less so when multiple smaller bin pairs are used to represent a diffuse interaction.
+This can result in misinterpretation of the FDR such that control is lost \citep{lun2014denovo}.
+
+A typical approach might be to cluster bin pairs in the interaction space to identify the underlying true interaction.
+One can then combine $p$-values across all bin pairs in the cluster, to obtain a single combined $p$-value for the cluster.
+This approach avoids misinterpretation for diffuse interactions as each cluster (and thus interaction) has one $p$-value.
+However, this is confounded by the density of the interaction space, particularly at short distances and/or in TADs.
+The boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
+
+Boundary ambiguity can be avoided by performing pre-defined clustering based on large bin pairs.
+Specifically, a large bin pair is defined and the set of all smaller bin pairs nested therein is defined as a cluster.
+This is robust to high-density space as the definition of the cluster does not depend on the neighbouring bin pairs.
+Identification of these clusters can be achieved with the \code{boxPairs} function, as shown below.
+Note that the larger bin size must be a multiple of the \code{width} used for the smaller bins - in this case, 1 Mbp.
+
+<<>>=
+matched <- boxPairs(reference=bin.size, smaller=smaller.data, fragments=mm.frag)
+@
+
+The $p$-values for all of the smaller bin pairs can then be combined using Simes' method.
+The resulting combined $p$-value represents the evidence against the global null hypothesis for the larger bin pair.
+That is, there are no significant differences in any of the smaller bin pairs nested within the larger bin pair.
+The BH method is applied to the combined $p$-values to control the FDR across all larger bin pairs/interactions.
+Rejection of the global null indicates that there is a change and that the larger bin pair is worth further investigation.
+
+<<>>=
+tabcom <- combineTests(matched$indices$smaller, result.small$table)
+head(tabcom)
+sum(tabcom$FDR <= 0.05)
+@
+
+Of course, one could just count read pairs using larger bin pairs in the first place.
+This provides larger counts and improves power for detecting differences, given that spatial resolution is not an issue for diffuse interactions.
+Thus, the method described above is not particularly useful.
+Nonetheless, it is a good introduction to the method in the next section (which is more useful).
+
+\subsection{Merging results from different bin widths}
+\label{sec:mergebins}
+The choice of bin size is not clear when there might be sharp and diffuse changes in the interaction space.
+Robustness can be provided by combining the differential testing results between small and large bin pairs.
 All smaller bin pairs that are nested within each of the larger bin pairs are identified using the \code{boxPairs} function.
 This yields identifiers for each bin pair where \code{smaller} bin pairs are nested in \code{larger} bin pairs with the same ID.
 
@@ -1145,22 +1218,29 @@ ldex <- matched$indices$larger
 sdex <- matched$indices$smaller
 @
 
-The $p$-values for the larger and smaller bin pairs can be combined using Simes' method.
-The global null hypothesis for each larger bin pair is that there are no differential interactions within that bin pair.
-The combined $p$-value represents the evidence against this null hypothesis, and is based on the original $p$-value for the large bin pair.
-This ensures that that results are available for analyses with large counts.
-However, it also includes any results from the smaller nested bin pairs, to exploit the improvement in spatial resolution.
+Each larger bin pair is associated with its own $p$-value and those of the smaller nested bin pairs.
+All of these $p$-values can be combined using Simes' method, similar to that previously described.
+The idea is to provide a compromise between larger counts and spatial resolution in the final combined $p$-value.
 
-Calculation of the combined $p$-value is performed here using the \code{combineTests} function in the \csaw{} package.
-The \code{weight} argument is used to ensure that for each larger bin pair, the $p$-value for that bin pair has the same weight as those of all the smaller nested bin pairs.
-In short, this means that the analysis with the larger bin pair has the same contribution as that for the smaller bin pairs.
+Some finesse is necessary to assign different weights to each $p$-value during the combining procedure \citep{benjamini1997multiple}.
+For each larger bin pair, the $p$-value for that bin pair has the same weight as those of all the smaller nested bin pairs.
+This means that the analysis with the larger bin pair has the same contribution as that for the smaller bin pairs.
 The aim is to avoid increasing the contribution of the latter simply because there are more smaller bin pairs covering the interaction space.
 
 <<>>=
-freq <- tabulate(sdex, nbins=max(ldex))
-result.com <- combineTests(ids=c(sdex, ldex),
+weight <- c(1/counts(matched$pairs)[sdex,"smaller"],
+	1/counts(matched$pairs)[ldex,"larger"])
+@
+
+The code snippet above makes sense as the count matrix from the \code{DIList} in \code{boxPairs} records the number of nested bin pairs at each bin size.
+So, as the number of nested bin pairs increases, the weight assigned to each bin pair decreases.
+This effectively means that the $p$-values from each bin size are assigned equal weight.
+Calculation of the combined $p$-value is then performed using the \code{combineTests} function in the \csaw{} package.
+
+<<>>=
+result.com <- combineTests(ids=c(sdex, ldex), 
 	tab=rbind(result.small$table, result$table),
-	weight=c(rep(1, length(sdex)), pmax(1, freq[ldex])))
+	weight=weight)
 head(result.com)
 @
 
@@ -1169,7 +1249,7 @@ The FDR refers to the proportion of larger bin pairs that are false discoveries.
 Each large bin pair is safe to use as a proxy for the underlying interaction (or at least, safer than smaller bin pairs) to avoid misinterpretation of the FDR.
 Note the difference in the results after combining results with the smaller bin pairs, relative to direct application of the BH method to the larger bin pairs.
 An increase in the number of detections suggests that more features can be detected at higher resolution.
-However, decreases are also possible as the effective number of tests increases.
+However, decreases are also possible as the effective number of tests increases the severity of the correction.
 
 <<>>=
 sum(result.com$FDR <= 0.05)
@@ -1181,9 +1261,8 @@ The corresponding coordinates of the bin pairs in \code{original} can then be sa
 Of course, the coordinates of the smaller bin pairs can also be saved, though users should keep in mind that the FDR is computed with respect to the larger bin pairs.
 
 <<>>=
-ids <- as.integer(rownames(result.com))
-ax.2 <- matched$region[matched$pairs$anchor.id[ids]]
-tx.2 <- matched$region[matched$pairs$target.id[ids]]
+ax.2 <- anchors(matched$pairs)
+tx.2 <- targets(matched$pairs)
 final.2 <- data.frame(anchor.chr=seqnames(ax.2), anchor.start=start(ax.2), anchor.end=end(ax.2),
     target.chr=seqnames(tx.2), target.start=start(tx.2), target.end=end(tx.2), result.com)
 o2 <- order(final.2$PValue)
@@ -1212,7 +1291,7 @@ chosen <- o2[1]
 expanded.a <- resize(ax.2[chosen], fix="center", width=bin.size*5)
 expanded.t <- resize(tx.2[chosen], fix="center", width=bin.size*5)
 cap1 <- 50
-cap3 <- cap1*data$totals[3]/data$totals[1]
+cap3 <- cap1*totals(data)[3]/totals(data)[1]
 @
 
 <<eval=FALSE>>=
@@ -1272,7 +1351,7 @@ chosen <- o[1]
 expanded.a <- resize(ax[chosen], fix="center", width=bin.size*5)
 expanded.t <- resize(tx[chosen], fix="center", width=bin.size*5)
 cap1 <- 30
-cap3 <- cap1*data$totals[3]/data$totals[1]
+cap3 <- cap1*totals(data)[3]/totals(data)[1]
 @
 
 <<eval=FALSE>>=
