@@ -5,7 +5,7 @@
 \description{Count the number of read pairs connecting pairs of user-specified regions}
 
 \usage{ 
-connectCounts(files, fragments, regions, filter=1L, type="any")
+connectCounts(files, fragments, regions, filter=1L, type="any", restrict=NULL)
 }
 
 \arguments{
@@ -14,6 +14,7 @@ connectCounts(files, fragments, regions, filter=1L, type="any")
    \item{regions}{a \code{GRanges} object specifying the regions between which read pairs should be counted}
    \item{filter}{an integer scalar specifying the minimum count for each interaction}
    \item{type}{a character string specifying how restriction fragments should be assigned to regions}
+   \item{restrict}{a character vector specifying the allowable chromosome names}
 }
 
 \value{
