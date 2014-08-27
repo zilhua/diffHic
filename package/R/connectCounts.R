@@ -1,4 +1,4 @@
-connectCounts <- function(files, fragments, regions, filter=1L, type="any")
+connectCounts <- function(files, fragments, regions, filter=1L, type="any", restrict=NULL)
 # This counts the number of connections between specified regions in the genome (i.e. between regions
 # in 'anchor' and regions in 'target'). This is designed to make it easier to analyze results in terms
 # of genes. Note that everything is rounded up to the nearest outside restriction site (or to the
@@ -36,16 +36,21 @@ connectCounts <- function(files, fragments, regions, filter=1L, type="any")
 	out.right <- list()
 	idex<-1L
 
-	chrs <- unique(runValue(seqnames(regions)))
+	chrs <- seqlevels(fragments)
+	my.chrs <- unique(runValue(seqnames(regions)))
     overall<-.loadIndices(files)
+
 	for (anchor in names(overall)) {
-		if (!anchor %in% chrs) { next }
+        stopifnot(anchor %in% chrs)
+		if (!is.null(restrict) && !(anchor %in% restrict)) { next }
 		current<-overall[[anchor]]
-			
 		for (target in names(current)) {
-			if (!target %in% chrs) { next }
-            pairs <- .baseHiCParser(current[[target]], files, anchor, target)
+			stopifnot(target %in% chrs)
+            if (!is.null(restrict) && !(target %in% restrict)) { next }
+
+           	pairs <- .baseHiCParser(current[[target]], files, anchor, target)
             full.sizes <- full.sizes+sapply(1:length(pairs), FUN=function(x) { sum(pairs[[x]]$count) })
+			if (! (target %in% my.chrs) || ! (anchor %in% my.chrs)) { next }	
 
 			# Extracting counts. Running through the fragments and figuring out what matches where.
 			out <- .Call(cxx_count_connect, pairs, by.frag$start, by.frag$end, by.frag$hits, filter)
