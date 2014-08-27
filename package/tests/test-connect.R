@@ -34,7 +34,7 @@ reconstruct <- function(pairs, counts) {
 	return(list(pairs=pairs[last.diff,,drop=FALSE], counts=my.count))
 }
 
-refline <- function(dirs, cuts, ranges, filter=20L, type="any") {
+refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 	everypair <- everycount <- list()
 	o <- order(ranges)
 	ranges <- ranges[o]
@@ -55,6 +55,7 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any") {
 	        cur.k<-names(chromos)[k]
 	        for (l in 1:k) {
 	            cur.l<-names(chromos)[l]
+				if (!is.null(restrict) && !(cur.l %in% restrict && cur.k %in% restrict)) { next }
 				if (!any(basename(x$group)==cur.k & x$name==cur.l)) { next }
 				counts <- h5read(dirs[d], file.path(cur.k, cur.l))
 				for (xx in 1:ncol(counts)) { attributes(counts[,xx]) <- NULL }
@@ -157,12 +158,12 @@ dir.create("temp-con")
 dir1<-"temp-con/1.h5"
 dir2<-"temp-con/2.h5"
 
-samecomp <- function(nreads, cuts, ranges, filter=0L, type="any") { 
+samecomp <- function(nreads, cuts, ranges, filter=0L, type="any", restrict=NULL) {
 	simgen(dir1, nreads, chromos)
 	simgen(dir2, nreads, chromos)
 	
-	out <- connectCounts(c(dir1, dir2), fragments=cuts, regions=ranges, filter=filter, type=type)
-	ref <- refline(c(dir1, dir2), cuts=cuts, ranges=ranges, filter=filter, type=type)
+	out <- connectCounts(c(dir1, dir2), fragments=cuts, regions=ranges, filter=filter, type=type, restrict=restrict)
+	ref <- refline(c(dir1, dir2), cuts=cuts, ranges=ranges, filter=filter, type=type, restrict=restrict)
 	if (!identical(ref$pairs$anchor.id, out@anchor.id)) { stop("mismatch in anchor identities") }
 	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
@@ -221,6 +222,13 @@ samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min
 samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), filter=5)
 samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=100, min=100, max=300))
 samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=200, min=100, max=300))
+
+# Testing some restriction.	
+current.cuts <- simcuts(chromos)
+samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1), restrict="chrA")
+samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), restrict="chrA")
+samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), restrict="chrA")
+samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), restrict="chrA")
 
 ###########################################################################################
 # Cleaning up.

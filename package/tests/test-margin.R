@@ -13,11 +13,11 @@ dir2<-"temp-marg/2.h5"
 dir.create(dir1)
 dir.create(dir2)
 
-comp<-function(n1, n2, dist, cuts) {
+comp<-function(n1, n2, dist, cuts, restrict=NULL) {
 	simgen(dir1, n1, chromos)
 	simgen(dir2, n2, chromos)
-	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=1L)
-	frags<-marginCounts(c(dir1, dir2), fragments=cuts, width=dist)
+	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=1L, restrict=restrict)
+	frags<-marginCounts(c(dir1, dir2), fragments=cuts, width=dist, restrict=restrict)
 
 	n <- length(regions(y))
 	ref <- matrix(0L, n, 2)
@@ -75,7 +75,7 @@ comp(30, 30, dist=5000, cuts=simcuts(chromos))
 comp(30, 30, dist=5000, cuts=simcuts(chromos, overlap=4))
 
 ###################################################################################################
-# A final example which is the pinnacle of extremity.
+# Another example which is the pinnacle of extremity.
 
 comp(200, 100, dist=10000, cuts=simcuts(chromos))
 comp(200, 100, dist=10000, cuts=simcuts(chromos))
@@ -88,6 +88,14 @@ comp(50, 200, dist=10000, cuts=simcuts(chromos))
 comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=4))
 comp(50, 200, dist=5000, cuts=simcuts(chromos))
 comp(50, 200, dist=5000, cuts=simcuts(chromos, overlap=4))
+
+###################################################################################################
+# Adding some restriction.
+
+comp(20, 10, dist=10000, cuts=simcuts(chromos), restrict="chrA")
+comp(20, 10, dist=10000, cuts=simcuts(chromos), restrict="chrB")
+comp(20, 10, dist=10000, cuts=simcuts(chromos, overlap=4), restrict="chrA")
+comp(20, 10, dist=5000, cuts=simcuts(chromos), restrict="chrB")
 
 ##################################################################################################
 # Cleaning up.
