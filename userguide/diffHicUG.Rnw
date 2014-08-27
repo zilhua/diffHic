@@ -451,11 +451,10 @@ smoothScatter(0.5*(adjc[,1]+adjc[,3]), adjc[,1]-adjc[,3],
 To avoid any confusion in the notation, the count for each bin pair is defined as the interaction count.
 It may be necessary later to process the interaction count based on the marginal counts for the corresponding bins in the pair.
 In such cases, one should ensure that the same \code{width} (and other parameters) is used in \code{squareCounts} and \code{marginCounts}.
-One can check that this is the case by ensuring that the regions and totals are the same.
+One can check that this is the case by ensuring that the regions are the same.
 
 <<>>=
 identical(regions(data), regions(margin.data))
-identical(totals(data), totals(margin.data))
 @
 
 Also note that, technically speaking, the anchor and target notation here is superfluous.
@@ -468,6 +467,13 @@ It does not require any prior knowledge regarding the regions of interest.
 The bin size can be easily adjusted to obtain the desired spatial resolution.
 It is also easier/safer to compare between bin pairs (e.g., during filtering) when each bin is roughly of the same size.
 Thus, bin-based counting will be the method of choice for the rest of this guide.
+
+% On a side note, it's worth checking that the total library sizes are the same for each method if multiple counting functions are used.
+% This means that the same read pairs are being used for count extraction.
+% 
+% <<>>=
+% rbind(totals(data), totals(re.data), totals(margin.data))
+% @
 
 \chapter{Filtering out uninteresting interactions}
 \label{sec:filter}
