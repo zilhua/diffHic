@@ -47,12 +47,14 @@ The anchor interval is defined as that with the higher genomic coordinate compar
 In the code snippets below, \code{x} is a \code{DIList} object.
 
 \describe{
-	\item{}{\code{anchors(x)}:
+	\item{}{\code{anchors(x, id=FALSE)}:
 	Get the \code{GRanges} corresponding to the anchor intervals for each interaction.
+	If \code{id=TRUE}, indices to the corresponding intervals in \code{region} are returned instead.
 	}
 	
-	\item{}{\code{targets(x)}:
+	\item{}{\code{targets(x, id=FALSE)}:
 	Get the \code{GRanges} corresponding to the target intervals for each interaction.
+	If \code{id=TRUE}, indices to the corresponding intervals in \code{region} are returned instead.
 	}
 
 	\item{}{\code{regions(x)}:
@@ -109,7 +111,9 @@ blah[,2]
 blah[1:2,2]
 
 anchors(blah)
+anchors(blah, id=TRUE)
 targets(blah)
+targets(blah, id=TRUE)
 counts(blah)
 totals(blah)
 regions(blah)
