@@ -1156,7 +1156,8 @@ The resorting by $p$-value just makes it easier to parse the final, as the most 
 ax <- anchors(data)
 tx <- targets(data)
 final <- data.frame(anchor.chr=seqnames(ax), anchor.start=start(ax), anchor.end=end(ax),
-    target.chr=seqnames(tx), target.start=start(tx), target.end=end(tx), result$table, FDR=adj.p)
+    target.chr=seqnames(tx), target.start=start(tx), target.end=end(tx), 
+    result$table, FDR=adj.p)
 o <- order(final$PValue)
 write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
@@ -1166,7 +1167,8 @@ Smaller bins may be more useful as they can identify sharp features that would o
 For purposes of demonstration, a quick-and-dirty analysis of the previously loaded 100 kbp bin pairs is performed here.
 <<>>=
 y.small <- DGEList(counts(smaller.data), lib.size=totals(smaller.data))
-y.small$offset <- normalizeChIP(counts(smaller.data), lib.sizes=totals(smaller.data), type="loess")
+y.small$offset <- normalizeChIP(counts(smaller.data), 
+    lib.sizes=totals(smaller.data), type="loess")
 y.small <- estimateDisp(y.small, design)
 result.small <- glmQLFTest(y.small, design, robust=TRUE)
 @
@@ -1206,20 +1208,21 @@ head(tabcom)
 sum(tabcom$FDR <= 0.05)
 @
 
-Of course, one could just count read pairs using larger bin pairs in the first place.
-This provides larger counts and improves power for detecting differences, given that spatial resolution is not an issue for diffuse interactions.
-Thus, the method described above is not particularly useful.
-Nonetheless, it is a good introduction to the method in the next section (which is more useful).
+Of course, this bin clustering method will not be optimal for diffuse interactions.
+One could obtain larger counts with larger bin pairs, given that spatial resolution is not an issue for diffuse interactions.
+Nonetheless, bin clustering will protect against misinterpretation when both sharp and diffuse interactions are present.
+The use of small bin pairs will allow detection of the former, while bin clustering will prevent the results being dominated by the latter.
+This method is also a good introduction to the next section, which might be more useful.
 
 \subsection{Merging results from different bin widths}
 \label{sec:mergebins}
-The choice of bin size is not clear when there might be sharp and diffuse changes in the interaction space.
+The choice of bin size is not clear when there are both sharp and diffuse changes in the interaction space.
 Robustness can be provided by combining the differential testing results between small and large bin pairs.
 All smaller bin pairs that are nested within each of the larger bin pairs are identified using the \code{boxPairs} function.
 This yields identifiers for each bin pair where \code{smaller} bin pairs are nested in \code{larger} bin pairs with the same ID.
 
 <<>>=
-matched <- boxPairs(reference=bin.size, larger=data, smaller=smaller.data, fragments=mm.frag)
+matched <- boxPairs(bin.size, larger=data, smaller=smaller.data, fragments=mm.frag)
 ldex <- matched$indices$larger
 sdex <- matched$indices$smaller
 @
@@ -1235,7 +1238,7 @@ The aim is to avoid increasing the contribution of the latter simply because the
 
 <<>>=
 weight <- c(1/counts(matched$pairs)[sdex,"smaller"],
-	1/counts(matched$pairs)[ldex,"larger"])
+    1/counts(matched$pairs)[ldex,"larger"])
 @
 
 The code snippet above makes sense as the count matrix from the \code{DIList} in \code{boxPairs} records the number of nested bin pairs at each bin size.
@@ -1245,8 +1248,7 @@ Calculation of the combined $p$-value is then performed using the \code{combineT
 
 <<>>=
 result.com <- combineTests(ids=c(sdex, ldex), 
-	tab=rbind(result.small$table, result$table),
-	weight=weight)
+    tab=rbind(result.small$table, result$table), weight=weight)
 head(result.com)
 @
 
@@ -1269,8 +1271,9 @@ Of course, the coordinates of the smaller bin pairs can also be saved, though us
 <<>>=
 ax.2 <- anchors(matched$pairs)
 tx.2 <- targets(matched$pairs)
-final.2 <- data.frame(anchor.chr=seqnames(ax.2), anchor.start=start(ax.2), anchor.end=end(ax.2),
-    target.chr=seqnames(tx.2), target.start=start(tx.2), target.end=end(tx.2), result.com)
+final.2 <- data.frame(anchor.chr=seqnames(ax.2), anchor.start=start(ax.2), 
+    anchor.end=end(ax.2), target.chr=seqnames(tx.2), target.start=start(tx.2), 
+    target.end=end(tx.2), result.com)
 o2 <- order(final.2$PValue)
 write.table(final.2[o2,], file="results.2.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
@@ -1342,7 +1345,8 @@ Because the counts are ``averaged'' across the area of the interaction space, th
 Of course, any sharp changes within each of these large bin pairs will be overlooked as the smaller bin pairs are not used.
 
 <<label=plaid1b,eval=FALSE,echo=FALSE>>=
-plotPlaid(input[1], anchor=expanded.a, target=expanded.t, cap=cap1, width=5e4, fragments=mm.frag)
+plotPlaid(input[1], anchor=expanded.a, target=expanded.t, cap=cap1, 
+    width=5e4, fragments=mm.frag, col="red")
 rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
 @
 
