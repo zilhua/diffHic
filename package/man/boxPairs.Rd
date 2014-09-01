@@ -30,8 +30,10 @@ One vector will be present in the output \code{indices} for each input \code{DIL
 In each vector, each entry represents an index for a single input bin pair in the corresponding \code{DIList}.
 This index points to a row of \code{pairs} and indicates the parent bin pair in which that input bin pair is nested.
 
-Note that the counts in the returned \code{pairs} are repurposed for this function.
-For each parent bin pair, the count matrix in \code{pairs} specifies the number of nested bin pairs for a given input \code{DIList}.
+The \code{pairs} object holds the coordinates of each parent bin pair.
+Note that the counts in \code{pairs} are somewhat repurposed here.
+Each parent bin pair corresponds to a row of the count matrix, whereas each input \code{DIList} corresponds to a column.
+Each entry specifies the number of nested bin pairs in the parent for the corresponding input \code{DIList}.
 Similarly, the \code{totals} vector contains the total number of input bin pairs in each input \code{DIList}.
 All columns/entries are named according to the name of the corresponding input \code{DIList}.
 
