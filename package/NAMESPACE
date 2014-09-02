@@ -17,11 +17,12 @@ exportClasses(
 )
 
 exportMethods(
-    anchors, targets, counts, regions, totals, "[", show, npairs, nlibs
+    anchors, targets, counts, regions, totals, "[", show,
+	normalize, average, asDGEList
 )
 
-#  Requires the Rsamtools and GenomicRanges packages.
-import(Rsamtools,GenomicRanges,Biostrings,BSgenome,edgeR,rhdf5,locfit,methods)
+# Requires several imports.
+import(Rsamtools,GenomicRanges,Biostrings,BSgenome,edgeR,rhdf5,locfit,methods,csaw)
 
 
 
