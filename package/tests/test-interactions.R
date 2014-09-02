@@ -148,7 +148,7 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
 
 	ar <- anchors(y)
 	tr <- targets(y)
-	if (npairs(y)) {
+	if (nrow(y)) {
 		overall<-data.frame(counts(y), paste0(as.character(seqnames(ar)), ":", start(ar), "-", end(ar)),
 			paste0(as.character(seqnames(tr)), ":", start(tr), "-", end(tr)), stringsAsFactors=FALSE)
 	} else {

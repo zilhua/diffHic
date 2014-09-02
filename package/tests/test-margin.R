@@ -21,7 +21,7 @@ comp<-function(n1, n2, dist, cuts, restrict=NULL) {
 
 	n <- length(regions(y))
 	ref <- matrix(0L, n, 2)
-	for (x in 1:npairs(y)) {
+	for (x in 1:nrow(y)) {
 		a<-y@anchor.id[x]
 		t<-y@target.id[x]
 		ref[a,]<-ref[a,]+ counts(y)[x,]

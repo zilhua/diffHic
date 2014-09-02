@@ -19,7 +19,7 @@ comp<- function(npairs, nfrags, nlibs, lambda=5, dispersion=0.05, winsorize=0.02
 	actual.mat<-matrix(0, nfrags, nfrags)
 	is.filled <- matrix(FALSE, nfrags, nfrags)
 	ave.count <- exp(mglmOneGroup(counts, offset=numeric(nlibs), dispersion=dispersion))
-	for (x in 1:npairs(data)) { 
+	for (x in 1:nrow(data)) { 
 		if (ave.count[x] < 1e-6) { next } # As zeros get removed.
 		a<-data@anchor.id[x]
 		t<-data@target.id[x]

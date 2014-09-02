@@ -49,7 +49,7 @@ clustercomp <- function(data, tol, maxw, debug=FALSE) {
 	# Simulating cluster formation first, by expanding each region and checking for overlaps.
 	# We use a simple quadratic-time algorithm; slow, but gets the job done.
 	region <- regions(data)
-	np <- npairs(data)
+	np <- nrow(data)
 	expanded <- resize(region, fix="center", width(region)+tol*2)
 	allap <- findOverlaps(expanded, region)
 	impossible <- np+1L

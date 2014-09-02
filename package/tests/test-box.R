@@ -36,7 +36,7 @@ comp <- function(reference, widths) {
 		if (! all(start(parent.t) <= start(current.t) & end(parent.t) >= end(current.t)) ) { stop("target ranges not nested in parent") }
 
 		# Subtracting it from the counts.
-		if (!identical(counts(output$pairs)[,x], tabulate(output$indices[[x]], nbins=npairs(output$pairs)))) { stop("incidence counts don't match up") }
+		if (!identical(counts(output$pairs)[,x], tabulate(output$indices[[x]], nbins=nrow(output$pairs)))) { stop("incidence counts don't match up") }
 	}
 
 	return(head(data.frame(anchor.id=output$pairs@anchor.id, target.id=output$pairs@target.id)))
