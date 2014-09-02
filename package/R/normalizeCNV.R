@@ -21,12 +21,12 @@ normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, ab
 		ab <- aveLogCPM(counts(data), lib.size=totals(data))
 	}
 	adjc <- log(counts(data) + 0.5)
-	offsets <- matrix(0, nrow=npairs(data), ncol=nlibs(data))
+	offsets <- matrix(0, nrow=nrow(data), ncol=ncol(data))
 	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count)
 	ma.adjc <- mab[amatch,,drop=FALSE] 
 	mt.adjc <- mab[tmatch,,drop=FALSE]
 
-	for (lib in 1:nlibs(data)) {
+	for (lib in 1:ncol(data)) {
 		if (lib==ref.col) { next }
 		ma.fc <- ma.adjc[,lib] - ma.adjc[,ref.col]
 		mt.fc <- mt.adjc[,lib] - mt.adjc[,ref.col]

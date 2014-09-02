@@ -10,7 +10,7 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 	is.same <- as.logical(seqnames(all.as)==seqnames(all.ts))
 	all.as <- all.as[is.same]
 	all.ts <- all.ts[is.same]
-	output <- rep(NA, npairs(data))
+	output <- rep(NA, nrow(data))
 
 	type <- match.arg(type)
 	if (type=="gap") {

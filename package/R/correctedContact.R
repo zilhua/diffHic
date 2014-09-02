@@ -40,7 +40,7 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
 		out[[1]] <- full.truth
 	} else {
 		collected.truth <- collected.bias <- collected.max <- list()
-		for (lib in 1:nlibs(data)) {
+		for (lib in 1:ncol(data)) {
 			curcount <- counts(data)[,lib]
 			nzero <- curcount!=0L
 			per.it <-.Call(cxx_iterative_correction, as.double(curcount[nzero]), data@anchor.id[nzero], data@target.id[nzero], 

@@ -17,7 +17,7 @@ boxPairs <- function(reference, ..., fragments)
 	num.pairs <- list()
 	for (x in 1:nk) {
 		current <- all.hits[[x]]
-		ncur <- npairs(current)
+		ncur <- nrow(current)
 		olap <- findOverlaps(regions(current), parents, type="within", select="first")
 		if (any(is.na(olap))) { stop("smaller bins must be fully contained within larger bins") }
 		

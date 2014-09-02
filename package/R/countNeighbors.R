@@ -17,9 +17,9 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 	first.id <- rdata$start
 	names(last.id) <- names(first.id) <- rdata$chr
 
-	np <- npairs(data)
+	np <- nrow(data)
 	by.chr <- split(1:np, as.character(seqnames(anchors(data))))
-	output <- matrix(0L, ncol=nlibs(data), nrow=np)
+	output <- matrix(0L, ncol=ncol(data), nrow=np)
    	out.n <- numeric(np)
 
 	# Running through each pair of chromosomes.
