@@ -106,10 +106,6 @@ In the code snippets below, \code{x} is a DIList object.
  		Count data and library sizes are passed to the \code{\link{normalizeCounts}} function, along with any arguments in \code{...}.
 		A numeric matrix or vector is then returned, depending on the type of normalization.
 	}
-	\item{}{\code{average(x, ...)}:
-		Computes the average log-CPM of each interaction in \code{x}.
-		Count data, library sizes and arguments in \code{...} are passed to the \code{\link{aveLogCPM}} function, and a numeric vector is returned.
-	}
 	\item{}{\code{asDGEList(x, ...)}:
 		Extracts count data and library sizes and returns the same data as a \code{DGEList}.
 		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
@@ -140,12 +136,10 @@ totals(blah)
 regions(blah)
 
 normalize(blah, type="loess")
-average(blah)
 asDGEList(blah)
 }
 
 \seealso{
 \code{\link{normalizeCounts}},
-\code{\link{aveLogCPM}},
 \code{\link{DGEList}}
 }

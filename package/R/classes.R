@@ -147,10 +147,6 @@ setMethod("normalize", signature("DIList"), function(object, ...) {
 	normalizeCounts(counts(object), lib.sizes=totals(object), ...)
 })
 
-setMethod("average", signature("DIList"), function(object, ...) {
-	aveLogCPM(counts(object), lib.size=totals(object), ...)
-})
-
 setMethod("asDGEList", signature("DIList"), function(object, ...) {
 	DGEList(counts(object), lib.size=totals(object), ...)
 })
