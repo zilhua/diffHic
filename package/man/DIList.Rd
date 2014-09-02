@@ -14,13 +14,18 @@
 \alias{totals}
 \alias{totals,DIList-method}
 
-\alias{npairs}
-\alias{npairs,DIList-method}
-\alias{nlibs}
-\alias{nlibs,DIList-method}
+\alias{dim,DIList-method}
+\alias{dimnames,DIList-method}
 
 \alias{[,DIList,ANY,ANY-method}
 \alias{show,DIList-method}
+
+\alias{average}
+\alias{average,DIList-method}
+\alias{normalize}
+\alias{normalize,DIList-method}
+\alias{asDGEList}
+\alias{asDGEList,DIList-method}
 
 \title{DIList class and methods}
 
@@ -29,7 +34,7 @@ Using the DIList class to store pairwise genomic interactions.
 }
 
 \details{
-Each DIList primarily stores counts for pairwise genomic interactions.
+Each DIList stores counts for pairwise genomic interactions.
 Slots are defined as:
 \describe{
 \item{\code{counts}}{an integer matrix containing the number of read pairs for an interaction in each library}
@@ -44,7 +49,7 @@ The anchor interval is defined as that with the higher genomic coordinate compar
 }
 
 \section{Accessors}{
-In the code snippets below, \code{x} is a \code{DIList} object.
+In the code snippets below, \code{x} is a DIList object.
 
 \describe{
 	\item{}{\code{anchors(x, id=FALSE)}:
@@ -69,18 +74,18 @@ In the code snippets below, \code{x} is a \code{DIList} object.
 	Get the vector of total library sizes for all libraries.
 	}
 
-	\item{}{\code{npairs(x)}:
-	Get the total number of interactions.
+	\item{}{\code{dim(x)}:
+	Get the dimensions, i.e., number of interactions (rows) against number of libraries (columns).
 	}
 
-	\item{}{\code{nlibs(x)}:
-	Get the total number of libraries.
+	\item{}{\code{dimnames(x)}:
+	Get the dimension names. This returns a list of length 2, where each element is \code{NULL} or a character vector.
 	}
 }
 }
 
 \section{Subsetting}{
-In the code snippets below, \code{x} is a \code{DIList} object.
+In the code snippets below, \code{x} is a DIList object.
 
 \describe{
     \item{}{\code{x[i, j]}:
@@ -96,6 +101,19 @@ In the code snippets below, \code{x} is a \code{DIList} object.
 		By default the \code{show} method displays count and interval data for the top 5 interactions.
 		Data for all interactions will be shown if there are no more than 10 interactions.
 	}
+	\item{}{\code{normalize(x, ...)}:
+		Normalizes the counts between libraries in \code{x}.
+ 		Count data and library sizes are passed to the \code{\link{normalizeCounts}} function, along with any arguments in \code{...}.
+		A numeric matrix or vector is then returned, depending on the type of normalization.
+	}
+	\item{}{\code{average(x, ...)}:
+		Computes the average log-CPM of each interaction in \code{x}.
+		Count data, library sizes and arguments in \code{...} are passed to the \code{\link{aveLogCPM}} function, and a numeric vector is returned.
+	}
+	\item{}{\code{asDGEList(x, ...)}:
+		Extracts count data and library sizes and returns the same data as a \code{DGEList}.
+		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
+	}
 }
 }
 
@@ -105,6 +123,9 @@ In the code snippets below, \code{x} is a \code{DIList} object.
 blah <- new("DIList", counts=matrix(as.integer(c(1,1,2,2,3,3,4,4)), ncol=2), totals=c(10L, 10L), 
 	anchor.id=as.integer(c(1,2,3,4)), target.id=as.integer(c(1,1,2,2)), 
 	region=GRanges("chrA", IRanges(10+1:20, 2+21:40)))
+nrow(blah)
+ncol(blah)
+
 blah
 blah[1,]
 blah[,2]
@@ -118,6 +139,13 @@ counts(blah)
 totals(blah)
 regions(blah)
 
-nlibs(blah)
-npairs(blah)
+normalize(blah, type="loess")
+average(blah)
+asDGEList(blah)
+}
+
+\seealso{
+\code{\link{normalizeCounts}},
+\code{\link{aveLogCPM}},
+\code{\link{DGEList}}
 }

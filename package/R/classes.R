@@ -125,15 +125,13 @@ setMethod("regions", signature("DIList"), function(object) {
 	object@region
 })
 
-setGeneric("npairs", function(object) { standardGeneric("npairs") })
-setMethod("npairs", signature("DIList"), function(object) {
-	nrow(object@counts)
+setMethod("dim", signature("DIList"), function(x) {
+	dim(x@counts)
 })
 
-setGeneric("nlibs", function(object) { standardGeneric("nlibs") })
-setMethod("nlibs", signature("DIList"), function(object) {
-	ncol(object@counts)
-})	
+setMethod("dimnames", signature("DIList"), function(x) {
+	dimnames(x@counts)
+})
 
 # Constructor object.
 .DIList <- function(counts, totals=colSums(counts), anchors, targets, regions) {
@@ -143,3 +141,17 @@ setMethod("nlibs", signature("DIList"), function(object) {
 	totals <- as.integer(totals)
 	new("DIList", counts=counts, totals=totals, anchor.id=anchors, target.id=targets, region=regions)
 }
+
+# Setting some methods inspired by equivalents in csaw.
+setMethod("normalize", signature("DIList"), function(object, ...) {
+	normalizeCounts(counts(object), lib.sizes=totals(object), ...)
+})
+
+setMethod("average", signature("DIList"), function(object, ...) {
+	aveLogCPM(counts(object), lib.size=totals(object), ...)
+})
+
+setMethod("asDGEList", signature("DIList"), function(object, ...) {
+	DGEList(counts(object), lib.size=totals(object), ...)
+})
+
