@@ -17,6 +17,8 @@ userguide/diffHicUG.toc
 userguide/example.h5
 userguide/linker.sh
 userguide/merged.h5
+userguide/merged_erg.h5
+userguide/merged_gfp.h5
 userguide/merged_flox_1.h5
 userguide/merged_flox_2.h5
 userguide/merged_ko_1.h5
