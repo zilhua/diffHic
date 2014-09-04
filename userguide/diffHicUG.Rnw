@@ -44,7 +44,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 28 July 2014}
+Last revised 4 September 2014}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -82,15 +82,15 @@ dir.create("plots-ug")
 \chapter{Introduction}
 \section{Scope}
 This document describes the analysis of Hi-C data with the \pkgname{} package.
-Differential interactions are identified as those with significant changes in intensity between conditions.
-This is achieved in a statistically rigorous manner using the methods in the \edgeR{} package \citep{edgeR}.
-Knowledge of \edgeR{} is useful but is not necessary for reading.
+Differential interactions are defined as those with significant changes in intensity between conditions.
+These are identified in a statistically rigorous manner using the methods in the \edgeR{} package \citep{edgeR}.
+Knowledge of \edgeR{} is useful but is not necessary for this guide.
 
 \section{How to get help}
 Most questions about individual functions should be answered by the documentation.
 For example, if you want to know more about \code{preparePairs}, you can bring up the documentation by typing \code{?preparePairs} or \code{help(preparePET)} at the \R{} prompt.
-Otherwise, try reading this guide or contacting one of the authors.
-Considered suggestions for improvements are appreciated.
+Otherwise, try reading this guide or contacting one of the authors for more information.
+Considered suggestions for improvements are occasionally appreciated.
 
 \section{A brief description of Hi-C}
 The Hi-C protocol was originally developed by \cite{lieberman2009comprehensive}.
@@ -98,9 +98,8 @@ It is used to study chromatin organization by identifying pairwise interactions 
 Briefly, chromatin is cross-linked and digested with a restriction enzyme.
 This releases chromatin complexes into solution, where each complex contains multiple restriction fragments corresponding to interacting loci.
 Overhangs are filled in with biotin-labelled nucleotides to form blunt ends.
-
 Proximity ligation is performed whereby ligation between blunt ends in the same complex is favoured.
-Sonication of the ligated DNA is performed and the fragments of DNA containing ligation junctions are purified by a biotin pulldown.
+The ligated DNA is sonicated and the fragments of DNA containing ligation junctions are purified by a biotin pulldown.
 The ligation product is then subjected to paired-end sequencing.
 Mapping of the reads in each pair can identify the interacting loci.
 Of course, some caution is required due to the presence of non-specific ligation between blunt ends in different complexes.
@@ -136,13 +135,15 @@ There are several components of the pipeline that shall be discussed:
 \begin{enumerate}
 \item converting BAM files to index files
 \item counting read pairs into pairs of genomic bins
+\item filtering out uninteresting bin pairs
 \item normalizing counts between libraries
 \item modelling biological variability
 \item testing for significant differences between groups
 \end{enumerate}
-In the various examples for this guide, data will be used from two studies. 
-The first dataset is smaller and examines chromatin structure in K562 and GM06990 cell lines \citep{lieberman2009comprehensive}.
-The second compares interactions between wild-type and cohesin-deficient murine neural stem cells \citep{sofueva2013cohesin}. 
+In the various examples for this guide, data will be used from three studies. 
+The first dataset is smaller and examines the chromatin structure in K562 and GM06990 cell lines \citep{lieberman2009comprehensive}.
+The second compares interaction intensities between wild-type and cohesin-deficient murine neural stem cells \citep{sofueva2013cohesin}. 
+The final study  compares ERG-overexpressing RWPE1 cells with a GFP-expressing control \citep{rickman2012oncogene}.
 Obviously, readers will have to modify the code for their own analyses.
 
 \chapter{Preparing index files from BAM}
@@ -160,11 +161,11 @@ hs.frag <- cutGenome(BSgenome.Hsapiens.UCSC.hg19, "AAGCTT", 4)
 hs.frag
 @
 
-The \code{preparePairs} function can be used to match the mapping location to the restriction fragment.
-This converts the exact mapping position of a read into the index of the corresponding restriction fragment in \code{hs.frag}.
-The resulting pairs of indices are stored in an index file using the HDF5 format \citep{hdf5}.
+The \code{preparePairs} function can be used to match the mapping location of each read to a restriction fragment.
+Mapping results for each read in each pair are provided as a name-sorted BAM file.
+The function then converts the read position into the index of the corresponding entry in \code{hs.frag}.
+The resulting pairs of indices are stored in an index file using the HDF5 format.
 The larger index is designated as the ``anchor'' whereas the smaller is the ``target''.
-Results for each pair of chromosomes are stored in a separate dataframe for efficient retrieval.
 This is demonstrated using Hi-C data from GM06990 cells.
 
 <<>>=
@@ -186,19 +187,19 @@ Both structures are removed to avoid downstream confusion.
 \section{A comment on chimeric read alignment}
 On occasion, sequencing is performed over the ligation junction between two restriction fragments.
 This means that the resulting read will be chimeric, i.e., containing sequences from two distinct genomic loci.
-Such reads require careful alignment that favours mapping of the $5'$ end.
-This is because the location of the $3'$ end of a chimeric read is already provided by the mapping location of the $5'$ end of the mate read.
-Such alignment can be achieved with a number of approaches such as iterative mapping \citep{imakaev2012iterative} or read splitting \citep{seitan2013cohesin}.
+These reads require careful alignment that favours mapping of the $5'$ end.
+This is because the location of the $3'$ end is already provided by the location of the $5'$ end of the mate read.
+Such alignment can be achieved with approaches like iterative mapping \citep{imakaev2012iterative} or read splitting \citep{seitan2013cohesin}.
 
-For \code{preparePairs}, chimeric reads can be handled by recording two separate alignments for each read.
+For \code{preparePairs}, chimeric reads are handled by recording two separate alignments for each read.
 Hard clipping is used to denote the length trimmed from each sequence in each alignment, and to determine which alignment corresponds to the $5'$ or $3'$ end of the read.
 Only the $5'$ end(s) will be used to determine the restriction fragment index for that read pair.
 The total number of chimeric read pairs will be reported, along with the number where $5'$ ends or $3'$ ends are mapped.
 Of course, the function will just work normally if the mapping location is only given for the $5'$ end, e.g., as with iterative mapping.
 
-The proportion of invalid chimeric pairs can be determined if both $5'$ and $3'$ end information is provided.
-Invalid pairs are those where the $3'$ location of a chimeric read does not agree with the $5'$ location of the mate.
-The invalid proportion can be used as an empirical measure of the mapping error rate - or, at least, the upper bound of the error rate, given that split alignments are shorter and more uncertain than those using the full read sequence.
+The proportion of invalid chimeric pairs can also be calculated.
+Invalid pairs are those where the $3'$ location of a chimeric read disagrees with the $5'$ location of the mate.
+The invalid proportion can be used as an empirical measure of the mapping error rate - or, at least, the upper bound of the error rate, given that split alignments are less reliable than those using the full read sequence.
 Invalid chimeric pairs can be discarded by setting \code{ichim=FALSE} in \code{preparePairs}.
 However, this is not recommended as mapping errors for short $3'$ ends may result in invalidity and loss of the otherwise correct $5'$ alignments.
 
@@ -223,7 +224,8 @@ Excessively large lengths are indicative of offsite cleavage, i.e., where the re
 While not completely uninformative, these are discarded as they are not expected from the Hi-C protocol.
 The threshold value can be chosen based on the size selection interval in library preparation.
 
-The \code{min.ingap} paramater removes inward-facing intra-chromosomal read pairs where the distance between the two reads on the linear chromosome is less than the specified value.
+The gap distance is defined as the linear distance between two paired reads on the same chromosome.
+The \code{min.ingap} paramater removes inward-facing intra-chromosomal read pairs where the gao distance is less than the specified value.
 The \code{min.outgap} parameter does the same for outward-facing intra-chromosomal read pairs.
 This is designed to remove dangling ends or self-circles involving undigested restriction fragments \citep{jin2013highres}.
 Such read pairs are technical artifacts but would not be removed in \code{preparePairs} as they would be mapped to different restriction fragments.
@@ -237,7 +239,7 @@ The strand orientation for a read pair refers to the combination of strands for 
 These are stored as flags where setting \code{0x1} and/or \code{0x2} means that the anchor or target reads, respectively, are mapped on the reverse strand.
 If different pieces of DNA were randomly ligated together, one would expect to observe equal proportions of all strand orientations. 
 This can be tested by examining the distribution of strand orientations for inter-chromosomal read pairs with \code{getPairData}.
-A roughly equal number of read pairs are present for each strand orientation, which is expected as different chromosomes represent different pieces of DNA.
+Each orientation is equally represented, which is expected as different chromosomes represent different pieces of DNA.
 
 <<>>=
 diags <- getPairData("SRR027957.h5")
@@ -245,11 +247,13 @@ intra <- !is.na(diags$gap)
 table(diags$orientation[!intra])
 @
 
-The artificial nature of adjacent intra-chromosomal read pairs can be examined with a plot of gap distances for each strand orientation \citep{jin2013highres}.
+This can be repeated for intra-chromosomal read pairs, by plotting the distribution of gap distances for each strand orientation \citep{jin2013highres}.
 The two same-strand distributions are averaged for convenience.
 At high gap distances, the distributions will converge for all strand orientations.
 This is consistent with random ligation between two separate restriction fragments.
 At lower gap distances, spikes are observed in the ouward- and inward-facing distributions due to self-circularization and dangling ends, respectively.
+These are not removed by \code{preparePairs} as the read pairs are not mapped to the same restriction fragment.
+Rather, the artifacts are formed from incompletely digested fragments.
 Thresholds should be chosen in \code{countPairs} to remove these spikes, as represented by the grey lines.
 
 <<eval=FALSE,label=strorient>>=
@@ -285,7 +289,7 @@ legend("topright", c("inward", "outward", "same"), col=c("darkgreen", "red", "bl
 It is possible that these spikes reflect some genuine aspect of chromatin organization.
 For example, the spike in the outward-facing read pairs may be the result of systematic looping in chromosomal packaging.
 Removal would then result in loss of power to detect these features.
-Nonetheless, filtering is recommended as any genuine interactions are likely to be dominated by technical artifacts.
+Nonetheless, filtering is still recommended to prevent genuine interactions from being dominated by technical artifacts.
 Indeed, one would still expect a variety of strand orientations for non-random ligation events generated across all genuine interactions.
 
 \section{Merging technical replicates}
@@ -319,7 +323,7 @@ savePairs(dummy, "example.h5", hs.frag)
 \section{Overview}
 Prior to any statistical analysis, the Hi-C data must be summarized in terms of counts for each interaction.
 This acts as an experimental measure of the interaction intensity.
-Each interaction is parameterized by two genomic intervals representing the interacting loci.
+Each pairwise interaction is parameterized by two genomic intervals representing the interacting loci.
 The count for that interaction is defined as the number of read pairs with one read mapping to each of the intervals.
 This must be performed for each sample in the dataset, such that each interaction is associated with a set of counts.
 
@@ -365,8 +369,8 @@ More sophisticated filtering strategies are discussed in Section~\ref{sec:filter
 
 \subsection{Choosing a bin width}
 The \code{width} of the bin is specified in base pairs and determines the spatial resolution of the analysis.
-Smaller bins will have greater resolution as adjacent features can be distinguished in the interaction space.
-Larger bins will have greater counts as a larger area is used to collect reads.
+Smaller bins will have greater spatial resolution as adjacent features can be distinguished in the interaction space.
+Larger bins will have greater counts as a larger area is used to collect read pairs.
 Optimal summarization will not be achieved if bins are too small or too large for the features of interest.
 
 Determination of the ideal bin size is not trivial as the features of interest are not usually known in advance.
@@ -380,10 +384,10 @@ head(regions(data))
 @
 
 \section{Counting with pre-defined regions}
-On occasion, prior knowledge may be available with respect to the regions of interest.
-For example, a researcher may be interested in examining interactions between gene bodies.
-The coordinates can be easily obtained from existing annotation, as shown below for the mouse genome.
-Other pre-specified regions can be used such as those of known enhancers or protein binding sites.
+For some studies, prior knowledge about the regions of interest may be available.
+For example, a researcher may be interested in examining interactions between genes.
+The coordinates can be obtained from existing annotation, as shown below for the mouse genome.
+Other pre-specified regions can be used, e.g., known enhancers or protein binding sites.
 
 <<>>=
 require(org.Mm.eg.db)
@@ -403,10 +407,10 @@ redata <- connectCounts(input, fragments=mm.frag, regions=gene.body)
 redata
 @
 
-Again, anchor and target notation applies where the interval with the larger start coordinate in the genome is defined as the anchor.
+Again, anchor and target notation applies whereby the interval with the larger start coordinate in the genome is defined as the anchor.
 Note that the anchor may not have a larger end coordinate if the supplied \code{regions} are nested.
 In addition, each region is rounded to the nearest restriction site.
-Resorting is also performed though the indices of the original regions is supplied in the metadata as \code{original}.
+Resorting is also performed, though the indices of the original regions can be found in the metadata as \code{original} if back-referencing is necessary.
 
 <<>>=
 head(regions(redata))
@@ -424,17 +428,17 @@ Conversely, interactions between distinct loci within a single large gene body w
 For each bin, the number of read pairs with at least one read mapped inside that bin can be counted with the \code{marginalCounts} function.
 This effectively uses the Hi-C data to examine the genomic coverage of each bin.
 One can use these ``marginal'' counts to determine whether there are systematic differences in coverage between libraries for a given bin.
-This implies that copy number variations are present, which may confound detection of differential interactions.
+This implies that copy number variations are present, which may confound the differential analysis.
 
 <<>>=
 margin.data <- marginCounts(input, fragments=mm.frag, width=bin.size)
 margin.data
 @
 
-For this dataset, there are no changes in coverage for the vast majority of bins.
-The largest fold changes occur at low abundances and are likely to be imprecise.
-The lack of changes indicate that a direct comparison of the interaction intensities will be valid.
-Remedial action in the presence of possible copy number variations is not trivial and will be discussed in Section~\ref{sec:copy}.
+For this dataset, there are no major changes in coverage for the vast majority of bins.
+The most extreme events occur at low abundances and are unlikely to be reliable.
+This suggests that a direct comparison of interaction intensities will be valid.
+Remedial action in the presence of copy number changes is not trivial and will be discussed in Section~\ref{sec:copy}.
 
 <<eval=FALSE,label=mamargin>>=
 adjc <- cpm(asDGEList(margin.data), log=TRUE, prior.count=5)
@@ -457,9 +461,10 @@ One can check that this is the case by ensuring that the regions are the same.
 identical(regions(data), regions(margin.data))
 @
 
-Also note that, technically speaking, the anchor and target notation here is superfluous.
+Also note that, technically speaking, the anchor and target notation is superfluous for \code{marginCounts}.
 This is because the counts refer to bins on the linear genome, rather than pairs of bins in the interaction space.
 Nonetheless, a \code{DIList} is still returned by \code{marginCounts} for convenience and consistency.
+Both anchor and target indices will be identical in this object.
 
 \section{Summary}
 Counting into bin pairs is the most general method for interaction quantification.
@@ -481,14 +486,14 @@ Thus, bin-based counting will be the method of choice for the rest of this guide
 \section{Overview}
 
 \subsection{Computing the average abundance in a NB model}
-Filtering is often performed to remove uninteresting features in analyses of high-throughput experiments. 
+Filtering can remove uninteresting features in analyses of high-throughput experiments. 
 This reduces the severity of the multiple testing correction and increases detection power among the remaining tests. 
 The filter statistic should be independent of the $p$-value under the null hypothesis, but correlated to the $p$-value under the alternative \citep{bourgon2010independent}. 
 The aim is to enrich for false nulls without affecting type I error for the true nulls. 
 
 Assume that the counts for each bin pair are sampled from the negative binomial (NB) distribution.
-Here, the average count across all libraries is (probably) an independent filter statistic.
-This is also called the average abundance and can be computed using the \code{average} function \citep{mccarthy2012glm}.
+Here, the overall NB mean across all libraries is (probably) an independent filter statistic.
+This is also called the average abundance and can be computed using the \code{aveLogCPM} function in \edgeR{} \citep{mccarthy2012glm}.
 The calculation is demonstrated below, after adding a prior count to stabilize the estimates at low counts.
 
 <<eval=FALSE,label=avehistplot>>=
@@ -506,14 +511,14 @@ hist(ave.ab, xlab="Average abundance")
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
 
-Bin pairs with an average abundance less than a certain threshold can be discarded.
+Any bin pair with an average abundance less than a specified threshold value will be discarded.
 At the very least, the threshold should be chosen to screen out bin pairs with very low absolute counts.
 This is because these bin pairs will never have sufficient evidence to reject the null hypothesis.
-The example below removes those bin pairs with an average count below 5 across all libraries.
-Note that a prior count is added for a valid comparison with the computed abundances.
+Low counts will also interfere with the asymptotic approximations used later in the analysis.
+The example below removes those bin pairs with an overall NB mean below 5 across all libraries.
 
 <<>>=
-count.keep <- ave.ab >= log2(5 + prior.count) - mean(log2(totals(data)/1e6))
+count.keep <- ave.ab >= aveLogCPM(5, mean(totals(data)), prior.count=prior.count)
 summary(count.keep)
 dummy <- data[count.keep,]
 @
@@ -575,15 +580,16 @@ summary(is.na(dist))
 %@
 
 \section{Directly removing low-abundance interactions}
+\label{sec:direct}
 The simplest definition of an ``uninteresting'' interaction is that resulting from non-specific ligation. 
-These are represented by low-abundance bin pairs where no underlying interaction is present to drive ligation events between the corresponding bins. 
+These are represented by low-abundance bin pairs where no underlying interaction is present to drive ligation between the corresponding bins. 
 Any changes in the counts for these bin pairs are not interesting and are ignored.
 In particular, the filter threshold can be defined by mandating some minimum fold change above the level of non-specific ligation.
 
-The magnitude of non-specific ligation can be estimated from the data by assuming that most inter-chromosomal contacts are not genuine. 
+The magnitude of non-specific ligation can be empirically estimated by assuming that most inter-chromosomal contacts are not genuine. 
 This is reasonable given that most chromosomes are arranged in self-interacting territories \citep{bickmore2013spatial}.
-The median normalized abundance across the inter-chromosomal bin pairs is used as the estimate of the non-specific ligation rate. 
-The threshold is then defined by requiring a minimum fold change of 10 above the non-specific estimate.
+The median abundance across inter-chromosomal bin pairs is used as the estimate of the non-specific ligation rate. 
+The threshold is defined by requiring a minimum fold change of 10 above this estimate.
 
 <<>>=
 direct.threshold <- median(ave.ab[is.na(dist)], na.rm=TRUE)
@@ -668,61 +674,89 @@ summary(trend.keep)
 %This is equivalent to calling peaks of high interaction intensity in the interaction space.
 
 \section{Computing filter thresholds with limited memory}
-These filtering procedures assume that no filtering has been performed during count loading with \code{squareCounts}, i.e., \code{filter=1}.
+These filtering procedures assume that no filtering has been performed during count loading with \code{squareCounts}, i.e., \code{filter} is set to unity.
 Any pre-filtering that removes low-abundance bin pairs will lead to overestimation of the filter thresholds. 
-However, it may not be practical to load counts without pre-filtering, as too many non-empty bin pairs may be present.
+However, it may not be practical to load counts without pre-filtering, e.g., for small bin sizes where too many non-empty bin pairs are present.
 In such cases, two options are available:
 \begin{itemize}
-\item Pick an arbitrary threshold and use it to directly filter on the average count. 
+\item Pick an arbitrary threshold and use it to directly filter on the average abundances.
 This is the simplest approach and can be justified from a minimum allowable count for detection of differences.
+However, the interpretation of the filter is not obvious.
 \item Load counts and perform filtering for larger bin sizes.
 This has lower memory requirements as the interaction space is partitioned into fewer bin pairs.
 Then, convert the computed filter thresholds into values for the original bin sizes.
+Estimation of the threshold is also more precise when the counts are larger.
 \end{itemize}
 
 An example of the second option is shown here.
 For this section, imagine that a bin size of 100 kbp is actually of interest, but filter thresholds can only be efficiently computed with 1 Mbp bins.
-The first task is to match up the smaller bin pairs with the larger bin pairs using the \code{boxPairs} function.
+The first task is to load the counts for the smaller bin pairs.
+A non-unity value of \code{filter} is set to avoid using too much memory.
 
 <<>>=
-deflation <- 10
-smaller.data <- squareCounts(input, fragments=mm.frag, width=bin.size/deflation, filter=50)
-matched <- boxPairs(reference=bin.size, larger=data, smaller=smaller.data, fragments=mm.frag)
-small2large <- match(matched$indices$smaller, matched$indices$larger)
+new.bin.size <- 1e5
+smaller.data <- squareCounts(input, fragments=mm.frag, width=new.bin.size, filter=20)
 @
 
-The threshold for each 100 kbp bin pair can be calculated from the threshold of the larger 1 Mbp bin pair in which it is nested.
-However, the thresholds must be adjusted to account for the differences in the read counting area of the interaction space.
+The threshold for the larger bin pairs are computed as previously described.
+However, this must be adjusted to account for the differences in the read counting area of the interaction space.
 A quick and dirty adjustment can be obtained by squaring the ratio of the bin sizes.
-An example is shown below, using the thresholds from trend-based filtering.
+An example is shown below, using the threshold from direct filtering.
 
 <<>>=
-new.threshold <- trend.threshold[small2large] - 2*log2(deflation)
+deflation <- (new.bin.size/bin.size)^2
+new.threshold <- direct.threshold + log2(deflation)
 @
 
-The average abundance must also be computed with some consideration of the differences in bin size.
+The average abundance of the smaller bin pairs must also be computed with some consideration of the differences in bin size.
 Specifically, the prior count must be scaled down before addition.
 This avoids spurious differences in the abundances of small and large bin pairs after downscaling of the latter.
 If the same prior is used, downscaling of the abundances for large bin pairs will reduce the size of the effective prior added to those counts.
 
 <<>>=
-small.ab <- aveLogCPM(asDGEList(smaller.data), 
-    prior.count=prior.count/deflation^2) 
+small.ab <- aveLogCPM(asDGEList(smaller.data), prior.count=prior.count*deflation) 
 @
 
-Finally, filtering can be performed by comparing the abundances of the smaller bin pairs to the adjusted threshold.
-Though more bin pairs are retained, remember that the bins themselves are smaller than those used in the rest of the examples.
-Thus, the retained area of the interaction space is actually lower.
-Also note that a non-unity \code{filter} is used in \code{squareCounts}, so no additional filtering is necessary to enforce a minimum count size.
+Finally, filtering is performed by mandating a minimum fold change for the abundances of the smaller bin pairs over the adjusted threshold.
+More bin pairs are retained here, as the total number of bin pairs is greater when the bin sizes are smaller.
+Also recall that a large \code{filter} is used in \code{squareCounts} to generate \code{smaller.data}.
+This means that no additional filtering is necessary to enforce a minimum count size.
 
 <<>>=
-small.keep <- small.ab > new.threshold 
+small.keep <- small.ab > new.threshold + log2(100)
 summary(small.keep)
 smaller.data <- smaller.data[small.keep,]
 @
 
-The same procedure can be used in direct filtering by replacing \code{trend.threshold[...]} with \code{direct.threshold} when computing \code{new.threshold}.
-In this case, matching is not required as the threshold is constant for all bin pairs.
+The minimum fold change used here is higher than that for the larger bin pairs in Section~\ref{sec:direct}.
+This is justified by intepreting the threshold as a significance measure.
+Bin pairs are only retained if their abundances are significantly greater than that expected from non-specific ligation.
+However, the total number of bin pairs increases when the bin size decreases.
+Increasing the stringency of the threshold effectively serves as a multiplicity correction.
+
+<<>>=
+nspec.dist <- ave.ab[is.na(dist)]
+sum(nspec.dist > direct.threshold+log2(10))
+sum(nspec.dist > direct.threshold+log2(100))
+@
+
+% To see the necessity of this, consider reducing the bin size down to a single fragment.
+% This would reduce the expected background intensity well below 1, due to the severity of the adjustment.
+% This means that any bin pair with a count in it would be retained at the old log-fold change.
+% This is obviously nonsensical, as bin pairs must be either 0 or not zero.
+% In short, just using the expected value doesn't account for the distribution of observed values.
+
+The same procedure can be used in trended filtering by replacing \code{direct.threshold} with \code{trended.threshold}.
+However, some additional effort is required to match the threshold at each covariate.
+This is done by performing interpolation (and, if necessary, extrapolation) of the fitted distance-abundance trend for the distances of the smaller bin pairs.
+The computed \code{new.threshold2} can then be used to replace \code{new.threshold} in the code snippets above.
+
+<<>>=
+new.log.dist <- log10(getDistance(smaller.data) + new.bin.size/2)
+new.trended <- approx(x=log.dist, y=ave.ab, xout=new.log.dist, rule=2)$y
+new.trended[is.na(new.log.dist)] <- new.trended[which.max(new.log.dist)]
+new.threshold2 <- new.trended + log2(deflation)
+@
 
 \section{Filtering for pre-specified regions}
 The methods described above for calculation of filter thresholds rely on bin pair counts.
@@ -767,10 +801,18 @@ Nonetheless, they are still useful as they can guide the user towards a sensible
 This would be possible if the threshold value was just arbitrarily chosen.
 The effect of each approach can also be summarized by examining the distribution of interaction distances after filtering.
 
-<<>>=
-summary(dist[direct.keep]/1e6)
-summary(dist[trend.keep]/1e6)
+<<eval=FALSE,label=filterdist>>=
+mod.dist <- dist/1e6
+all.breaks <- hist(mod.dist, plot=FALSE)$breaks
+hist(mod.dist[direct.keep], breaks=all.breaks, col=rgb(0,0,1,0.3))
+hist(mod.dist[trend.keep], breaks=all.breaks, col=rgb(1,0,0,0.3), add=TRUE)
 @
+
+\begin{center}
+<<echo=FALSE,fig=TRUE>>=
+<<filterdist>>
+@
+\end{center}
 
 As expected, the direct method preferentially retains short-range interactions whereas the trended method selects for long-range interactions.
 The choice of filtering method depends on the features that are most likely to be of interest in each analysis.
@@ -795,7 +837,7 @@ In general, less aggressive filtering should be performed if the features of int
 \section{Removing trended biases between libraries}
 Library-specific biases can be generated from uncontrolled differences in library preparation. 
 This is particularly problematic for Hi-C data given the complexity of the protocol. 
-Changes in cross-linking efficiency or ligation specificity can lead to redistribution of read pairs throughout the interaction space. 
+Changes in cross-linking efficiency or ligation specificity can lead to a redistribution of read pairs throughout the interaction space. 
 Such technical differences may manifest as a trended bias across bin pairs in a MA plot.
 
 <<echo=FALSE,eval=FALSE,label=makema>>=
@@ -822,8 +864,9 @@ adj.counts <- cpm(asDGEList(data), log=TRUE)
 
 Trended biases are problematic as they can inflate the variance estimates or fold-changes for some bin pairs. 
 Thus, they must be eliminated with non-linear normalization.
-Here, the NB-loess method is used to account for the discrete nature of the counts \citep{normpaper}, based on the \code{normalizeCounts} function in the \csaw{} package.
-This computes an offset term for each bin pair in each library for use in a generalized linear model (GLM). 
+Here, the \code{normalizeCounts} function in the \csaw{} package is used on the bin pair counts.
+This implements the NB-loess method, which is an adaptation of existing non-linear methods for discrete count data \citep{normpaper}.
+The function computes an offset term for each bin pair in each library for use in a generalized linear model (GLM). 
 A large offset for an observation is equivalent to downscaling the corresponding count relative to the counts of the other libraries. 
 
 <<>>=
@@ -835,8 +878,8 @@ head(nb.off)
 The MA plot can then be examined after adjusting the log-counts with the computed offsets.
 Most of the trend is removed which indicates that normalization was successful.
 Of course, this assumes that most bin pairs at each abundance are constant between libraries.
-Any systematic differences must be technical in origin and should be removed.
-However, if this assumption does not hold, removal of the trend may result in loss genuine differences between conditions.
+Any systematic differences are assumed to be technical in origin and are subsequently removed.
+If this assumption does not hold, removal of the trend may result in the loss of some genuine differences between conditions.
 
 <<eval=FALSE,label=manorm>>=
 adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
@@ -851,9 +894,9 @@ adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
 
 \section{Iterative correction of interaction intensities}
 \label{sec:itercor}
-While not the forte of \pkgname{}, a method is also provided here for removal of biases between genomic regions.
-The \code{correctedContact} function performs the iterative correction procedure described by \citep{imakaev2012iterative} with some modifications.
-Briefly, if multiple libraries are used to generate the \code{data} object, then correction is performed using the average count for each bin pair.
+While this is not the intended function of the \pkgname{} package, a method is also provided for the removal of biases between genomic regions.
+The \code{correctedContact} function performs the iterative correction procedure described by \cite{imakaev2012iterative} with some modifications.
+Briefly, if multiple libraries are used to generate the \code{data} object, then correction is performed using the overall NB mean for each bin pair.
 Winsorizing through \code{winsor.high} is also performed to mitigate the impact of high-abundance bin pairs.
 
 <<>>=
@@ -876,38 +919,42 @@ corrected$max
 
 Of course, iterative correction only removes biases between different bins.
 It is not guaranteed to remove (trended) biases between libraries.
-For example, consider two replicates that have the same genomic biases.
-Assume that the Hi-C protocol was more efficient in the second replicate, such that more weak long-range interactions were captured (at the expense of the strong short-range interactions).
-This is visualized below with plots of the genome-by-genome interaction space for each replicate, where the counts represent the relative intensity of each interaction.
+For example, two replicates could have the same genomic biases but a different distribution of read pairs in the interaction space (e.g., due to differences in ligation specificity).
+The latter effect would result in a trended bias, but iterative correction would have no effect due to the former.
+In short, normalization within a library is a different problem from normalization between libraries.
 
-\setkeys{Gin}{width=0.49\textwidth}
-\begin{center}
-<<fig=TRUE,echo=FALSE>>=
-plot(0, 0, xlim=c(0, 3), ylim=c(0, 3), xlab="genome", ylab="genome", type="n",axes=FALSE, 
-    cex.lab=2, main="Replicate 1", cex.main=2)
-curmat1 <- rbind(c(3, 0, 0), c(1, 3, 0), c(1, 1, 3))
-keep <- lower.tri(curmat1, diag=TRUE)
-xs <- nrow(curmat1) - row(curmat1)[keep] + 1
-ys <- col(curmat1)[keep]
-my.colors <- rgb(1, 0, 0, c(0.3, 0.6, 0.9))
-rect(xs-1, ys-1, xs, ys, col=my.colors[curmat1[keep]], lty=2)
-text(xs-0.5, ys-0.5, labels=curmat1[keep], cex=2)
-@
-<<fig=TRUE,echo=FALSE>>=
-plot(0, 0, xlim=c(0, 3), ylim=c(0, 3), xlab="genome", ylab="genome", type="n",axes=FALSE, 
-    cex.lab=2, main="Replicate 2", cex.main=2)
-curmat2 <- rbind(c(2, 0, 0), c(2, 2, 0), c(2, 2, 2))
-rect(xs-1, ys-1, xs, ys, col=my.colors[curmat2[keep]], lty=2)
-text(xs-0.5, ys-0.5, labels=curmat2[keep], cex=2)
-@
-\end{center}
-\setkeys{Gin}{width=0.8\textwidth}
-
-Interactions are shown between pairs of genomic intervals, based on the partitioning of each axis by the dotted lines.
-A fold change of 1.5 will be obtained at an average intensity of 2.5 for the diagonal elements, whereas a fold change of 0.5 will be obtained at an average intensity of 1.5 for all other elements.
-This mean-dependent fold change represents a trended bias that can be eliminated with non-linear methods.
-In contrast, the sum of counts for each genomic interval is the same for all intervals in each replicate ($1 + 3 + 1$ for the first and $2 + 2 + 2$ for the second).
-This means that iterative correction will have no effect as it operates on the differences in these sums within a single sample.
+% For example, consider two replicates in which ve the same genomic biases.
+% Assume that the Hi-C protocol was more efficient in the second replicate, such that more weak long-range interactions were captured (at the expense of the strong short-range interactions).
+% This is visualized below with plots of the genome-by-genome interaction space for each replicate, where the counts represent the relative intensity of each interaction.
+% 
+% \setkeys{Gin}{width=0.49\textwidth}
+% \begin{center}
+% <<fig=TRUE,echo=FALSE>>=
+% plot(0, 0, xlim=c(0, 3), ylim=c(0, 3), xlab="genome", ylab="genome", type="n",axes=FALSE, 
+%     cex.lab=2, main="Replicate 1", cex.main=2)
+% curmat1 <- rbind(c(3, 0, 0), c(1, 3, 0), c(1, 1, 3))
+% keep <- lower.tri(curmat1, diag=TRUE)
+% xs <- nrow(curmat1) - row(curmat1)[keep] + 1
+% ys <- col(curmat1)[keep]
+% my.colors <- rgb(1, 0, 0, c(0.3, 0.6, 0.9))
+% rect(xs-1, ys-1, xs, ys, col=my.colors[curmat1[keep]], lty=2)
+% text(xs-0.5, ys-0.5, labels=curmat1[keep], cex=2)
+% @
+% <<fig=TRUE,echo=FALSE>>=
+% plot(0, 0, xlim=c(0, 3), ylim=c(0, 3), xlab="genome", ylab="genome", type="n",axes=FALSE, 
+%     cex.lab=2, main="Replicate 2", cex.main=2)
+% curmat2 <- rbind(c(2, 0, 0), c(2, 2, 0), c(2, 2, 2))
+% rect(xs-1, ys-1, xs, ys, col=my.colors[curmat2[keep]], lty=2)
+% text(xs-0.5, ys-0.5, labels=curmat2[keep], cex=2)
+% @
+% \end{center}
+% \setkeys{Gin}{width=0.8\textwidth}
+% 
+% Interactions are shown between pairs of genomic intervals, based on the partitioning of each axis by the dotted lines.
+% A fold change of 1.5 will be obtained at an average intensity of 2.5 for the diagonal elements, whereas a fold change of 0.5 will be obtained at an average intensity of 1.5 for all other elements.
+% This mean-dependent fold change represents a trended bias that can be eliminated with non-linear methods.
+% In contrast, the sum of counts for each genomic interval is the same for all intervals in each replicate ($1 + 3 + 1$ for the first and $2 + 2 + 2$ for the second).
+% This means that iterative correction will have no effect as it operates on the differences in these sums within a single sample.
 
 % A related single-sample approach deserves special mention. Normalization can
 % be performed on the distances between bins in each pair \cite{ay2014} to
@@ -927,9 +974,10 @@ This means that iterative correction will have no effect as it operates on the d
 \section{Accounting for copy number variations}
 \label{sec:copy}
 
-As one might imagine, copy number variations (CNVs) in the interacting regions will affect the interaction intensity. 
+\subsection{Eliminating CNVs with multi-dimensional smoothing}
+Copy number variations (CNVs) in the interacting regions will also affect the interaction intensity. 
 These CNV-driven differences in intensities are generally uninteresting and must be removed to avoid spurious detection.
-This is done using the \code{normalizeCNV} function, which simultaneously removes the trended biases described earlier.
+This is done using the \code{normalizeCNV} function, which simultaneously removes trended biases as well.
 The function is based on multi-dimensional smoothing across several covariates with the \code{locfit} package \citep{loader1999local}.
 
 <<>>=
@@ -937,8 +985,8 @@ cnv.offs <- normalizeCNV(data, margin.data)
 head(cnv.offs)
 @
 
-For any two libraries, the ratio of marginal counts for a bin can be used as a proxy for the relative CNV between libraries in that bin.
-Each bin pair is subsequently associated with two marginal log-ratios.
+For any two libraries, the ratio of marginal counts for each bin can be used as a proxy for the relative CNV between libraries in that bin.
+This means that each bin pair will be associated with two of these marginal log-ratios.
 Note that the marginal counts should be collected with the same parameters as the bin pair (i.e., interaction) counts.
 The third covariate for each bin pair is that of the average abundance across all libraries.
 This will account for any abundance-dependent trends in the biases.
@@ -946,7 +994,7 @@ This will account for any abundance-dependent trends in the biases.
 The response for each bin pair is defined as the log-ratio of interaction counts between two libraries.
 A locally weighted surface is fitted to the response against all three covariates.
 The idea is that, at any combination of covariate values, most bin pairs are not expected to be differential.
-Any systematic differences between libraries is attributable to CNV (or trended) biases and is removed.
+Any systematic differences between libraries is attributed to CNV-driven (or trended) biases and is removed.
 The function does so by returning GLM offsets, which can be supplied to the statistical analysis to eliminate the bias.
 
 The use of a empirical trend fit reduces the number of assumptions involved in translating a CNV into its effect on interaction intensities.
@@ -958,6 +1006,51 @@ That said, the use of many covariates may lead to overfitting and removal of gen
 The function also assumes that CNVs in different parts of the genome have the same effect.
 Caution is therefore required when using \code{normalizeCNV}. 
 The safest choice is to avoid it when CNVs are not present, according to the diagnostic plots in Section~\ref{sec:marginal}.
+
+\subsection{Visualizing the effect of CNV removal}
+Here, the \citeauthor{rickman2012oncogene} dataset is used as it contains more CNVs.
+Interaction counts are loaded for each bin pair, and marginal counts are loaded for each bin.
+Some filtering is performed to eliminate low-abundance bin pairs, as previously described.
+
+<<>>=
+count.files <- c("merged_erg.h5", "merged_gfp.h5")
+rick.data <- squareCounts(count.files, hs.frag, width=1e6)
+rick.marg <- marginCounts(count.files, hs.frag, width=1e6)
+rick.data <- rick.data[aveLogCPM(asDGEList(rick.data)) > 0,]
+@
+
+The aim is to plot the log-ratio between the two libraries for the interaction counts, as a function of the marginal log-ratios.
+This will illustrate the effect of the CNV on the interaction intensities between libraries.
+As two marginal log-ratios are present for each bin pair, these are added together for simplicity.
+
+<<>>=
+m.adjc <- cpm(asDGEList(rick.marg), log=TRUE)
+amatch <- match(anchors(rick.data, id=TRUE), anchors(rick.marg, id=TRUE))
+tmatch <- match(targets(rick.data, id=TRUE), anchors(rick.marg, id=TRUE))
+sum.madjc <- m.adjc[amatch,] + m.adjc[tmatch,]
+mlr <- sum.madjc[,1] - sum.madjc[,2]
+@
+
+Plotting can then be performed to determine the effect of \code{normalizeCNV}.
+The presence of a trend indicates that decreases in copy number result in decreases in interaction intensity.
+After normalization, the trend in the interaction log-ratios is removed.
+Note that \code{maxk} is necessary to increase the allocated memory in the call to \code{locfit} during normalization.
+
+<<eval=FALSE,label=cnvplotter>>=
+before <- cpm(asDGEList(rick.data), log=TRUE)
+after <- log2(counts(rick.data)+0.5) - normalizeCNV(rick.data, rick.marg, maxk=1000)/log(2)
+par(mfrow=c(1,2), cex.axis=1.2, cex.lab=1.4)
+smoothScatter(mlr, before[,1]-before[,2], ylim=c(-4, 4), main="Before",
+    xlab="Sum of marginal log-ratios", ylab="Interaction log-ratio")
+smoothScatter(mlr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
+    xlab="Sum of marginal log-ratios", ylab="Interaction log-ratio")
+@
+
+\begin{center}
+<<echo=FALSE,fig=TRUE,width=10,height=5>>=
+<<cnvplotter>>
+@
+\end{center}
 
 % Biases computed by iterative correction represent the divisors that were used to convert the counts into contact probabilities.
 % As such, they can be log-transformed and used as GLM offsets.
@@ -1005,19 +1098,19 @@ The safest choice is to avoid it when CNVs are not present, according to the dia
 % blah <- t(true.bias * t(matrix(1, 3, 3) * true.bias))
 % combined <- 1L
 % for (it in 1:25) {
-% 	collected <- sqrt(rowSums(blah))
-% 	blah <- t(t(blah/collected)/collected)
-% 	combined <- combined*collected
-% 	print(combined/min(combined))
+%   collected <- sqrt(rowSums(blah))
+%   blah <- t(t(blah/collected)/collected)
+%   combined <- combined*collected
+%   print(combined/min(combined))
 % }
 % @
 
 \chapter{Assessing biological variability}
 
 \section{Overview}
-The magnitude of biological variability can be determined from  biological replicates, i.e., Hi-C libraries prepared from different biological samples.
-This reduces the significance of detected interactions when the data is highly variable. 
-For count-based data, this can be achieved using the NB model in \edgeR{} \citep{edgeR}.  
+The magnitude of biological variability can be empirically determined from biological replicates, i.e., Hi-C libraries prepared from different biological samples.
+This can be incorporated into the testing framework to (correctly) reduce the significance of detected interactions when the data is highly variable.
+For count-based data, this is achieved using the NB model in \edgeR{} \citep{edgeR}.  
 Estimation of the NB dispersion parameter allows modelling of the variation between biological replicates. 
 Similarly, estimation of the quasi-likelihood (QL) dispersion can be performed to account for heteroskedasticity \citep{lund2012ql}. 
 
@@ -1043,10 +1136,9 @@ y$offset <- nb.off
 @
 
 \section{Estimating the NB dispersion}
-Estimation of the NB dispersion is performed by maximizing the Cox-Reid adjusted profile likelihood (APL) \citep{mccarthy2012glm}.
-This adjusts the likelihood for the uncertainty in the estimated means.
+Estimation of the NB dispersion is performed by maximizing the Cox-Reid adjusted profile likelihood (APL) \citep{mccarthy2012glm} for each bin pair.
 Of course, when replication is limited, there is not enough information per bin pair to estimate the dispersion.
-This is overcome by computing APLs across many bin pairs to stablize the estimates.
+This is overcome by computing and sharing APLs across many bin pairs to stablize the estimates.
 
 <<>>=
 y <- estimateDisp(y, design)
@@ -1054,8 +1146,8 @@ y$common.dispersion
 @
 
 A more sophisticated strategy is also used whereby an abundance-dependent trend is fitted to the APLs.
-This should manifest as a smooth trend in the final NB dispersion estimates.
-The aim is to improve accuracy by empirically modelling any non-NB mean-variance relationships.
+This should manifest as a smooth trend in the NB dispersion estimates with respect to the average abundances.
+The aim is to improve modelling accuracy by empirically modelling any non-NB mean-variance relationships.
 
 <<eval=FALSE,label=bcvplot>>=
 plotBCV(y)
@@ -1087,7 +1179,7 @@ result <- glmQLFTest(y, design, robust=TRUE, plot=TRUE)
 Again, there is not enough information for each bin pair to provide a precise estimate of the QL dispersion.
 Instead, information is shared between bin pairs using an empirical Bayes (EB) approach.
 Per-bin-pair estimates are shrunk towards the mean (trended) QL dispersion across all bin pairs.
-This stabilizes the estimates and improves precision for downstream applications.
+This stabilizes the dispersion estimates and improves precision/power for downstream applications.
 
 \setkeys{Gin}{width=0.6\textwidth}
 \begin{center}
@@ -1099,14 +1191,14 @@ This stabilizes the estimates and improves precision for downstream applications
 
 The extent of the EB shrinkage is determined by the heteroskedasticity in the data.
 If the true dispersions are highly variable, shrinkage to a common value would be inappropriate.
-If the true dispersions are not variable, more shrinkage can be performed to increase precision.
-This is quantified as the prior degrees of freedom, for which smaller values correspond to more heteroskedasticity.
+On the other hand, more shrinkage can be performed to increase precision if the true dispersions are not variable.
+This variability is quantified as the prior degrees of freedom, for which smaller values correspond to more heteroskedasticity and less shrinkage.
 
 <<>>=
 summary(result$df.prior)
 @
 
-It's important to use the \code{robust=TRUE} argument in \code{glmQLFTest}.
+It is important to use the \code{robust=TRUE} argument in \code{glmQLFTest}.
 This protects against any large positive outliers that might be present.
 It also protects against large negative outliers when the counts are small.
 In both cases, such outliers would inflate the apparant heteroskedasticity and increase the estimated prior degrees of freedom.
@@ -1118,7 +1210,7 @@ The \code{glmQLFTest} function also performs the F-test for each interaction so 
 Nonetheless, the command is repeated below for the reader's convenience.
 Users should check that the contrast has been specified correctly through the \code{coef} or \code{contrast} arguments.
 In this case, the coefficient of interest refers to the change in the KO counts over the WT counts.
-The null hypothesis for each bin pair is that the coefficient is equal to zero, i.e., there is no change.
+The null hypothesis for each bin pair is that the coefficient is equal to zero, i.e., there is no change between the WT and KO groups.
 
 <<>>=
 result <- glmQLFTest(y, design, robust=TRUE, coef=2)
@@ -1126,7 +1218,7 @@ topTags(result)
 @
 
 Users might wonder why the likelihood ratio test (LRT) is not used.
-Indeed, the LRT is the more obvious test for inferences with GLMs. 
+Indeed, the LRT is the more obvious test for any inferences involving GLMs. 
 However, the QL F-test is preferred as it accounts for the variability and uncertainty of the QL dispersion estimates \citep{lund2012ql}. 
 This means that it can maintain type I error control in the presence of heteroskedasticity whereas the LRT does not.
 
@@ -1137,7 +1229,7 @@ Many bin pairs are tested for differences across the interaction space.
 Correction for multiple testing is necessary to avoid detection of many spurious differences.
 For genome-wide analyses, this correction can be performed by controlling the false discovery rate (FDR) with the Benjamini-Hochberg (BH) method \citep{benjamini1995fdr}. 
 This provides a suitable comprimise between specificity and sensitivity.
-In contrast, traditional methods of correction are often too conservative, e.g., Bonferroni.
+In contrast, traditional methods of correction (e.g., Bonferroni) are often too conservative.
 
 \subsection{Direct application of the BH method}
 The BH method can be applied directly to the $p$-values for the individual bin pairs. 
@@ -1167,7 +1259,7 @@ Smaller bins may be more useful as they can identify sharp features that would o
 For purposes of demonstration, a quick-and-dirty analysis of the previously loaded 100 kbp bin pairs is performed here.
 
 <<>>=
-y.small <- DGEList(counts(smaller.data), lib.size=totals(smaller.data))
+y.small <- asDGEList(smaller.data)
 y.small$offset <- normalize(smaller.data, type="loess")
 y.small <- estimateDisp(y.small, design)
 result.small <- glmQLFTest(y.small, design, robust=TRUE)
@@ -1208,7 +1300,7 @@ head(tabcom)
 sum(tabcom$FDR <= 0.05)
 @
 
-Of course, this bin clustering method will not be optimal for diffuse interactions.
+Of course, bin clustering will not be optimal for diffuse interactions.
 One could obtain larger counts with larger bin pairs, given that spatial resolution is not an issue for diffuse interactions.
 Nonetheless, bin clustering will protect against misinterpretation when both sharp and diffuse interactions are present.
 The use of small bin pairs will allow detection of the former, while bin clustering will prevent the results being dominated by the latter.
