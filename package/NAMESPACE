@@ -18,7 +18,7 @@ exportClasses(
 
 exportMethods(
     anchors, targets, counts, regions, totals, "[", show,
-	normalize, average, asDGEList
+	normalize, asDGEList
 )
 
 # Requires several imports.
