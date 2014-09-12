@@ -527,6 +527,11 @@ This count-based approach is fairly objective yet is still effective, i.e., remo
 More sophisticated strategies can be implemented where the choice of threshold is motivated by some understanding of the Hi-C protocol.
 These strategies are described in the rest of this chapter, and will be combined with the count-based filter to maintain a minimum count size among the retained bin pairs.
 
+Note that the result of filtering here are assigned into the \code{dummy} object.
+This avoids overwriting the original data at this point in the guide.
+Similarly, \code{dummy} will be used as a dumping group for the variuos demonstrations below.
+However, when it comes to actual filtering, the filtered results will be assigned back into the \code{data} object for further analysis.
+
 \subsection{Computing the interaction distance}
 The linear distance between each pair of the interacting bins is worth mentioning as it can also be used in filtering.
 This is obtained using the \code{getDistance} function, which computes the distance between the bin midpoints by default.
@@ -594,6 +599,7 @@ The threshold is defined by requiring a minimum fold change of 10 above this est
 <<>>=
 direct.threshold <- median(ave.ab[is.na(dist)], na.rm=TRUE)
 direct.keep <- count.keep & ave.ab > log2(10) + direct.threshold
+dummy <- data[direct.keep,]
 summary(direct.keep)
 @
 
@@ -640,7 +646,8 @@ Each bin pair is only retained if its abundance is greater than the correspondin
 This favours selection of bin pairs corresponding to long-range interactions.
 
 <<>>=
-trend.keep <- count.keep & ave.ab > trend.threshold 
+trend.keep <- count.keep & ave.ab > trend.threshold
+dummy <- data[trend.keep,]
 summary(trend.keep)
 @
 
@@ -724,8 +731,8 @@ This means that no additional filtering is necessary to enforce a minimum count 
 
 <<>>=
 small.keep <- small.ab > new.threshold + log2(100)
-summary(small.keep)
 smaller.data <- smaller.data[small.keep,]
+summary(small.keep)
 @
 
 The minimum fold change used here is higher than that for the larger bin pairs in Section~\ref{sec:direct}.
@@ -794,6 +801,25 @@ hist(getArea(data), breaks=100, xlab="Restriction fragments per bin")
 
 Note that area-based adjustment adjustment fails to account for other differences between bins, e.g., in mappability or sequenceability.
 Full consideration of these bin-specific biases requires methods such as iterative correction (see Section~\ref{sec:itercor}).
+
+\section{Filtering out diagonal elements}
+Incomplete removal of artifacts (e.g., dangling ends, self-circles) will generally manifest as increased counts for diagonal bin pairs (i.e., pairs of the same bin).
+If artifact generation and removal is not consistent between libraries, the behaviour of the diagonal elements will differ markedly from the other bin pairs.
+This can be diagnosed using MA plots, where the diagonal elements show up as a distinct mass that is unconnected to the rest of the points.
+Such irregularities cannot be smoothly normalized and should be removed prior to further analysis, or at least analyzed separately.
+Removal can be achieved by applying the \code{diag.keep} object alongside the direct or trended filters, as shown below.
+
+<<>>=
+diag.keep <- is.na(dist) | dist > 0L  
+dummy <- data[diag.keep & direct.keep,]
+summary(diag.keep)
+@
+
+Obviously, this will also remove short-range interactions that might be of interest.
+Users are advised to switch to a smaller bin size to recover these interactions.
+With smaller bins, artifacts will still be restricted to the diagonal (given bin sizes above 25 kbp)  but off-diagonal bin pairs can now be retained.
+This is also easier to interpret, given that the spatial resolution is greater than that for large bins.
+Count size is usually not an issue for these smaller bins, given that counts are high for short-range interactions.
 
 \section{Summary of the filtering strategies}
 Each filtering strategy is arbitrarily tunable, as one can simply increase or decrease the minimum fold change required for retention.
