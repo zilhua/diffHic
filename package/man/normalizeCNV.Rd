@@ -5,7 +5,8 @@
 \description{Compute normalization offsets to remove CNV-driven and abundance-dependent biases}
 
 \usage{
-normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, ...)
+normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, 
+    lp.args=NULL, maxk=500, ...)
 }
 
 \arguments{
@@ -15,6 +16,8 @@ normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE
 \item{prior.count}{a numeric scalar specifying the prior count to use in computing marginal log-ratios}
 \item{split}{a logical scalar indicating whether the marginal log-ratios should be kept as separate covariates}
 \item{abundance}{a logical scalar indicating whether the average abundance should be used as a covariate}
+\item{lp.args}{a named list of arguments to pass to \code{\link{lp}}}
+\item{maxk}{a integer scalar specifying the number of vertices to use during local fitting}
 \item{...}{other arguments to pass to \code{\link{locfit}}}
 }
 
@@ -43,6 +46,10 @@ If \code{split=FALSE}, the two marginal log-ratios for each bin pair will be add
 This improves stability by reducing the covariate space, though it assumes that such addition is sensible, i.e., different combinations of log-ratios with the same sum have the same effect.
 If \code{abundance=FALSE}, the average abundance will not be used as a covariate.
 This also reduces the covariate space and can be used when trended biases are not present.
+
+The fit parameters can be changed by varying \code{lp.args}, \code{maxk} and additional arguments in \code{\link{locfit}}.
+For example, the span/bandwidth of the local fit can be changed by specifying a proportion as \code{nn} in \code{lp.args}.
+Increases in \code{maxk} may also be required to obtain a more accurate approximation when fitting large datasets.
 }
 
 \value{
@@ -50,7 +57,7 @@ A numeric matrix of the same dimensions as \code{counts(data)}, containing log-b
 }
 
 \seealso{
-\code{\link{locfit}},
+\code{\link{locfit}}, \code{\link{lp}},
 \code{\link{squareCounts}},
 \code{\link{marginCounts}}
 }
@@ -79,9 +86,10 @@ head(normalizeCNV(data, margins, prior.count=1))
 head(normalizeCNV(data, margins, ref.col=3))
 head(normalizeCNV(data, margins, split=FALSE))
 head(normalizeCNV(data, margins, abundance=FALSE))
+head(normalizeCNV(data, margins, lp.args=list(nn=0.5)))
 
 # Occasionally locfit will complain; increase maxk to compensate.
 data@counts <- matrix(as.integer(rpois(npairs*nlibs, 20)), nrow=npairs)
-tryCatch(head(normalizeCNV(data, margins)), error=function(e) e)
+tryCatch(head(normalizeCNV(data, margins, maxk=100)), error=function(e) e)
 head(normalizeCNV(data, margins, maxk=1000))
 }

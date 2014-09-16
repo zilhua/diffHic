@@ -1,4 +1,5 @@
-normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, ...)
+normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, 
+	lp.args=NULL, maxk=500, ...)
 # This performs two-dimensional loess smoothing, using the counts and the 
 # marginal counts to compute the abundance and the marginal fold-changes,
 # respectively. Both are used as covariates in the model to smooth out any
@@ -21,11 +22,11 @@ normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, ab
 		ab <- aveLogCPM(counts(data), lib.size=totals(data))
 	}
 	adjc <- log(counts(data) + 0.5)
-	offsets <- matrix(0, nrow=nrow(data), ncol=ncol(data))
 	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count)
 	ma.adjc <- mab[amatch,,drop=FALSE] 
 	mt.adjc <- mab[tmatch,,drop=FALSE]
 
+	offsets <- matrix(0, nrow=nrow(data), ncol=ncol(data))
 	for (lib in 1:ncol(data)) {
 		if (lib==ref.col) { next }
 		ma.fc <- ma.adjc[,lib] - ma.adjc[,ref.col]
@@ -46,8 +47,8 @@ normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, ab
 	
 		# Fitting a loess surface with the specified covariates.	
 		i.fc <- adjc[,lib] - adjc[,ref.col]
-		cov.fun <- do.call(lp, all.cov)
-		fit <- locfit(i.fc ~ cov.fun, deg=1, ..., lfproc=locfit.robust) 
+		cov.fun <- do.call(lp, c(all.cov, lp.args))
+		fit <- locfit(i.fc ~ cov.fun, deg=1, maxk=maxk, ..., lfproc=locfit.robust) 
 		offsets[,lib] <- fitted(fit)
 	}
 	offsets <- offsets - rowMeans(offsets)
