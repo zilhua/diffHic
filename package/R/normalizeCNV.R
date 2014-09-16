@@ -1,5 +1,5 @@
 normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, 
-	lp.args=NULL, maxk=500, ...)
+	degree=1, span=0.3, maxk=500, ...)
 # This performs two-dimensional loess smoothing, using the counts and the 
 # marginal counts to compute the abundance and the marginal fold-changes,
 # respectively. Both are used as covariates in the model to smooth out any
@@ -47,8 +47,8 @@ normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, ab
 	
 		# Fitting a loess surface with the specified covariates.	
 		i.fc <- adjc[,lib] - adjc[,ref.col]
-		cov.fun <- do.call(lp, c(all.cov, lp.args))
-		fit <- locfit(i.fc ~ cov.fun, deg=1, maxk=maxk, ..., lfproc=locfit.robust) 
+		cov.fun <- do.call(lp, c(all.cov, nn=span, deg=degree))
+		fit <- locfit(i.fc ~ cov.fun, maxk=maxk, ..., lfproc=locfit.robust) 
 		offsets[,lib] <- fitted(fit)
 	}
 	offsets <- offsets - rowMeans(offsets)

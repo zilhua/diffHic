@@ -6,7 +6,7 @@
 
 \usage{
 normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, 
-    lp.args=NULL, maxk=500, ...)
+    degree=1, span=0.3, maxk=500, ...)
 }
 
 \arguments{
@@ -16,7 +16,8 @@ normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE
 \item{prior.count}{a numeric scalar specifying the prior count to use in computing marginal log-ratios}
 \item{split}{a logical scalar indicating whether the marginal log-ratios should be kept as separate covariates}
 \item{abundance}{a logical scalar indicating whether the average abundance should be used as a covariate}
-\item{lp.args}{a named list of arguments to pass to \code{\link{lp}}}
+\item{degree}{an integer scalar specifying the degree of the polynomial fit}
+\item{span}{a numeric scalar between 0 and 1, describing the span of the fit}
 \item{maxk}{a integer scalar specifying the number of vertices to use during local fitting}
 \item{...}{other arguments to pass to \code{\link{locfit}}}
 }
@@ -47,9 +48,10 @@ This improves stability by reducing the covariate space, though it assumes that 
 If \code{abundance=FALSE}, the average abundance will not be used as a covariate.
 This also reduces the covariate space and can be used when trended biases are not present.
 
-The fit parameters can be changed by varying \code{lp.args}, \code{maxk} and additional arguments in \code{\link{locfit}}.
-For example, the span/bandwidth of the local fit can be changed by specifying a proportion as \code{nn} in \code{lp.args}.
-Increases in \code{maxk} may also be required to obtain a more accurate approximation when fitting large datasets.
+The fit parameters can be changed by varying \code{degree}, \code{span}, \code{maxk} and additional arguments in \code{\link{locfit}}.
+A fit of \code{degree} 1 is used by default to avoid overfitting.
+Higher values of \code{span} will increase smoothness, at the cost of sensitivity.
+Increases in \code{maxk} may be required to obtain a more accurate approximation when fitting large datasets.
 }
 
 \value{
@@ -86,7 +88,10 @@ head(normalizeCNV(data, margins, prior.count=1))
 head(normalizeCNV(data, margins, ref.col=3))
 head(normalizeCNV(data, margins, split=FALSE))
 head(normalizeCNV(data, margins, abundance=FALSE))
-head(normalizeCNV(data, margins, lp.args=list(nn=0.5)))
+
+# Changing various options.
+head(normalizeCNV(data, margins, span=0.5))
+head(normalizeCNV(data, margins, degree=2))
 
 # Occasionally locfit will complain; increase maxk to compensate.
 data@counts <- matrix(as.integer(rpois(npairs*nlibs, 20)), nrow=npairs)
