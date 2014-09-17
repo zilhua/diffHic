@@ -6,7 +6,7 @@ export(cutGenome,
     preparePairs, mergePairs, savePairs, countPairs, getPairData,
     squareCounts, connectCounts, marginCounts, 
     countNeighbors, #filterCounts, 
-    correctedContact, normalizeCNV, 
+    correctedContact, normalizeCNV, matchMargins,
     getDistance, getArea,
     boxPairs, clusterPairs,
     plotPlaid)
@@ -18,7 +18,7 @@ exportClasses(
 
 exportMethods(
     anchors, targets, counts, regions, totals, "[", show,
-	normalize, asDGEList
+    normalize, asDGEList
 )
 
 # Requires several imports.

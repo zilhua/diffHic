@@ -1,5 +1,6 @@
 \name{normalizeCNV}
 \alias{normalizeCNV}
+\alias{matchMargins}
 
 \title{Normalize CNV biases}
 \description{Compute normalization offsets to remove CNV-driven and abundance-dependent biases}
@@ -7,6 +8,7 @@
 \usage{
 normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, 
     degree=1, span=0.3, maxk=500, ...)
+matchMargins(data, margins)
 }
 
 \arguments{
@@ -37,6 +39,7 @@ The fitted value can then be used as a GLM offset for each bin pair.
 
 The \code{DIList} objects in \code{data} and \code{margins} should be constructed with the same parameters in their respective functions.
 This ensures that the regions are the same, so that the marginal counts can be directly used.
+Matching of the bins in each bin pair in \code{data} to indices of \code{margins} is performed using \code{matchMargins}.
 Note that the marginal counts are not directly computed from \code{data} as filtering of bin pairs may be performed beforehand.
 
 Normalization offsets are computed between libraries in a pairwise manner.
@@ -55,11 +58,16 @@ Increases in \code{maxk} may be required to obtain a more accurate approximation
 }
 
 \value{
-A numeric matrix of the same dimensions as \code{counts(data)}, containing log-based GLM offsets. 
+For \code{normalizeCNV}, a numeric matrix is returned with the same dimensions as \code{counts(data)}.
+This contains log-based GLM offsets for each bin pair in each library.
+
+For \code{matchMargins}, a data frame is returned with integer fields \code{amatch} and \code{tmatch}.
+Each field specifies the index in \code{margins} corresponding to the anchor or target bin for each bin pair in \code{data}. 
 }
 
 \seealso{
-\code{\link{locfit}}, \code{\link{lp}},
+\code{\link{locfit}}, 
+\code{\link{lp}},
 \code{\link{squareCounts}},
 \code{\link{marginCounts}}
 }
@@ -97,4 +105,10 @@ head(normalizeCNV(data, margins, degree=2))
 data@counts <- matrix(as.integer(rpois(npairs*nlibs, 20)), nrow=npairs)
 tryCatch(head(normalizeCNV(data, margins, maxk=100)), error=function(e) e)
 head(normalizeCNV(data, margins, maxk=1000))
+
+# Matching margins.
+matched <- matchMargins(data, margins)
+head(matched)
+anchor.counts <- margins[matched$amatch,]
+target.counts <- margins[matched$tmatch,]
 }

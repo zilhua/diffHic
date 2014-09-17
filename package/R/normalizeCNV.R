@@ -6,25 +6,15 @@ normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, ab
 # systematic differences in interaction intensity. The aim is to get rid
 # of any CNV-induced bias, quantified by the differences in the marginals.
 {
-	# Checking to ensure that the regions are the same.
-	if (!identical(regions(data), regions(margins))) {
-		stop("regions must be the same for bin pair and marginal counts") 
-	}
-	all.indices <- integer(length(data@region))
-	all.indices[margins@anchor.id] <- 1:length(margins@anchor.id)
-	amatch <- all.indices[data@anchor.id]
-	if (any(amatch==0L)) { stop("non-empty anchor in data that is not in margins") }
-	tmatch <- all.indices[data@target.id]
-	if (any(tmatch==0L)) { stop("non-empty target in data that is not in margins") }
-
 	# Generating covariates.
+	adjc <- log(counts(data) + 0.5)
+	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count)
+	matched <- matchMargins(data, margins)	
+	ma.adjc <- mab[matched$amatch,,drop=FALSE] 
+	mt.adjc <- mab[matched$tmatch,,drop=FALSE]
 	if (abundance) { 
 		ab <- aveLogCPM(counts(data), lib.size=totals(data))
 	}
-	adjc <- log(counts(data) + 0.5)
-	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count)
-	ma.adjc <- mab[amatch,,drop=FALSE] 
-	mt.adjc <- mab[tmatch,,drop=FALSE]
 
 	offsets <- matrix(0, nrow=nrow(data), ncol=ncol(data))
 	for (lib in 1:ncol(data)) {
@@ -54,3 +44,24 @@ normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, ab
 	offsets <- offsets - rowMeans(offsets)
 	return(offsets)
 }
+
+matchMargins <- function(data, margins) 
+# This function just matches the bin pairs in 'data' to the two indices of
+# 'margins' that each bin corresponds to.
+#
+# written by Aaron Lun
+# 17 September 2014	
+{
+	# Checking to ensure that the regions are the same.
+	if (!identical(regions(data), regions(margins))) {
+		stop("regions must be the same for bin pair and marginal counts") 
+	}
+	all.indices <- integer(length(data@region))
+	all.indices[margins@anchor.id] <- 1:length(margins@anchor.id)
+	amatch <- all.indices[data@anchor.id]
+	if (any(amatch==0L)) { stop("non-empty anchor in data that is not in margins") }
+	tmatch <- all.indices[data@target.id]
+	if (any(tmatch==0L)) { stop("non-empty target in data that is not in margins") }
+	
+	return(data.frame(amatch, tmatch))
+}	
