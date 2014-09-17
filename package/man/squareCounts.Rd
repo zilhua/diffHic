@@ -61,8 +61,8 @@ hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
 
 # Setting up the parameters
-fout <- "output"
-preparePairs(hic.file, cuts, file=fout)
+fout <- "output.h5"
+invisible(preparePairs(hic.file, cuts, file=fout))
 countPairs(fout)
 
 # Collating to count combinations.
@@ -72,7 +72,9 @@ squareCounts(fout, cuts, width=50, filter=1)
 squareCounts(fout, cuts, width=100, filter=1)
 squareCounts(fout, cuts, width=100, restrict="chrA", filter=1)
 
+\dontshow{
 unlink(fout, recursive=TRUE)
+}
 }
 
 \author{Aaron Lun}
