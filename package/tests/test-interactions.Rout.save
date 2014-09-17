@@ -36,7 +36,7 @@ Type 'q()' to quit R.
 > 
 > # We set up the comparison function to check our results. 
 > 
-> finder <- function(dir1, dir2, dist, cuts, filter=10L) {
+> finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL) {
 + 	overall<-list()
 + 	odex<-1L
 + 	totals<-c(0L, 0L)
@@ -53,6 +53,7 @@ Type 'q()' to quit R.
 + 
 + 	for (k in 1:length(chromos)) {
 + 		cur.k<-names(chromos)[k]
++ 		if (!is.null(restrict) && !cur.k %in% restrict) { next }
 + 		current.krange<-cuts[cur.k==seqnames(cuts)]
 + 		kbin<-binid(current.krange, dist)
 + 		krle <- rle(kbin)
@@ -61,6 +62,7 @@ Type 'q()' to quit R.
 + 
 + 		for (l in 1:k) {
 + 			cur.l<-names(chromos)[l]
++ 			if (!is.null(restrict) && !cur.l %in% restrict) { next }
 + 			current.lrange<-cuts[seqnames(cuts)==cur.l]
 + 			lbin<-binid(current.lrange, dist)
 + 
@@ -161,10 +163,10 @@ Type 'q()' to quit R.
 > dir1<-"temp-inter/1.h5"
 > dir2<-"temp-inter/2.h5"
 > 
-> comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
+> comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL) {
 + 	simgen(dir1, npairs1, chromos)
 + 	simgen(dir2, npairs2, chromos)
-+ 	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=filter)
++ 	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=filter, restrict=restrict)
 + 
 + 	ar <- anchors(y)
 + 	tr <- targets(y)
@@ -179,8 +181,11 @@ Type 'q()' to quit R.
 + 	overall<-overall[do.call(order, overall),]
 + 	rownames(overall)<-NULL
 + 
-+ 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter)
-+ 	if (!identical(totals(y), ref$total)) { stop("mismatches in library sizes") }
++ 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict)
++ 	if (!identical(totals(y), ref$total) || 
++ 		!identical(totals(y), totalCounts(c(dir1, dir2), fragments=cuts, restrict=restrict))) { 
++ 		stop("mismatches in library sizes") 
++ 	}
 + 	if (!identical(overall, ref$table)) { stop("mismatches in counts or region coordinates") }
 + 	if (filter<=1L && !identical(as.integer(colSums(counts(y))+0.5), totals(y))) { 
 + 		stop("sum of counts from binning should equal totals without filtering") }
@@ -795,6 +800,94 @@ Type 'q()' to quit R.
 [1] count1 count2 anchor target <NA>  
 <0 rows> (or 0-length row.names)
 > 
+> # Testing some restriction.
+> comp(50, 200, dist=10000, cuts=simcuts(chromos), restrict="chrB")
+  count1 count2             anchor             target
+1      0      2 chrB:123622-127816 chrB:100189-109428
+2      0      3 chrB:123622-127816  chrB:87853-100188
+3      0      3 chrB:139663-148256   chrB:21664-29562
+4      0      3 chrB:157788-173716 chrB:148257-157787
+5      0      3 chrB:157788-173716   chrB:53233-62707
+6      0      4 chrB:139663-148256   chrB:39827-53232
+> comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=4), restrict="chrA")
+  count1 count2             anchor             target
+1      0      1 chrA:130138-138982   chrA:29022-40660
+2      0      1 chrA:171821-180280 chrA:151893-162873
+3      0      1 chrA:209429-218769 chrA:111129-120903
+4      0      1 chrA:209429-218769 chrA:171821-180280
+5      0      1 chrA:232578-238215   chrA:29022-40660
+6      0      1 chrA:238212-249838   chrA:10051-20310
+> comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
+  count1 count2             anchor             target
+1      0      1 chrA:177631-191333        chrA:1-9682
+2      0      1 chrA:177631-191333   chrA:51889-62749
+3      0      1   chrA:18240-28994   chrA:18240-28994
+4      0      1 chrA:191332-200248 chrA:112050-120706
+5      0      1 chrA:191332-200248   chrA:18240-28994
+6      0      1 chrA:200247-207034 chrA:158601-169600
+> comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=5, restrict="chrB")
+  count1 count2             anchor             target
+1      0      5 chrB:167531-176542   chrB:83058-87262
+2      0      5 chrB:176543-192993   chrB:16761-29449
+3      0      5 chrB:176543-192993   chrB:29450-37143
+4      0      6 chrB:129221-141841 chrB:109723-119167
+5      0      6 chrB:129221-141841   chrB:37144-50017
+6      0      6 chrB:129221-141841   chrB:64458-72372
+> comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=20, restrict="chrA")
+  count1 count2             anchor             target
+1      0     20 chrA:163795-171227       chrA:1-10365
+2      0     21 chrA:208026-220105 chrA:163795-171227
+3      0     23 chrA:229029-242254   chrA:41693-52059
+4      3     18 chrA:200339-208025 chrA:117064-131487
+5      7     14 chrA:229029-242254   chrA:10366-19320
+6     15      5 chrA:229029-242254   chrA:19321-32376
+> comp(50, 200, dist=5000, cuts=simcuts(chromos), restrict="chrA")
+  count1 count2             anchor             target
+1      0      1        chrA:1-7965        chrA:1-7965
+2      0      1 chrA:124230-128185 chrA:104672-111759
+3      0      1 chrA:124230-128185   chrA:22309-30604
+4      0      1 chrA:155548-160700 chrA:128186-133780
+5      0      1 chrA:155548-160700   chrA:19406-22308
+6      0      1 chrA:197210-203668 chrA:114639-117519
+> comp(50, 200, dist=5000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
+  count1 count2             anchor           target
+1      0      1 chrA:111293-120587 chrA:59292-66380
+2      0      1 chrA:120586-129336 chrA:29382-38186
+3      0      1 chrA:156228-164551 chrA:66379-71047
+4      0      1 chrA:202850-210653 chrA:12135-20403
+5      0      1 chrA:245126-254357 chrA:20402-29383
+6      0      1  chrA:97313-103146 chrA:52165-54633
+> comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=5, restrict="chrB")
+  count1 count2             anchor           target
+1      0      5 chrB:126323-130557      chrB:1-3680
+2      0      5 chrB:126323-130557 chrB:24301-32975
+3      0      5 chrB:130558-135242 chrB:54504-59655
+4      0      5 chrB:135243-139500 chrB:16052-22369
+5      0      5 chrB:135243-139500 chrB:74728-81681
+6      0      5   chrB:24301-32975  chrB:3681-13347
+> comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=20, restrict="chrA")
+  count1 count2             anchor            target
+1      0     25 chrA:128602-135127 chrA:98598-104585
+> comp(50, 200, dist=1000, cuts=simcuts(chromos), restrict="chrA")
+  count1 count2             anchor             target
+1      0      1 chrA:108236-111395 chrA:100791-108235
+2      0      1 chrA:108236-111395   chrA:25388-33764
+3      0      1 chrA:111396-115444        chrA:1-6632
+4      0      1 chrA:115445-124637 chrA:100791-108235
+5      0      1 chrA:132516-139086   chrA:22819-25387
+6      0      1 chrA:145387-147740 chrA:100791-108235
+> comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=5, restrict="chrB")
+  count1 count2             anchor            target
+1      0      5 chrB:114419-117730  chrB:32248-37194
+2      0      5 chrB:114419-117730 chrB:96133-105715
+3      0      5 chrB:117731-122933  chrB:79969-86838
+4      0      5 chrB:131410-135627  chrB:10910-19950
+5      0      5 chrB:154689-164518  chrB:61063-68691
+6      0      5 chrB:154689-164518  chrB:88451-96132
+> comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=20, restrict="chrA")
+[1] count1 count2 anchor target <NA>  
+<0 rows> (or 0-length row.names)
+> 
 > ##################################################################################################
 > # Cleaning up.
 > 
@@ -805,4 +898,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 61.384   0.655  62.230 
+ 78.532   1.002  79.741 

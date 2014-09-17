@@ -16,7 +16,7 @@ refnames<-c("count1", "count2", "anchor", "target")
 
 # We set up the comparison function to check our results. 
 
-finder <- function(dir1, dir2, dist, cuts, filter=10L) {
+finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL) {
 	overall<-list()
 	odex<-1L
 	totals<-c(0L, 0L)
@@ -33,6 +33,7 @@ finder <- function(dir1, dir2, dist, cuts, filter=10L) {
 
 	for (k in 1:length(chromos)) {
 		cur.k<-names(chromos)[k]
+		if (!is.null(restrict) && !cur.k %in% restrict) { next }
 		current.krange<-cuts[cur.k==seqnames(cuts)]
 		kbin<-binid(current.krange, dist)
 		krle <- rle(kbin)
@@ -41,6 +42,7 @@ finder <- function(dir1, dir2, dist, cuts, filter=10L) {
 
 		for (l in 1:k) {
 			cur.l<-names(chromos)[l]
+			if (!is.null(restrict) && !cur.l %in% restrict) { next }
 			current.lrange<-cuts[seqnames(cuts)==cur.l]
 			lbin<-binid(current.lrange, dist)
 
@@ -141,10 +143,10 @@ dir.create("temp-inter")
 dir1<-"temp-inter/1.h5"
 dir2<-"temp-inter/2.h5"
 
-comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
+comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL) {
 	simgen(dir1, npairs1, chromos)
 	simgen(dir2, npairs2, chromos)
-	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=filter)
+	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=filter, restrict=restrict)
 
 	ar <- anchors(y)
 	tr <- targets(y)
@@ -159,8 +161,11 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L) {
 	overall<-overall[do.call(order, overall),]
 	rownames(overall)<-NULL
 
-	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter)
-	if (!identical(totals(y), ref$total)) { stop("mismatches in library sizes") }
+	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict)
+	if (!identical(totals(y), ref$total) || 
+		!identical(totals(y), totalCounts(c(dir1, dir2), fragments=cuts, restrict=restrict))) { 
+		stop("mismatches in library sizes") 
+	}
 	if (!identical(overall, ref$table)) { stop("mismatches in counts or region coordinates") }
 	if (filter<=1L && !identical(as.integer(colSums(counts(y))+0.5), totals(y))) { 
 		stop("sum of counts from binning should equal totals without filtering") }
@@ -275,6 +280,20 @@ comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=20)
 comp(50, 200, dist=1000, cuts=simcuts(chromos))
 comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=5)
 comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=20)
+
+# Testing some restriction.
+comp(50, 200, dist=10000, cuts=simcuts(chromos), restrict="chrB")
+comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=4), restrict="chrA")
+comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
+comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=5, restrict="chrB")
+comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=20, restrict="chrA")
+comp(50, 200, dist=5000, cuts=simcuts(chromos), restrict="chrA")
+comp(50, 200, dist=5000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
+comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=5, restrict="chrB")
+comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=20, restrict="chrA")
+comp(50, 200, dist=1000, cuts=simcuts(chromos), restrict="chrA")
+comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=5, restrict="chrB")
+comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=20, restrict="chrA")
 
 ##################################################################################################
 # Cleaning up.
