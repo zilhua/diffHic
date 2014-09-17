@@ -34,10 +34,15 @@ fout <- "output.h5"
 invisible(preparePairs(hic.file, cuts, file=fout))
 countPairs(fout)
 
-# Collating to count combinations.
+# Counting totals.
 totalCounts(fout)
-totalCounts(fout, cuts)
+totals(squareCounts(fout, cuts, width=10))
+
 totalCounts(fout, restrict="chrA")
+totals(squareCounts(fout, cuts, width=10, restrict="chrA"))
+
+totalCounts(fout, restrict="chrB")
+totals(squareCounts(fout, cuts, width=10, restrict="chrB"))
 
 \dontshow{
 unlink(fout, recursive=TRUE)
