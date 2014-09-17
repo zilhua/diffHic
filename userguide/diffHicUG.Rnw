@@ -887,7 +887,7 @@ data <- data[direct.keep,]
 @
 
 As promised, the filtered results are assigned back into \code{data}.
-This is mostly for consistency, so that all operations are performed on \code{data} in this guide.
+This is mostly for consistency, so that all operations are performed on \code{data} in the rest of this guide.
 The original unfiltered data is retained for later use in Section~\ref{sec:itercor}, but can otherwise be ignored.
 
 \chapter{Normalization strategies for Hi-C data}
@@ -895,8 +895,9 @@ The original unfiltered data is retained for later use in Section~\ref{sec:iterc
 \section{Removing trended biases between libraries}
 Library-specific biases can be generated from uncontrolled differences in library preparation. 
 This is particularly problematic for Hi-C data given the complexity of the protocol. 
-Changes in cross-linking efficiency or ligation specificity can lead to a redistribution of read pairs throughout the interaction space. 
-Such technical differences may manifest as a trended bias across bin pairs in a MA plot.
+Changes in cross-linking efficiency or ligation specificity can lead to a systematic redistribution of read pairs throughout the interaction space. 
+For example, reduced specificity may result in more counts for weak non-specific interactions, and fewer counts for strong genuine interactions.
+Such biases may manifest as an abundance-dependent trend in a MA plot between replicates.
 
 <<echo=FALSE,eval=FALSE,label=makema>>=
 mval <- adj.counts[,3]-adj.counts[,1]
@@ -933,22 +934,29 @@ nb.off <- normalize(data, type="loess")
 head(nb.off)
 @
 
-The MA plot can then be examined after adjusting the log-counts with the computed offsets.
+The MA plot can be examined after adjusting the log-counts with the offsets.
 Most of the trend is removed which indicates that normalization was successful.
-Of course, this assumes that most bin pairs at each abundance are constant between libraries.
-Any systematic differences are assumed to be technical in origin and are subsequently removed.
-If this assumption does not hold, removal of the trend may result in the loss of some genuine differences between conditions.
+Of course, this assumes that most bin pairs at each abundance do not represent differential interactions.
+Any systematic differences between libraries are assumed to be technical in origin and are removed.
+If this assumption does not hold, genuine differences may be lost upon normalization.
 
 <<eval=FALSE,label=manorm>>=
 adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
 <<makema>>
 @
 
+\setkeys{Gin}{width=0.5\textwidth}
 \begin{center}
 <<echo=FALSE,fig=TRUE>>=
 <<manorm>>
 @
 \end{center}
+\setkeys{Gin}{width=0.8\textwidth}
+
+Filtering on average abundance prior to normalization is strongly recommended.
+This removes low counts and avoids problems with discreteness.
+Filtering also improves the sensitivity of span-based fitting algorithms like LOESS at higher abundances.
+Otherwise, the fitted trend will be dominated by the majority of low-abundance bin pairs.
 
 \section{Iterative correction of interaction intensities}
 \label{sec:itercor}
@@ -963,13 +971,14 @@ head(corrected$truth)
 @
 
 The returned \code{truth} contains the ``true'' contact probability for each bin pair in \code{data}.
-This accounts for differences in sequencibility, mappability, restriction site frequency, etc. between bins.
+This is designed to account for differences in sequencibility, mappability, restriction site frequency, etc. between bins.
 Comparisons can then be directly performed between the contact probabilities of different bin pairs.
 Some \code{NA} values will be present due to the removal of low-abundance bins that do not exhibit stable behaviour during correction.
 
 Note that \code{original} is used as no filtering should be performed prior to \code{correctedContact}.
-All non-empty bin pairs are needed for correction as information is collated across the entire interaction space.
-The convergence of the correction procedure can be checked by examining the maximum fold change to the truth at each iteration.
+All non-empty bin pairs are needed for correction as information is collected across the entire interaction space.
+The contribution of many bin pairs with low counts is as substantial as that of few bin pairs with large counts.
+The convergence of the correction procedure can then be checked by examining the maximum fold change to the truth at each iteration.
 
 <<>>=
 corrected$max
@@ -977,8 +986,8 @@ corrected$max
 
 Of course, iterative correction only removes biases between different bins.
 It is not guaranteed to remove (trended) biases between libraries.
-For example, two replicates could have the same genomic biases but a different distribution of read pairs in the interaction space (e.g., due to differences in ligation specificity).
-The latter effect would result in a trended bias, but iterative correction would have no effect due to the former.
+For example, two replicates could have the same genomic biases but a different distribution of read pairs in the interaction space, e.g., due to differences in ligation specificity.
+The latter would result in a trended bias, but iterative correction would have no effect due to the identical genomic biases.
 In short, normalization within a library is a different problem from normalization between libraries.
 
 % For example, consider two replicates in which ve the same genomic biases.
@@ -1043,30 +1052,37 @@ cnv.offs <- normalizeCNV(data, margin.data)
 head(cnv.offs)
 @
 
-For any two libraries, the ratio of marginal counts for each bin can be used as a proxy for the relative CNV between libraries in that bin.
-This means that each bin pair will be associated with two of these marginal log-ratios.
-Note that the marginal counts should be collected with the same parameters as the bin pair (i.e., interaction) counts.
+Three covariates are defined for each bin pair.
+For a pair of libraries, the ratio of marginal counts for each bin can be used as a proxy for the relative CNV between libraries in that bin.
+Each bin pair will be associated with two of these marginal log-ratios to use as covariates.
+Note that the marginal counts should be collected with the same parameters as the interaction counts.
 The third covariate for each bin pair is that of the average abundance across all libraries.
 This will account for any abundance-dependent trends in the biases.
 
-The response for each bin pair is defined as the log-ratio of interaction counts between two libraries.
-A locally weighted surface is fitted to the response against all three covariates.
-The idea is that, at any combination of covariate values, most bin pairs are not expected to be differential.
-Any systematic differences between libraries is attributed to CNV-driven (or trended) biases and is removed.
-The function does so by returning GLM offsets, which can be supplied to the statistical analysis to eliminate the bias.
+The response for each bin pair is defined as the log-ratio of interaction counts between a pair of  libraries.
+A locally weighted surface is fitted to the response against all three covariates for all bin pairs.
+At any combination of covariate values, most bin pairs are assumed to represent non-differential interactions.
+Any systematic differences between libraries are attributed to CNV-driven (or trended) biases and are removed.
+Specifically, GLM offsets are returned and can be supplied to the statistical analysis to eliminate the bias.
 
-The use of a empirical trend fit reduces the number of assumptions involved in translating a CNV into its effect on interaction intensities.
-For example, iterative correction can also be used to correct for CNVs by accounting for differences in coverage of each bin.
-It does so by assuming factorizability \citep{imakaev2012iterative}, i.e., the effect on intensity is a product of the CNVs of the interacting regions.
-This may not be reliable given that random ligation is not the only mechanism for read pair generation.
+\subsection{Why use multi-dimensional smoothing?}
+The use of a empirical fit reduces the number of assumptions involved in translating a CNV into its effect on interaction intensities.
+For example, iterative correction could correct for CNVs by accounting for differences in coverage of each bin.
+However, converting the change in coverage into a quantifiable change in the interaction intensity requires the assumption of factorizability \citep{imakaev2012iterative}, i.e., the effect on intensity is a product of the biases of the interacting regions.
+This is reasonable under a random ligation model, but does not account for other mechanisms of read pair generation.
 
+The fit must be performed simultaneously with all covariates, to ensure that biases at any combination of covariate values are properly identified (and removed).
 That said, the use of many covariates may lead to overfitting and removal of genuine differences.
-The function also assumes that CNVs in different parts of the genome have the same effect.
+The function also assumes that CNVs in different parts of the genome have the same effect on the interaction intensities.
 Caution is therefore required when using \code{normalizeCNV}. 
-The safest choice is to avoid it when CNVs are not present, according to the diagnostic plots in Section~\ref{sec:marginal}.
+The safest choice is to avoid it when CNVs are not present, based on the diagnostic plots in Section~\ref{sec:marginal}.
+
+As an aside, filtering by average abundance is strongly recommended prior to running \code{normalizeCNV}.
+This reduces the computational work required for multi-dimensional smoothing.
+Discreteness and domination of the fit by low-abundance bin pairs is also avoided.
 
 \subsection{Visualizing the effect of CNV removal}
-Here, the \citeauthor{rickman2012oncogene} dataset is used as it contains more CNVs.
+Here, the \citeauthor{rickman2012oncogene} dataset is used for demonstration as it contains more CNVs.
 Interaction counts are loaded for each bin pair, and marginal counts are loaded for each bin.
 Some filtering is performed to eliminate low-abundance bin pairs, as previously described.
 
@@ -1077,8 +1093,8 @@ rick.marg <- marginCounts(count.files, hs.frag, width=1e6)
 rick.data <- rick.data[aveLogCPM(asDGEList(rick.data)) > 0,]
 @
 
-The aim is to plot the log-ratio between the two libraries for the interaction counts, as a function of the marginal log-ratios.
-This will illustrate the effect of the CNV on the interaction intensities between libraries.
+The aim is to plot the log-ratio of the interaction counts of each bin pair, as a function of the marginal log-ratios of the corresponding bins.
+This will illustrate the effect of the CNV on the interaction intensities between the two libraries.
 As two marginal log-ratios are present for each bin pair, these are added together for simplicity.
 
 <<>>=
@@ -1089,10 +1105,10 @@ sum.madjc <- m.adjc[amatch,] + m.adjc[tmatch,]
 mlr <- sum.madjc[,1] - sum.madjc[,2]
 @
 
-Plotting can then be performed to determine the effect of \code{normalizeCNV}.
+Plotting can be performed to determine the effect of \code{normalizeCNV}.
 The presence of a trend indicates that decreases in copy number result in decreases in interaction intensity.
 After normalization, the trend in the interaction log-ratios is removed.
-Note that \code{maxk} is necessary to increase the allocated memory in the call to \code{locfit} during normalization.
+Note that increasing \code{maxk} may be necessary to obtain sufficient accuracy in the internal call to \code{locfit}.
 
 <<eval=FALSE,label=cnvplotter>>=
 before <- cpm(asDGEList(rick.data), log=TRUE)
@@ -1104,11 +1120,13 @@ smoothScatter(mlr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
     xlab="Sum of marginal log-ratios", ylab="Interaction log-ratio")
 @
 
+\setkeys{Gin}{width=0.8\textwidth}
 \begin{center}
 <<echo=FALSE,fig=TRUE,width=10,height=5>>=
 <<cnvplotter>>
 @
 \end{center}
+\setkeys{Gin}{width=0.8\textwidth}
 
 % Biases computed by iterative correction represent the divisors that were used to convert the counts into contact probabilities.
 % As such, they can be log-transformed and used as GLM offsets.
