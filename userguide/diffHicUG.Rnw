@@ -1098,11 +1098,10 @@ This will illustrate the effect of the CNV on the interaction intensities betwee
 As two marginal log-ratios are present for each bin pair, these are added together for simplicity.
 
 <<>>=
+matched <- matchMargins(rick.data, rick.marg)
 m.adjc <- cpm(asDGEList(rick.marg), log=TRUE)
-amatch <- match(anchors(rick.data, id=TRUE), anchors(rick.marg, id=TRUE))
-tmatch <- match(targets(rick.data, id=TRUE), anchors(rick.marg, id=TRUE))
-sum.madjc <- m.adjc[amatch,] + m.adjc[tmatch,]
-mlr <- sum.madjc[,1] - sum.madjc[,2]
+sum.madjc <- m.adjc[matched$amatch,] + m.adjc[matched$tmatch,]
+margin.lr <- sum.madjc[,1] - sum.madjc[,2]
 @
 
 Plotting can be performed to determine the effect of \code{normalizeCNV}.
@@ -1114,9 +1113,9 @@ Note that increasing \code{maxk} may be necessary to obtain sufficient accuracy 
 before <- cpm(asDGEList(rick.data), log=TRUE)
 after <- log2(counts(rick.data)+0.5) - normalizeCNV(rick.data, rick.marg, maxk=1000)/log(2)
 par(mfrow=c(1,2), cex.axis=1.2, cex.lab=1.4)
-smoothScatter(mlr, before[,1]-before[,2], ylim=c(-4, 4), main="Before",
+smoothScatter(margin.lr, before[,1]-before[,2], ylim=c(-4, 4), main="Before",
     xlab="Sum of marginal log-ratios", ylab="Interaction log-ratio")
-smoothScatter(mlr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
+smoothScatter(margin.lr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
     xlab="Sum of marginal log-ratios", ylab="Interaction log-ratio")
 @
 
