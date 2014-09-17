@@ -38,6 +38,7 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 	everypair <- everycount <- list()
 	o <- order(ranges)
 	ranges <- ranges[o]
+	totals <- integer(length(dirs))
 
 	# Determining which ranges each restriction fragment overlaps.
 	cur.olap <- findOverlaps(cuts, ranges, type=type)
@@ -59,6 +60,7 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 				if (!any(basename(x$group)==cur.k & x$name==cur.l)) { next }
 				counts <- h5read(dirs[d], file.path(cur.k, cur.l))
 				for (xx in 1:ncol(counts)) { attributes(counts[,xx]) <- NULL }
+				totals[d] <- totals[d] + sum(counts$count)
 
 				# Need in both.
 				collected <- list()
@@ -125,7 +127,8 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 	everycount <- do.call(rbind, everycount)
 	if (is.null(everycount) || nrow(everycount)==0L) { 
 		final <- list(pairs=data.frame(anchor.id=integer(0), target.id=integer(0)), 
-				counts=matrix(0L, ncol=length(dirs), nrow=0), region=ranges2)
+				counts=matrix(0L, ncol=length(dirs), nrow=0), region=ranges2,
+				totals=totals)
 		return(final)
 	}
 	final <- reconstruct(everypair, everycount)
@@ -146,6 +149,7 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 	final$pairs <- data.frame(anchor.id=ax, target.id=tx)[reo,]
 	final$counts <- final$counts[keep,,drop=FALSE][reo,,drop=FALSE]
 	final$region <- ranges2
+	final$totals <- totals 
 	rownames(final$pairs) <- NULL
 	rownames(final$counts) <- NULL
 	attributes(final$counts)$dimnames<-NULL
@@ -168,6 +172,9 @@ samecomp <- function(nreads, cuts, ranges, filter=0L, type="any", restrict=NULL)
 	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
 	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
+	if (!identical(ref$totals, totals(out)) ||
+		!identical(ref$totals, totalCounts(c(dir1, dir2), fragments=cuts, restrict=restrict))) { 
+		stop("mismatch in total output") }	
 
 	return(cbind(head(ref$pairs), head(ref$counts)))
 }

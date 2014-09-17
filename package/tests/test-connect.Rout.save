@@ -57,6 +57,7 @@ Type 'q()' to quit R.
 + 	everypair <- everycount <- list()
 + 	o <- order(ranges)
 + 	ranges <- ranges[o]
++ 	totals <- integer(length(dirs))
 + 
 + 	# Determining which ranges each restriction fragment overlaps.
 + 	cur.olap <- findOverlaps(cuts, ranges, type=type)
@@ -78,6 +79,7 @@ Type 'q()' to quit R.
 + 				if (!any(basename(x$group)==cur.k & x$name==cur.l)) { next }
 + 				counts <- h5read(dirs[d], file.path(cur.k, cur.l))
 + 				for (xx in 1:ncol(counts)) { attributes(counts[,xx]) <- NULL }
++ 				totals[d] <- totals[d] + sum(counts$count)
 + 
 + 				# Need in both.
 + 				collected <- list()
@@ -144,7 +146,8 @@ Type 'q()' to quit R.
 + 	everycount <- do.call(rbind, everycount)
 + 	if (is.null(everycount) || nrow(everycount)==0L) { 
 + 		final <- list(pairs=data.frame(anchor.id=integer(0), target.id=integer(0)), 
-+ 				counts=matrix(0L, ncol=length(dirs), nrow=0), region=ranges2)
++ 				counts=matrix(0L, ncol=length(dirs), nrow=0), region=ranges2,
++ 				totals=totals)
 + 		return(final)
 + 	}
 + 	final <- reconstruct(everypair, everycount)
@@ -165,6 +168,7 @@ Type 'q()' to quit R.
 + 	final$pairs <- data.frame(anchor.id=ax, target.id=tx)[reo,]
 + 	final$counts <- final$counts[keep,,drop=FALSE][reo,,drop=FALSE]
 + 	final$region <- ranges2
++ 	final$totals <- totals 
 + 	rownames(final$pairs) <- NULL
 + 	rownames(final$counts) <- NULL
 + 	attributes(final$counts)$dimnames<-NULL
@@ -187,6 +191,9 @@ Type 'q()' to quit R.
 + 	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
 + 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
 + 	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
++ 	if (!identical(ref$totals, totals(out)) ||
++ 		!identical(ref$totals, totalCounts(c(dir1, dir2), fragments=cuts, restrict=restrict))) { 
++ 		stop("mismatch in total output") }	
 + 
 + 	return(cbind(head(ref$pairs), head(ref$counts)))
 + }
@@ -461,4 +468,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 49.316   0.278  49.691 
+ 55.783   0.350  56.325 
