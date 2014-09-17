@@ -1249,7 +1249,7 @@ Estimation of the former is performed with the \code{glmQLFit} function.
 
 <<eval=FALSE,label=qlplot>>=
 fit <- glmQLFit(y, design, robust=TRUE)
-plotQLDisP(fit)
+plotQLDisp(fit)
 @
 
 Again, there is not enough information for each bin pair for precise estimation.
@@ -1459,15 +1459,16 @@ This means that high-resolution changes within a larger bin pair can be easily i
 However, users should always keep in mind that the FDR is computed with respect to the larger bin pairs.
 
 <<>>=
-inside <- getBestTest(sdex, resul.small$table)
+inside <- getBestTest(sdex, result.small$table)
 best.vec <- rep(NA, nrow(matched$pairs))
 best.vec[as.integer(rownames(inside))] <- inside$best
 head(best.vec)
-ax.3 <- anchors(smaller.data)[best.vec]
-tx.3 <- targets(smaller.data)[best.vec]
-final.2 <- cbind(final.2, nest.anchor.chr=seqnames(ax.3), nest.anchor.start=start(ax.3), 
-    nest.anchor.end=end(ax.3), nest.target.chr=seqnames(tx.3), 
-    nest.target.start=start(tx.3), nest.target.end=end(tx.3),
+ax.3 <- as.data.frame(anchors(smaller.data))[best.vec,]
+tx.3 <- as.data.frame(targets(smaller.data))[best.vec,]
+nested <- data.frame(anchor.chr=ax.3$seqnames, anchor.start=ax.3$start,
+    anchor.end=ax.3$end, target.chr=tx.3$seqnames, target.start=tx.3$start,
+    target.end=tx.3$end, result.small$table[best.vec,])
+head(nested)
 @
 
 \section{Visualization with plaid plots}
