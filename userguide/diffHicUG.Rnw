@@ -1465,10 +1465,12 @@ best.vec[as.integer(rownames(inside))] <- inside$best
 head(best.vec)
 ax.3 <- as.data.frame(anchors(smaller.data))[best.vec,]
 tx.3 <- as.data.frame(targets(smaller.data))[best.vec,]
-nested <- data.frame(anchor.chr=ax.3$seqnames, anchor.start=ax.3$start,
-    anchor.end=ax.3$end, target.chr=tx.3$seqnames, target.start=tx.3$start,
-    target.end=tx.3$end, result.small$table[best.vec,])
+nested <- data.frame(anchor.start=ax.3$start, anchor.end=ax.3$end, 
+    target.start=tx.3$start, target.end=tx.3$end, 
+    result.small$table[best.vec,c("logFC", "logCPM", "F")])
 head(nested)
+final.3 <- data.frame(final.2, nest=nested)
+write.table(final.3[o2,], file="results.3.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
 \section{Visualization with plaid plots}
