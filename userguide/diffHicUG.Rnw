@@ -128,7 +128,8 @@ y <- asDGEList(data)
 require(csaw)
 y$offset <- normalize(data, type="loess")
 y <- estimateDisp(y, design)
-result <- glmQLFTest(y, design, robust=TRUE)
+fit <- glmQLFit(y, design, robust=TRUE)
+result <- glmQLFTest(fit)
 @
 
 There are several components of the pipeline that shall be discussed:
@@ -1270,7 +1271,7 @@ On the other hand, more shrinkage can be performed to increase precision if the 
 This variability is quantified as the prior degrees of freedom, for which smaller values correspond to more heteroskedasticity and less shrinkage.
 
 <<>>=
-summary(result$df.prior)
+summary(fit$df.prior)
 @
 
 It is important to use the \code{robust=TRUE} argument in \code{glmQLFit}.
@@ -1289,21 +1290,20 @@ He also has a chance of being cited when \edgeR{} is involved.
 \chapter{Testing for significant interactions}
 
 \section{Using the quasi-likelihood F-test}
-The \code{glmQLFTest} function also performs the F-test for each interaction so a new function call is not required. 
-Nonetheless, the command is repeated below for the reader's convenience.
+The \code{glmQLFTest} function performs a QL F-test for each bin pair to identify significant differences.
 Users should check that the contrast has been specified correctly through the \code{coef} or \code{contrast} arguments.
 In this case, the coefficient of interest refers to the change in the KO counts over the WT counts.
 The null hypothesis for each bin pair is that the coefficient is equal to zero, i.e., there is no change between the WT and KO groups.
 
 <<>>=
-result <- glmQLFTest(y, design, robust=TRUE, coef=2)
+result <- glmQLFTest(fit, coef=2)
 topTags(result)
 @
 
-Users might wonder why the likelihood ratio test (LRT) is not used.
+More savvy users might wonder why the likelihood ratio test (LRT) was not used here.
 Indeed, the LRT is the more obvious test for any inferences involving GLMs. 
 However, the QL F-test is preferred as it accounts for the variability and uncertainty of the QL dispersion estimates \citep{lund2012ql}. 
-This means that it can maintain type I error control in the presence of heteroskedasticity whereas the LRT does not.
+This means that it can maintain type I error control in the presence of heteroskedasticity, whereas the LRT does not.
 
 \section{Multiplicity correction and the FDR}
 
@@ -1325,7 +1325,7 @@ sum(adj.p <= 0.05)
 @
 
 These can be saved to file as necessary.
-The resorting by $p$-value just makes it easier to parse the final, as the most interesting differential interactions are placed at the top.
+Resorting by $p$-value just makes it easier to parse the final table, as the most interesting differential interactions are placed at the top.
 
 <<>>=
 ax <- anchors(data)
@@ -1338,25 +1338,27 @@ write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALS
 @
 
 \subsection{Aggregating small bin pairs}
-Smaller bins may be more useful as they can identify sharp features that would otherwise be ``averaged out'' from counting with larger bins.
-For purposes of demonstration, a quick-and-dirty analysis of the previously loaded 100 kbp bin pairs is performed here.
+Smaller bins provide greater spatial resolution and can identify sharp differential interactions that would otherwise be lost within larger bin pairs.
+To demonstrate, a quick-and-dirty analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
 
 <<>>=
 y.small <- asDGEList(smaller.data)
 y.small$offset <- normalize(smaller.data, type="loess")
 y.small <- estimateDisp(y.small, design)
-result.small <- glmQLFTest(y.small, design, robust=TRUE)
+fit.small <- glmQLFit(y.small, design, robust=TRUE)
+result.small <- glmQLFTest(fit.small)
 @
 
-Use of smaller bin pairs can lead to problems when diffuse interactions are present.
+Use of smaller bin pairs can be problematic when diffuse interactions are present.
 Recall that the FDR refers to the proportion of bin pairs that are false positives.
-As the bin pair is just an analytical construct, and the actual statistic of interest is the equivalent proportion for the underlying interactions.
+However, each bin pair is just an analytical construct. 
+The more relevant error rate is the FDR across the underlying interactions, as this represents actual biology.
 The FDR over bin pairs can be used as a proxy for the FDR over interactions, if one assumes that each bin pair roughly corresponds to an interaction.
-This is reasonable for pairs of large bins, but is less so when multiple smaller bin pairs are used to represent a diffuse interaction.
+This is reasonable for large bin pairs, but is less so when multiple smaller bin pairs are used to represent a diffuse interaction.
 This can result in misinterpretation of the FDR such that control is lost \citep{lun2014denovo}.
 
 A typical approach might be to cluster bin pairs in the interaction space to identify the underlying true interaction.
-One can then combine $p$-values across all bin pairs in the cluster, to obtain a single combined $p$-value for the cluster.
+One can then combine $p$-values across all bin pairs in the cluster using Simes' method \citep{simes1986}, to obtain a single combined $p$-value for the cluster.
 This approach avoids misinterpretation for diffuse interactions as each cluster (and thus interaction) has one $p$-value.
 However, this is confounded by the density of the interaction space, particularly at short distances and/or in TADs.
 The boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
@@ -1372,8 +1374,7 @@ matched <- boxPairs(reference=bin.size, smaller=smaller.data, fragments=mm.frag)
 @
 
 The $p$-values for all of the smaller bin pairs can then be combined using Simes' method.
-The resulting combined $p$-value represents the evidence against the global null hypothesis for the larger bin pair.
-That is, there are no significant differences in any of the smaller bin pairs nested within the larger bin pair.
+The resulting combined $p$-value represents the evidence against the global null hypothesis for the larger bin pair, i.e., there are no significant differences in any of the smaller bin pairs nested within the larger bin pair.
 The BH method is applied to the combined $p$-values to control the FDR across all larger bin pairs/interactions.
 Rejection of the global null indicates that there is a change and that the larger bin pair is worth further investigation.
 
@@ -1386,7 +1387,7 @@ sum(tabcom$FDR <= 0.05)
 Of course, bin clustering will not be optimal for diffuse interactions.
 One could obtain larger counts with larger bin pairs, given that spatial resolution is not an issue for diffuse interactions.
 Nonetheless, bin clustering will protect against misinterpretation when both sharp and diffuse interactions are present.
-The use of small bin pairs will allow detection of the former, while bin clustering will prevent the results being dominated by the latter.
+The use of small bin pairs will allow detection of the former, while bin clustering will prevent distortion of the FDR by the latter.
 This method is also a good introduction to the next section, which might be more useful.
 
 \subsection{Merging results from different bin widths}
@@ -1403,12 +1404,12 @@ sdex <- matched$indices$smaller
 @
 
 Each larger bin pair is associated with its own $p$-value and those of the smaller nested bin pairs.
-All of these $p$-values can be combined using Simes' method, similar to that previously described.
+All of these $p$-values can be combined as peviously described.
 The idea is to provide a compromise between larger counts and spatial resolution in the final combined $p$-value.
 
-Some finesse is necessary to assign different weights to each $p$-value during the combining procedure \citep{benjamini1997multiple}.
-For each larger bin pair, the $p$-value for that bin pair has the same weight as those of all the smaller nested bin pairs.
-This means that the analysis with the larger bin pair has the same contribution as that for the smaller bin pairs.
+A weighted version of Simes' method is used to compute the combined $p$-value \citep{benjamini1997multiple}.
+For each larger bin pair, the weight of the $p$-value for that bin pair is the same as the combined weight of all the smaller nested bin pairs.
+This means that the analysis with the larger bin pair has the same contribution to the final combined value as that for the smaller bin pairs.
 The aim is to avoid increasing the contribution of the latter simply because there are more smaller bin pairs covering the interaction space.
 
 <<>>=
@@ -1418,8 +1419,7 @@ weight <- c(1/counts(matched$pairs)[sdex,"smaller"],
 
 The code snippet above makes sense as the count matrix from the \code{DIList} in \code{boxPairs} records the number of nested bin pairs at each bin size.
 So, as the number of nested bin pairs increases, the weight assigned to each bin pair decreases.
-This effectively means that the $p$-values from each bin size are assigned equal weight.
-Calculation of the combined $p$-value is then performed using the \code{combineTests} function in the \csaw{} package.
+Weighted calculation of the combined $p$-value is then performed using the \code{combineTests} function in the \csaw{} package.
 
 <<>>=
 result.com <- combineTests(ids=c(sdex, ldex), 
@@ -1429,19 +1429,20 @@ head(result.com)
 
 The BH method is then applied to the combined $p$-values.
 The FDR refers to the proportion of larger bin pairs that are false discoveries.
-Each large bin pair is safe to use as a proxy for the underlying interaction (or at least, safer than smaller bin pairs) to avoid misinterpretation of the FDR.
-Note the difference in the results after combining results with the smaller bin pairs, relative to direct application of the BH method to the larger bin pairs.
-An increase in the number of detections suggests that more features can be detected at higher resolution.
-However, decreases are also possible as the effective number of tests increases the severity of the correction.
+Like before, misinterpretation of the FDR is mitigated by nesting the smaller bin pairs within their larger counterparts.
+Note the difference in the results after combining analyses from large and small bin pairs, relative to the analyses using only one bin size.
+An increase in the number of detections suggests that the different bin sizes complement each other.
+Sharp changes in the interaction space are detected with small bins, whereas diffuse changes are detected with larger bins.
 
 <<>>=
 sum(result.com$FDR <= 0.05)
 @
 
-Finally, the results can be saved to file.
-The IDs in identifiers can be matched to those of the \code{reference} that was used in \code{boxPairs}.
-The corresponding coordinates of the bin pairs in \code{original} can then be saved to file.
-Of course, the coordinates of the smaller bin pairs can also be saved, though users should keep in mind that the FDR is computed with respect to the larger bin pairs.
+% In other cases, decreased power may be observed if either - but not both- sharp or diffuse interactions are observed.
+% This is because the effective number of tests increases, along with the severity of the correction.
+
+Statistics for each of the larger bin pairs can then be stored to file. 
+Reordering is performed using the combined $p$-value to promote the strongest changes.
 
 <<>>=
 ax.2 <- anchors(matched$pairs)
@@ -1453,14 +1454,31 @@ o2 <- order(final.2$PValue)
 write.table(final.2[o2,], file="results.2.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
+As an aside, it may be convenient to identify the smaller bin pair with the lowest $p$-value that is nested within each of the larger bin pairs.
+This means that high-resolution changes within a larger bin pair can be easily identified.
+However, users should always keep in mind that the FDR is computed with respect to the larger bin pairs.
+
+<<>>=
+inside <- getBestTest(sdex, resul.small$table)
+best.vec <- rep(NA, nrow(matched$pairs))
+best.vec[as.integer(rownames(inside))] <- inside$best
+head(best.vec)
+ax.3 <- anchors(smaller.data)[best.vec]
+tx.3 <- targets(smaller.data)[best.vec]
+final.2 <- cbind(final.2, nest.anchor.chr=seqnames(ax.3), nest.anchor.start=start(ax.3), 
+    nest.anchor.end=end(ax.3), nest.target.chr=seqnames(tx.3), 
+    nest.target.start=start(tx.3), nest.target.end=end(tx.3),
+@
+
 \section{Visualization with plaid plots}
 Plaid plots can be used to visualize the distribution of read pairs in the interaction space \citep{lieberman2009comprehensive}. 
 Briefly, each axis is a chromosome segment. 
-The box represents an interaction between the corresponding intervals on each axis. 
-The colour of the box is proportional to the number of read pairs mapped between the interacting loci.
+Each ``pixel'' represents an interaction between the corresponding intervals on each axis. 
+The colour of the pixel is proportional to the number of read pairs mapped between the interacting loci.
 
 <<label=plaid1,eval=FALSE,echo=FALSE>>=
-plotPlaid(input[1], anchor=expanded.a, target=expanded.t, cap=cap1, width=5e4, fragments=mm.frag)
+plotPlaid(input[1], anchor=expanded.a, target=expanded.t, cap=cap1, 
+    width=5e4, col="red", fragments=mm.frag)
 rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
 @
 
@@ -1489,10 +1507,9 @@ chosen <- 1
 <<setup>>
 @
 
-Expansion of the plot boundaries is often desirable. 
-This ensures that the context of the interaction can be determined by examining the features in the surrounding interaction space. 
-It is also possible to tune the size of the boxes through a parameter that is, rather unsurprisingly, named \code{width}.
-In this case, the side of each box represents a 50 kbp bin, rounded to the nearest restriction site.
+Expansion of the plot boundaries ensures that the context of the interaction can be determined by examining the features in the surrounding space. 
+It is also possible to tune the size of the pixels through a parameter that is, rather unsurprisingly, named \code{width}.
+In this case, the side of each pixel represents a 50 kbp bin, rounded to the nearest restriction site.
 The actual bin pair occurs at the center of the plot and is marked by a rectangle.
 
 \setkeys{Gin}{width=0.48\textwidth}
@@ -1506,16 +1523,18 @@ The actual bin pair occurs at the center of the plot and is marked by a rectangl
 \end{center}
 
 The \code{cap} value controls the relative scale of the colours. 
+Any pixel with a count above \code{cap} will be set at the maximum colour intensity.
+This ensures that a few high-count regions do not dominate the plot.
 A smaller \code{cap} is necessary for smaller libraries so that the intensity of the colours is comparable.
-The colour can also be controlled by specifying a different string in \code{col}.
+The actual colour can be controlled by specifying \code{col}.
 
 In the example above, the differential interaction is driven mainly by the smaller bin pairs.
 Changes in intensities are particularly prevalent at the top left and bottom right corners of the rectangle.
-By comparison, the fold change for the entire interaction is a little less than 30\% between groups.
-This highlights the usefulness of including information from analyses with smaller bin sizes.
+By comparison, the fold change for the entire bin pair is a little less than 30\%.
+This highlights the usefulness of including analyses with smaller bin sizes.
 
-It is also possible to examine a scenario involving larger changes.
-The following plots are constructed for the top differential interaction, detected using only the larger bin size.
+Another example is shown below.
+The following plots are constructed for the top differential interaction using only large bins.
 Because the counts are ``averaged'' across the area of the interaction space, the change must be consistent throughout that area (and thus, more obvious) for detection to be successful.
 Of course, any sharp changes within each of these large bin pairs will be overlooked as the smaller bin pairs are not used.
 
