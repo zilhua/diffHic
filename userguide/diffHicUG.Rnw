@@ -1184,15 +1184,15 @@ smoothScatter(margin.lr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
 
 \section{Overview}
 The magnitude of biological variability can be empirically determined from biological replicates, i.e., Hi-C libraries prepared from different biological samples.
-This can be incorporated into the testing framework to (correctly) reduce the significance of detected interactions when the data is highly variable.
+This is used during testing to appropriately reduce the significance of any detected differences when the data is highly variable.
 For count-based data, this is achieved using the NB model in \edgeR{} \citep{edgeR}.  
 Estimation of the NB dispersion parameter allows modelling of the variation between biological replicates. 
 Similarly, estimation of the quasi-likelihood (QL) dispersion can be performed to account for heteroskedasticity \citep{lund2012ql}. 
 
-Dispersion estimation requires fitting of a GLM to the counts for each interaction \citep{mccarthy2012glm}. 
+Dispersion estimation requires the fitting of a GLM to the counts for each bin pair \citep{mccarthy2012glm}. 
 This means that a design matrix must be specified to describe the experimental setup.
 Here, a simple one-way layout is sufficient.
-Two groups are present, each of which contains two replicates.
+The code below specifies two groups of two replicates, where each group corresponds to a single cell type.
 At this point, the aim is to compute the dispersion from the variability in counts within each group.
 
 <<>>=
@@ -1202,7 +1202,6 @@ design
 @
 
 It is also necessary to assemble a \code{DGEList} object for entry into \edgeR{}.
-Each feature of the \code{DGEList} corresponds to an interaction - in this case, a pair of 1 Mbp bins.
 Note the inclusion of the normalization offsets that were previously computed with the NB-loess method.
 
 <<>>=
@@ -1221,7 +1220,7 @@ y$common.dispersion
 @
 
 A more sophisticated strategy is also used whereby an abundance-dependent trend is fitted to the APLs.
-This should manifest as a smooth trend in the NB dispersion estimates with respect to the average abundances.
+This should manifest as a smooth trend in the NB dispersion estimates with respect to the average abundances of all bin pairs.
 The aim is to improve modelling accuracy by empirically modelling any non-NB mean-variance relationships.
 
 <<eval=FALSE,label=bcvplot>>=
@@ -1238,23 +1237,24 @@ plotBCV(y)
 
 In most cases, the relationship should be monotonic decreasing as the counts become more precise with increasing size.
 Minor deviations are probably due to the imperfect nature of non-linear normalization.
-Major increases suggest that there are substantial batch effects that are still present.
+Major increases are indicative of batch effects.
 For example, a cluster of outliers indicates that there may be copy number changes between replicates.
 
 \section{Estimating the QL dispersion}
-The QL dispersion is estimated using the deviance estimate for GLMs. 
-This may seem a bit superfluous given that the NB dispersion already accounts for biological variability.
-However, the QL dispersion can account for heteroskedasticity in the bin-pair-specific estimates.
-Estimation can be performed with the \code{glmQLFTest} function in \edgeR{}.
+The QL dispersion for each bin pair is estimated from the deviance of the fitted GLM.
+This may seem superfluous given that the NB dispersion already accounts for biological variability.
+However, the QL dispersion can account for heteroskedasticity between bin pairs, whereas the NB dispersion cannot.
+Estimation of the former is performed with the \code{glmQLFit} function.
 
 <<eval=FALSE,label=qlplot>>=
-result <- glmQLFTest(y, design, robust=TRUE, plot=TRUE)
+fit <- glmQLFit(y, design, robust=TRUE)
+plotQLDisP(fit)
 @
 
-Again, there is not enough information for each bin pair to provide a precise estimate of the QL dispersion.
+Again, there is not enough information for each bin pair for precise estimation.
 Instead, information is shared between bin pairs using an empirical Bayes (EB) approach.
-Per-bin-pair estimates are shrunk towards the mean (trended) QL dispersion across all bin pairs.
-This stabilizes the dispersion estimates and improves precision/power for downstream applications.
+Per-bin-pair QL estimates are shrunk towards the mean/trended value across all bin pairs.
+This stabilizes the QL dispersion estimates and improves precision for downstream applications.
 
 \setkeys{Gin}{width=0.6\textwidth}
 \begin{center}
@@ -1273,10 +1273,18 @@ This variability is quantified as the prior degrees of freedom, for which smalle
 summary(result$df.prior)
 @
 
-It is important to use the \code{robust=TRUE} argument in \code{glmQLFTest}.
-This protects against any large positive outliers that might be present.
-It also protects against large negative outliers when the counts are small.
+It is important to use the \code{robust=TRUE} argument in \code{glmQLFit}.
+This protects against any large positive outliers corresponding to highly variable counts.
+It also protects against large negative outliers.
+These are formed from near-zero deviances when counts are identical, and are not uncommon when counts are low.
 In both cases, such outliers would inflate the apparant heteroskedasticity and increase the estimated prior degrees of freedom.
+
+\section{Further information}
+More details on the statistical methods in \edgeR{} can be found, unsurprisingly, in the \edgeR{} user's guide.
+Of course, \pkgname{} is compatible with any statistical framework that accepts a count matrix and a matrix of log-link GLM offsets.
+Advanced users may wish to use methods from other packages.
+This author prefers \edgeR{} as it works quite well for routine analyses of Hi-C data.
+He also has a chance of being cited when \edgeR{} is involved.
 
 \chapter{Testing for significant interactions}
 
