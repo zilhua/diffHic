@@ -129,7 +129,7 @@ rotPlaid <- function(file, fragments, region, width=10000, col="red", cap=20, xl
 	}
 
 	# Computing the max height.
-	max.height <- (x.max - x.min)
+	max.height <- x.max - x.min
 	if (is.null(xlab)) { xlab <- xchr }
 	plot(-1, -1, xlim=c(x.min, x.max), ylim=c(0, max.height),
 		xlab=xlab, yaxs="i", ylab=ylab, type="n", bg="transparent", ...)
@@ -158,7 +158,7 @@ rotPlaid <- function(file, fragments, region, width=10000, col="red", cap=20, xl
 			cur.y <- end(targets)
 		}
 		all.x[counter+hits] <- (cur.x + cur.y)/2
-		all.y[counter+hits] <- (cur.x - cur.y)
+		all.y[counter+hits] <- cur.x - cur.y
 		counter <- counter + 1L
 	}
 
