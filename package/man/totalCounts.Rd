@@ -6,7 +6,7 @@
 \description{Get the total number of read pairs in a set of Hi-C libraries.}
 
 \usage{
-squareCounts(files, fragments=NULL, restrict=NULL)
+totalCounts(files, fragments=NULL, restrict=NULL)
 }
 
 \arguments{
