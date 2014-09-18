@@ -24,10 +24,10 @@ rotPlaid(file, fragments, region, width=10000, col="red",
 	\item{col}{any type of R color to describe the color of the plot elements}
 	\item{cap}{a numeric scalar specifying the count for which the darkest color is obtained}
 	\item{xlab}{character string for the x-axis label on the plot, defaults to the anchor chromosome name}
-	\item{ylab}{character string for the y-axis label on the plot, defaults to the target chromosome name}
-	\item{diag}{a logical scalar specifying whether boxes should be shown above the diagonal for intra-chromosomal plots}
-	\item{count}{a logical scalar specifying whether the count for each bin should be plotted}
-	\item{count.args}{a named list of arguments to be passed to \code{\link{text}} for plotting of bin counts}
+	\item{ylab}{character string for the y-axis label on the plot, defaults to the target chromosome name in \code{plotPlaid}}
+	\item{diag}{a logical scalar specifying whether boxes should be shown above the diagonal for intra-chromosomal plots in \code{plotPlaid}}
+	\item{count}{a logical scalar specifying whether the count for each bin should be plotted in \code{plotPlaid}}
+	\item{count.args}{a named list of arguments to be passed to \code{\link{text}} for plotting of bin counts, if \code{count=TRUE}}
 	\item{...}{other named arguments to be passed to \code{\link{plot}}}
 }	
 

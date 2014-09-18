@@ -130,7 +130,7 @@ rotPlaid <- function(file, fragments, region, width=10000, col="red", cap=20, xl
 
 	# Computing the max height.
 	max.height <- (x.max - x.min)
-	if (is.null(xlab)) { xlab <- paste("Midpoint on", xchr) }
+	if (is.null(xlab)) { xlab <- xchr }
 	plot(-1, -1, xlim=c(x.min, x.max), ylim=c(0, max.height),
 		xlab=xlab, yaxs="i", ylab=ylab, type="n", bg="transparent", ...)
 	if (!nrow(current))	{ next }
