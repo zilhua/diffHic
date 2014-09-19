@@ -46,7 +46,8 @@ Slots are defined as:
 }
 Each row of \code{counts} corresponds to an interaction, while each column corresponds to a library.
 Each interaction is parameterized by an \code{anchor.id} and \code{target.id} index, pointing to the anchor and target intervals in \code{region}, respectively.
-The anchor interval is defined as that with the higher genomic coordinate compared to the target interval, to avoid redundancy from permutations.
+The anchor interval is defined as that with the higher genomic start coordinate, compared to that of the target interval.
+This means that \code{anchor.id} is never less than \code{target.id} to avoid redundant permutations.
 }
 
 \section{Constructor}{
@@ -118,7 +119,7 @@ In the code snippets below, \code{x} is a DIList object.
 		A numeric matrix or vector is then returned, depending on the type of normalization.
 	}
 	\item{}{\code{asDGEList(x, ...)}:
-		Extracts count data and library sizes and returns the same data as a \code{DGEList}.
+		Extracts count data and library sizes, and returns the same data as a \code{DGEList}.
 		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
 	}
 }
