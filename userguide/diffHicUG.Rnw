@@ -155,6 +155,10 @@ Obviously, readers will have to modify the code for their own analyses.
 
 \chapter{Preparing index files from BAM files}
 
+\begin{combox}
+Hello
+\end{combox}
+
 \section{A comment on aligning Hi-C libraries}
 In a typical Hi-C library, sequencing will occasionally be performed over the ligation junction between two restriction fragments.
 This forms a chimeric read that contains sequences from two distinct genomic loci.
@@ -163,13 +167,13 @@ This is because the location of the $3'$ end is already provided by the location
 Direct application of alignment software will not be optimal as only one mapping location will be usually reported for each read.
 This means that the $5'$ location will be ignored if the $3'$ alignment is superior, e.g., longer or fewer mismatches.
 
-Chimera alignment can be achieved with approaches like iterative mapping \citep{imakaev2012iterative} or read splitting \citep{seitan2013cohesin}.
-The latter defines the ligation signature as the sequence that is obtained after ligation between two blunt ends derived from cleaved restriction sites.
+Alignment of chimeric reads can be achieved with approaches like iterative mapping \citep{imakaev2012iterative} or read splitting \citep{seitan2013cohesin}.
+The latter defines the ligation signature as the sequence that is obtained after ligation between blunt ends derived from cleaved restriction sites.
 For example, the \textit{Hin}dIII enzyme cleaves at \texttt{AAGCTT} with a 4 bp overhang.
-This yields a ligation signature of \texttt{AAGCTAGCTT} in chimeric reads.
-The ligation signature in each read is identified with cutadapt \citep{martin2011cutadapt}, and the read is split into two segments at the center of the signature.
-Each segment is then aligned using Bowtie2 \citep{langmead2012bowtie}.
-This procedure can be performed with a custom Python script, below.
+This yields a signature sequence of \texttt{AAGCTAGCTT} upon ligation of blunt ends.
+The ligation signature in each chimeric read is identified with cutadapt \citep{martin2011cutadapt}, and the read is split into two segments at the center of the signature.
+Each segment is then aligned separately to the reference genome using Bowtie2 \citep{langmead2012bowtie}.
+Mapping by read splitting can be performed in \pkgname{} using a custom Python script, below.
 
 <<results=hide>>=
 system.file("python", "presplit_map.py", package="diffHic", mustWork=TRUE)
@@ -360,7 +364,8 @@ The number of read pairs in each area is then used as the count for the correspo
 Non-rectangular areas can also represent interactions, but these are more difficult to interpret and will not be considered here.
 
 The examples shown here will use the \citeauthor{sofueva2013cohesin} dataset.
-Thus, some work is required to obtain the restriction fragment coordinates for the \textit{Hin}dIII-digested mouse genome.
+Read processing has already been performed to construct an index file for each library.
+Some additional work is required to obtain the restriction fragment coordinates for the \textit{Hin}dIII-digested mouse genome.
 
 <<>>=
 require(BSgenome.Mmusculus.UCSC.mm10)
