@@ -70,7 +70,7 @@ connectCounts <- function(files, fragments, regions, filter=1L, type="any", rest
 	# Generating a new set of regions.
 	new.regs <- .redefineRegions(olaps, fragments, regions)
 	new.regs$original <- o
-	return(.DIList(counts=out.counts[o.all,,drop=FALSE], totals=full.sizes, 
+	return(DIList(counts=out.counts[o.all,,drop=FALSE], totals=full.sizes, 
 		anchors=anchor.id[o.all], targets=target.id[o.all], regions=new.regs))
 }
 

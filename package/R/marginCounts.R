@@ -39,7 +39,7 @@ marginCounts <- function(files, fragments, width=500000, restrict=NULL)
 	
 	# Aggregating all elements.
 	retained <- which(rowSums(total.counts)>0.5)
-	return(.DIList(counts=total.counts[retained,,drop=FALSE], totals=full.sizes, 
+	return(DIList(counts=total.counts[retained,,drop=FALSE], totals=full.sizes, 
 			anchors=retained, targets=retained, regions=new.pts$region))
 }
 

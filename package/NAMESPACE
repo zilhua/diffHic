@@ -4,6 +4,7 @@ useDynLib(diffHic, .registration=TRUE, .fixes="cxx_")
 #  All functions exported, sorted by approximate function:
 export(cutGenome, 
     preparePairs, mergePairs, savePairs, countPairs, getPairData,
+	DIList,
     squareCounts, connectCounts, marginCounts, totalCounts, 
     countNeighbors, #filterCounts, 
     correctedContact, normalizeCNV, matchMargins,

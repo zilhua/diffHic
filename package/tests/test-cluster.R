@@ -29,7 +29,7 @@ simgen <- function(alln, chromos, width, min.space, max.space) {
    	chosen.t <- chosen.t[o]
    	is.diff <- c(TRUE, diff(chosen.a)!=0 | diff(chosen.t)!=0)
    	pairs <- data.frame(anchor.id=chosen.a, target.id=chosen.t)
-	return(diffHic:::.DIList(anchors=chosen.a, targets=chosen.t, 
+	return(DIList(anchors=chosen.a, targets=chosen.t, 
 		counts=matrix(0, nrow=alln, ncol=1), totals=0, region=output))
 }
 

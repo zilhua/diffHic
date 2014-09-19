@@ -134,7 +134,7 @@ setMethod("dimnames", signature("DIList"), function(x) {
 })
 
 # Constructor object.
-.DIList <- function(counts, totals=colSums(counts), anchors, targets, regions) {
+DIList <- function(counts, totals=colSums(counts), anchors, targets, regions) {
 	if (!is.integer(counts)) { storage.mode(counts) <- "integer" }
 	anchors <- as.integer(anchors)
 	targets <- as.integer(targets)

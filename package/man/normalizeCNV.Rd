@@ -84,10 +84,10 @@ npairs <- 5000
 nlibs <- 4
 anchors <- sample(npts, npairs, replace=TRUE)
 targets <- sample(npts, npairs, replace=TRUE)
-data <- diffHic:::.DIList(counts=matrix(rpois(npairs*nlibs, runif(npairs, 10, 100)), nrow=npairs),
+data <- DIList(counts=matrix(rpois(npairs*nlibs, runif(npairs, 10, 100)), nrow=npairs),
 	totals=runif(nlibs, 1e6, 2e6), anchors=pmax(anchors, targets), targets=pmin(anchors, targets),
 	regions=GRanges("chrA", IRanges(1:npts, 1:npts)))
-margins <- diffHic:::.DIList(counts=matrix(rpois(npts*nlibs, 100), nrow=npts),
+margins <- DIList(counts=matrix(rpois(npts*nlibs, 100), nrow=npts),
 	totals=totals(data), anchors=1:npts, targets=1:npts, regions=regions(data))
 
 # Running normalizeCNV.

@@ -58,7 +58,7 @@ squareCounts <- function(files, fragments, width=50000, restrict=NULL, filter=1L
 		out.t <- unlist(out.t)
 		out.counts <- do.call(rbind, out.counts)
 	}
-	return(.DIList(counts=out.counts, totals=full.sizes, 
+	return(DIList(counts=out.counts, totals=full.sizes, 
 		anchors=out.a, targets=out.t, regions=new.pts$region))
 }
 

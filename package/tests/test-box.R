@@ -16,7 +16,7 @@ comp <- function(reference, widths) {
 		all.t <- as.integer(runif(n, 1, all.a))
 
 		oname <- paste0("w", w)
-		collected[[oname]] <- diffHic:::.DIList(counts=matrix(0, nrow=n, ncol=1), totals=0, 
+		collected[[oname]] <- DIList(counts=matrix(0, nrow=n, ncol=1), totals=0, 
 			anchors=all.a, targets=all.t, region=bindata$region)
 	}	
 

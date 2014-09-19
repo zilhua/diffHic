@@ -57,6 +57,6 @@ boxPairs <- function(reference, ..., fragments)
 
 	# Collating all unique pairs.
 	colnames(freqs) <- names(num.pairs) <- names(indices) <- names(all.hits)
-	return(list(indices=indices, pairs=.DIList(counts=freqs, totals=num.pairs, 
+	return(list(indices=indices, pairs=DIList(counts=freqs, totals=num.pairs, 
 			anchors=all.a[is.diff], targets=all.t[is.diff], regions=parents)))
 }

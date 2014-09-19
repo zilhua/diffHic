@@ -10,7 +10,7 @@ comp<- function(npairs, nfrags, nlibs, lambda=5, dispersion=0.05, winsorize=0.02
 	npairs <- min(npairs, nrow(all.pairs))
 	counts <- do.call(cbind, lapply(1:nlibs, FUN=function(x) { rpois(npairs, lambda) }) )
 	chosen <- sample(nrow(all.pairs), npairs)
-	data <- diffHic:::.DIList(counts=counts, anchors=all.pairs$anchor.id[chosen], 
+	data <- DIList(counts=counts, anchors=all.pairs$anchor.id[chosen], 
 		targets=all.pairs$target.id[chosen], totals=rep(1, nlibs), 
 		region=GRanges(sort(sample(c("chrA", "chrB", "chrC"), nfrags, replace=TRUE)),
 			IRanges(1:nfrags, 1:nfrags)))

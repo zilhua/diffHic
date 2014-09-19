@@ -16,7 +16,7 @@ comp <- function(npairs, chromos, flanking) {
 	# Setting up some data.
 	counts <- do.call(cbind, lapply(1:nlibs, FUN=function(x) { as.integer(rpois(npairs, lambda) + 1) }) )
 	chosen <- sample(nrow(all.pairs), npairs)
-	data <- diffHic:::.DIList(counts=counts, anchors=aid[chosen], targets=tid[chosen],
+	data <- DIList(counts=counts, anchors=aid[chosen], targets=tid[chosen],
 		totals=rep(1, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(1:nbins, 1:nbins)))
 	data@region$nfrags <- rep(1:3, length.out=nbins)
 	all.chrs <- as.character(seqnames(regions(data)))

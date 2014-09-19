@@ -2,6 +2,7 @@
 \docType{class}
 
 \alias{DIList-class}
+\alias{DIList}
 
 \alias{anchors}
 \alias{anchors,DIList-method}
@@ -46,6 +47,16 @@ Slots are defined as:
 Each row of \code{counts} corresponds to an interaction, while each column corresponds to a library.
 Each interaction is parameterized by an \code{anchor.id} and \code{target.id} index, pointing to the anchor and target intervals in \code{region}, respectively.
 The anchor interval is defined as that with the higher genomic coordinate compared to the target interval, to avoid redundancy from permutations.
+}
+
+\section{Constructor}{
+\describe{
+	\item{}{\code{DIList(counts, totals=colSums(counts), anchors, targets, regions)}:
+	Returns a DIList object where each entry is used to fill the corresponding slots.
+	Type coercion is performed as required.
+	Values of \code{anchors}, \code{targets} and \code{regions} are used for slots \code{anchor.id}, \code{target.id} and \code{region}.
+	}
+}
 }
 
 \section{Accessors}{
@@ -116,9 +127,9 @@ In the code snippets below, \code{x} is a DIList object.
 \author{Aaron Lun}
 
 \examples{
-blah <- new("DIList", counts=matrix(as.integer(c(1,1,2,2,3,3,4,4)), ncol=2), totals=c(10L, 10L), 
-	anchor.id=as.integer(c(1,2,3,4)), target.id=as.integer(c(1,1,2,2)), 
-	region=GRanges("chrA", IRanges(10+1:20, 2+21:40)))
+blah <- DIList(counts=matrix(c(1,1,2,2,3,3,4,4), ncol=2), 
+    totals=c(10L, 10L), anchors=c(1,2,3,4), targets=c(1,1,2,2), 
+	regions=GRanges("chrA", IRanges(10+1:20, 2+21:40)))
 nrow(blah)
 ncol(blah)
 
