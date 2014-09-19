@@ -154,9 +154,12 @@ The final study  compares ERG-overexpressing RWPE1 cells with a GFP-expressing c
 Obviously, readers will have to modify the code for their own analyses.
 
 \chapter{Preparing index files from BAM files}
+\label{chap:prep} 
 
 \begin{combox}
-Hello
+Hello, dear reader.
+A little box will appear at the start of each chapter, describing the objects that are required from the previous chapter.
+As we're starting out here, we don't really need anything except your enthusiasm.
 \end{combox}
 
 \section{A comment on aligning Hi-C libraries}
@@ -349,6 +352,12 @@ savePairs(dummy, "example.h5", hs.frag)
 @
 
 \chapter{Counting read pairs into interactions}
+\label{chap:counting}
+
+\begin{combox}
+A different dataset is used in this chapter, so we really don't need anything from the previous chapter.
+Just stay enthused, because this is where the fun starts.
+\end{combox}
 
 \section{Overview}
 Prior to any statistical analysis, the read pairs in a Hi-C library must be summarized into a count for each interaction.
@@ -396,7 +405,7 @@ The total vector just contains the total number of read pairs in each library.
 Bin pairs can also be filtered to remove those with to a count sum below \code{filter}.
 This removes uninformative bin pairs with very few read pairs, and reduces the memory footprint of the function.
 A higher value of \code{filter} may be necessary for analyses of large datasets with limited memory.
-More sophisticated filtering strategies are discussed in Section~\ref{sec:filter}.
+More sophisticated filtering strategies are discussed in Chapter~\ref{chap:filter}.
 
 \subsection{Choosing a bin width}
 The \code{width} of the bin is specified in base pairs and determines the spatial resolution of the analysis.
@@ -492,17 +501,16 @@ smoothScatter(0.5*(adjc[,1]+adjc[,3]), adjc[,1]-adjc[,3],
 It must be stressed that the marginal count refers to a count for each bin. 
 To avoid any confusion, the count for each \textit{bin pair} will be described as the interaction count.
 Later, it may be necessary to adjust the interaction count based on the marginal counts for the corresponding bins (Section~\ref{sec:copy}, for example).
-In such cases, one should ensure that the same values of \code{width} and \code{fragments} are used in \code{squareCounts} and \code{marginCounts}.
+In such cases, one should ensure that the same values of \code{width} and \code{fragments} are used in both \code{squareCounts} and \code{marginCounts}.
 One can check that this is the case by ensuring that the regions are the same.
 
 <<>>=
 identical(regions(data), regions(margin.data))
 @
 
-Also note that, technically speaking, the anchor and target notation is superfluous for \code{marginCounts}.
-This is because the marginal counts refer to bins on the linear genome, rather than pairs of bins in the interaction space.
-Nonetheless, a \code{DIList} is still returned by \code{marginCounts} for convenience and consistency.
-Both anchor and target indices will be identical in this object.
+Note that the anchor/target notation is superfluous for \code{marginCounts}.
+This is because the marginal counts refer to individual bins rather than bin pairs.
+Nonetheless, a \code{DIList} is still returned for consistency, in which the anchor and target regions are identical.
 
 \section{Summary}
 Counting into bin pairs is the most general method for interaction quantification.
@@ -519,7 +527,13 @@ Thus, bin-based counting will be the method of choice for the rest of this guide
 % @
 
 \chapter{Filtering out uninteresting interactions}
-\label{sec:filter}
+\label{chap:filter}
+
+\begin{combox}
+Here, we'll need the \code{data} object that was loaded in the previous chapter.
+We'll also need \code{bin.size} and \code{mm.frag}.
+Enthusiasm is desirable, but no longer necessary.
+\end{combox}
 
 \section{Overview}
 
@@ -904,6 +918,12 @@ The original unfiltered data is retained for later use in Section~\ref{sec:iterc
 
 \chapter{Normalization strategies for Hi-C data}
 
+\begin{combox}
+Here, we're using the \code{data} object that was filtered in the previous chapter.
+We'll also need the \code{original} object, as well as \code{margin.data} from Section~\ref{sec:marginal}.
+Another human dataset will be loaded here, so \code{hs.frag} from Chapter~\ref{chap:prep} will be required.
+\end{combox}
+
 \section{Removing trended biases between libraries}
 Library-specific biases can be generated from uncontrolled differences in library preparation. 
 This is particularly problematic for Hi-C data given the complexity of the protocol. 
@@ -1194,6 +1214,13 @@ smoothScatter(margin.lr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
 
 \chapter{Modelling biological variability}
 
+\begin{combox}
+In this chapter, the \code{data} object is again required.
+The computed offsets in \code{nb.off} will also be used from the last chapter.
+This chapter is relaxing as it is quite short and covers familiar territory.
+In some respects, it is the calm before the storm.
+\end{combox}
+
 \section{Overview}
 The magnitude of biological variability can be empirically determined from biological replicates, i.e., Hi-C libraries prepared from different biological samples.
 This is used during testing to appropriately reduce the significance of any detected differences when the data is highly variable.
@@ -1299,6 +1326,13 @@ This author prefers \edgeR{} as it works quite well for routine analyses of Hi-C
 He also has a chance of being cited when \edgeR{} is involved \citep{chen2014differential}.
 
 \chapter{Testing for significant interactions}
+
+\begin{combox}
+This chapter brings everything together.
+We need the \code{fit} object from the last chapter, along with the \code{data} object (as usual).
+We also require the \code{smaller.data} object from Chapter~\ref{chap:filter}.
+Finally, the \code{bin.size} and \code{mm.frag} objects are required from Chapter~\ref{chap:counting}.
+\end{combox}
 
 \section{Using the quasi-likelihood F-test}
 The \code{glmQLFTest} function performs a QL F-test for each bin pair to identify significant differences.
@@ -1480,7 +1514,7 @@ ax.3 <- as.data.frame(anchors(smaller.data))[best.vec,]
 tx.3 <- as.data.frame(targets(smaller.data))[best.vec,]
 nested <- data.frame(anchor.start=ax.3$start, anchor.end=ax.3$end, 
     target.start=tx.3$start, target.end=tx.3$end, 
-    result.small$table[best.vec,c("logFC", "logCPM", "F")])
+    result.small$table[best.vec,c("logFC", "F")])
 head(nested)
 final.3 <- data.frame(final.2, nest=nested)
 write.table(final.3[o2,], file="results.3.tsv", sep="\t", quote=FALSE, row.names=FALSE)
@@ -1640,7 +1674,7 @@ points(nest.mid, nest.gap, cex=7)
 <<enbox>>
 @
 
-\setkeys{Gin}{width=0.9\textwidth}
+\setkeys{Gin}{width=0.8\textwidth}
 \begin{center}
 <<fig=TRUE,echo=FALSE,width=10,height=6>>=
 <<rot1>>
