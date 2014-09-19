@@ -109,6 +109,7 @@ A typical differential analysis of Hi-C data is described below.
 For simplicity, assume that the the BAM files have already been processed into index files in \code{input}.
 Let \code{design} contain the design matrix for this experiment.
 Also assume that the boundaries of the relevant restriction fragments are present in \code{fragments}.
+The code itself is split across several steps: 
 
 <<echo=FALSE>>=
 input <- c("merged_flox_1.h5", "merged_flox_2.h5", "merged_ko_1.h5", "merged_ko_2.h5")
@@ -118,28 +119,33 @@ design <- model.matrix(~factor(c("flox", "flox", "ko", "ko")))
 
 % saveRDS(fragments, file="mm10-hindIII.rds")
 
-<<>>=
-require(diffHic)
-data <- squareCounts(input, width=1e6, fragments=fragments)
-require(edgeR)
-keep <- aveLogCPM(asDGEList(data)) > 0
-data <- data[keep,]
-y <- asDGEList(data)
-require(csaw)
-y$offset <- normalize(data, type="loess")
-y <- estimateDisp(y, design)
-fit <- glmQLFit(y, design, robust=TRUE)
-result <- glmQLFTest(fit)
-@
-
-There are several components of the pipeline that shall be discussed:
 \begin{enumerate}
 \item converting BAM files to index files
 \item counting read pairs into pairs of genomic bins
+<<>>=
+require(diffHic)
+data <- squareCounts(input, width=1e6, fragments=fragments)
+@
 \item filtering out uninteresting bin pairs
+<<>>=
+require(edgeR)
+keep <- aveLogCPM(asDGEList(data)) > 0
+data <- data[keep,]
+@
 \item normalizing counts between libraries
+<<>>=
+y <- asDGEList(data)
+y$offset <- normalize(data, type="loess")
+@
 \item modelling biological variability
+<<>>=
+y <- estimateDisp(y, design)
+fit <- glmQLFit(y, design, robust=TRUE)
+@
 \item testing for significant differences between groups
+<<>>=
+result <- glmQLFTest(fit)
+@
 \end{enumerate}
 In the various examples for this guide, data will be used from three studies. 
 The first dataset is smaller and examines the chromatin structure in K562 and GM06990 cell lines \citep{lieberman2009comprehensive}.
@@ -163,13 +169,13 @@ For example, the \textit{Hin}dIII enzyme cleaves at \texttt{AAGCTT} with a 4 bp 
 This yields a ligation signature of \texttt{AAGCTAGCTT} in chimeric reads.
 The ligation signature in each read is identified with cutadapt \citep{martin2011cutadapt}, and the read is split into two segments at the center of the signature.
 Each segment is then aligned using Bowtie2 \citep{langmead2012bowtie}.
-Mapping by read splitting can be performed with a custom Python script in \pkgname{}.
+This procedure can be performed with a custom Python script, below.
 
 <<results=hide>>=
 system.file("python", "presplit_map.py", package="diffHic", mustWork=TRUE)
 @
 
-Users are strongly recommended to synchronize mate pair information and to mark duplicate read pairs from the resulting BAM file.
+Users are strongly recommended to synchronize mate pair information and to mark duplicate read pairs in the resulting BAM file.
 This can be achieved using the various tools in the Picard software suite (\url{http://picard.sourceforge.net}).
 
 \section{Matching mapped reads to restriction fragments}
@@ -1181,7 +1187,7 @@ smoothScatter(margin.lr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
 % }
 % @
 
-\chapter{Assessing biological variability}
+\chapter{Modelling biological variability}
 
 \section{Overview}
 The magnitude of biological variability can be empirically determined from biological replicates, i.e., Hi-C libraries prepared from different biological samples.
@@ -1285,7 +1291,7 @@ More details on the statistical methods in \edgeR{} can be found, unsurprisingly
 Of course, \pkgname{} is compatible with any statistical framework that accepts a count matrix and a matrix of log-link GLM offsets.
 Advanced users may wish to use methods from other packages.
 This author prefers \edgeR{} as it works quite well for routine analyses of Hi-C data.
-He also has a chance of being cited when \edgeR{} is involved.
+He also has a chance of being cited when \edgeR{} is involved \citep{chen2014differential}.
 
 \chapter{Testing for significant interactions}
 
@@ -1454,9 +1460,11 @@ o2 <- order(final.2$PValue)
 write.table(final.2[o2,], file="results.2.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
-As an aside, it may be convenient to identify the smaller bin pair with the lowest $p$-value that is nested within each of the larger bin pairs.
-This means that high-resolution changes within a larger bin pair can be easily identified.
-However, users should always keep in mind that the FDR is computed with respect to the larger bin pairs.
+\subsection{Reporting nested bin pairs}
+Whenever nesting is involved, it may be convenient to identify the top-ranked (smaller) nested bin pair within each of the (larger) parent bin pairs.
+Here, the top-ranked bin pair is defined as the one with the smallest individual $p$-value.
+This means that any high-resolution changes nested within a parent bin pair can be easily identified.
+However, users should always keep in mind that the FDR is computed with respect to the parent bin pairs.
 
 <<>>=
 inside <- getBestTest(sdex, result.small$table)
@@ -1472,6 +1480,11 @@ head(nested)
 final.3 <- data.frame(final.2, nest=nested)
 write.table(final.3[o2,], file="results.3.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
+
+The above code only reports the top-ranked nested bin pair for each parent.
+This may not be sufficient when many internal changes are occurring.
+An alternative approach is to store the entirety of the \code{smaller.data} in a \R{} save file, along with \code{matched} and \code{data}.
+Any interesting nested changes can then be interactively identified for a given parent.
 
 \section{Visualization with plaid plots}
 Plaid plots can be used to visualize the distribution of read pairs in the interaction space \citep{lieberman2009comprehensive}. 
@@ -1524,6 +1537,7 @@ The actual bin pair occurs at the center of the plot and is marked by a rectangl
 <<plaid3>>
 @
 \end{center}
+\setkeys{Gin}{width=0.8\textwidth}
 
 The \code{cap} value controls the relative scale of the colours. 
 Any pixel with a count above \code{cap} will be set at the maximum colour intensity.
@@ -1580,6 +1594,7 @@ cap3 <- cap1*totals(data)[3]/totals(data)[1]
 <<plaid3b>>
 @
 \end{center}
+\setkeys{Gin}{width=0.8\textwidth}
 
 Alternatively, users may prefer to use \code{rotPlaid} to generate rotated plaid plots.
 These are more space-efficient and are easier to stack onto other genomic tracks, e.g., for ChIP-seq data.
@@ -1599,23 +1614,43 @@ rotPlaid(input[3], mm.frag, region=example, width=2e4,
 @
 
 <<eval=TRUE,echo=FALSE,label=rotset>>=
-example <- GRanges("chr2", IRanges(136001779, 138001392))
+chosen <- o2[2]
+example <- tx.2[chosen]
+end(example) <- end(ax.2[chosen])
+nest.mid.a <- (ax.3$start[chosen]+ax.3$end[chosen])/2
+nest.mid.t <- (tx.3$start[chosen]+tx.3$end[chosen])/2
+nest.mid <- (nest.mid.a + nest.mid.t)/2
+nest.gap <- nest.mid.a - nest.mid.t
+@
+
+<<eval=FALSE,echo=FALSE,label=enbox>>=
+points(nest.mid, nest.gap, cex=7) 
 @
 
 <<eval=FALSE>>=
 <<rotset>>
 <<rot1>>
+<<enbox>>
 <<rot2>>
+<<enbox>>
 @
 
+\setkeys{Gin}{width=0.9\textwidth}
 \begin{center}
 <<fig=TRUE,echo=FALSE,width=10,height=6>>=
 <<rot1>>
+<<enbox>>
 @
 <<fig=TRUE,echo=FALSE,width=10,height=6>>=
 <<rot2>>
+<<enbox>>
 @
 \end{center}
+\setkeys{Gin}{width=0.8\textwidth}
+
+The circle marks the area of the interaction space that corresponds to the top-ranked nested bin pair within the \code{chosen} larger bin pair.
+An increase in the interaction intensity is clearly observed in the KO condition.
+This sharp change would not be observed with larger bin pairs, where the final count would be dominated by other (non-differential) areas.
 
 \chapter{Epilogue}
 
