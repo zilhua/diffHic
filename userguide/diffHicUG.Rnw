@@ -1693,6 +1693,15 @@ This sharp change would not be observed with larger bin pairs, where the final c
 
 \chapter{Epilogue}
 
+\section{Data sources}
+All datasets are publicly available from the NCBI Gene Expression Omnibus (GEO).
+The \citeauthor{lieberman2009comprehensive} dataset was obtained using the GEO accession number GSE18199.
+The \citeauthor{sofueva2013cohesin} dataset was obtained using the GEO accession GSE49017.
+Finally, the \citeauthor{rickman2012oncogene} dataset was obtained with the accession GSE37752.
+All libraries were processed as described in Chapter~\ref{chap:prep}.
+For some datasets, multiple technical replicates are available for each library.
+These were merged together prior to read pair counting.
+
 \section{Session information}
 <<>>=
 sessionInfo()
