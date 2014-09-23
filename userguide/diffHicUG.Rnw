@@ -44,7 +44,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 4 September 2014}
+Last revised 20 September 2014}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -319,10 +319,16 @@ legend("topright", c("inward", "outward", "same"), col=c("darkgreen", "red", "bl
 \setkeys{Gin}{width=0.8\textwidth}
 
 It is possible that these spikes reflect some genuine aspect of chromatin organization.
-For example, the spike in the outward-facing read pairs may be the result of systematic looping in chromosomal packaging.
-Removal would then result in loss of power to detect these features.
+For example, the spike in the outward-facing read pairs may be the result of systematic outward looping in chromatin packaging.
+Removal of the spikes would preclude the detection of such features.
 Nonetheless, filtering is still recommended to prevent genuine interactions from being dominated by technical artifacts.
-Indeed, one would still expect a variety of strand orientations for non-random ligation events generated across all genuine interactions.
+Indeed, even if there are imbalances in the strand orientations for any one genuine interaction, these skews should balance out when read pairs from all interactions are considered (i.e., systematic preferences assumed to be absent).
+
+As an aside, the position of the spikes in the above plots can be used to estimate some fragment lengths.
+The $x$-coordinate of the outward-facing spike represents the length of the DNA fragments after restriction digestion.
+This is useful as it provides a lower bound on the spatial resolution of any given Hi-C experiment.
+The position of the inward-facing spike represents the length of the fragments after sonication, i.e., those actually used in sequencing.
+This should be lower than the size selection thresholds used in library preparation.
 
 \section{Merging technical replicates}
 Hi-C experiments often involve deep sequencing as read pairs are sparsely distributed across the possible interactions.
