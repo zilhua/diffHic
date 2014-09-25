@@ -1,4 +1,4 @@
-squareCounts <- function(files, fragments, width=50000, restrict=NULL, filter=1L)
+squareCounts <- function(files, param, width=50000, filter=1L)
 # This function collates counts across multiple experiments to get the full set of results. It takes 
 # a list of lists of lists of integer matrices (i.e. a list of the outputs of convertToInteractions) and
 # then compiles the counts into a list object for output. 
@@ -11,31 +11,36 @@ squareCounts <- function(files, fragments, width=50000, restrict=NULL, filter=1L
 	} else if (width < 0) { 
 		stop("width must be a non-negative integer")
 	} 
-	if (!is.integer(width)) { width<-as.integer(width) }
-	if (!is.integer(filter)) { filter<-as.integer(filter) }
+	width<-as.integer(width) 
+	filter<-as.integer(filter) 
+	fragments <- param$fragments
 	new.pts <- .getBinID(fragments, width)
 	chrs <- seqlevels(fragments)
 	
+	# Setting up other local references.
+	restrict <- param$restrict
+	discard <- .splitDiscards(param$discard)
+
 	# Output vectors.
 	full.sizes <- integer(nlibs)
-	out.counts <- list()
-	out.a <- out.t <- list()
+	out.counts <- list(matrix(0L, 0, nlibs))
+	out.a <- out.t <- list(integer(0))
 	idex <- 1L
 
 	# Running through each pair of chromosomes.
 	overall <- .loadIndices(files)
     for (anchor in names(overall)) {
 		stopifnot(anchor %in% chrs)
-	    if (!is.null(restrict) && !(anchor %in% restrict)) { next }
+	    if (length(restrict) && !(anchor %in% restrict)) { next }
         current <- overall[[anchor]]
 
 		for (target in names(current)) {
 			stopifnot(target %in% chrs)
-	        if (!is.null(restrict) && !(target %in% restrict)) { next }
+	        if (length(restrict) && !(target %in% restrict)) { next }
 
 			# Extracting counts and aggregating them in C++ to obtain count combinations for each bin pair.
-			pairs <- .baseHiCParser(current[[target]], files, anchor, target)
-			for (lib in 1:length(pairs)) { full.sizes[lib] <- full.sizes[lib] + sum(pairs[[lib]]$count) }
+			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard)
+			for (lib in 1:length(pairs)) { full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]]) }
             out <- .Call(cxx_count_patch, pairs, new.pts$id, filter)
 			if (is.character(out)) { stop(out) }
 			if (!length(out[[1]])) { next }
@@ -76,33 +81,33 @@ squareCounts <- function(files, fragments, width=50000, restrict=NULL, filter=1L
 
 ####################################################################################################
 
-.getBinID <- function(frags, width) 
+.getBinID <- function(fragments, width) 
 # Determines which bin each restriction fragment is in. Also records the rounded
 # start and stop site for each bin. Returns a set of bin ids for each restriction
 # fragment on each chromosome, as well as the coordinates of each bin.
 {
 	width<-as.integer(width)
-	out.ids<-integer(length(frags))
+	out.ids<-integer(length(fragments))
 	out.ranges<-list()
 	last<-0L
-	frag.data <- .checkFragments(frags)
+	frag.data <- .checkFragments(fragments)
 	nfrags <- list() 
 	
 	for (x in 1:length(frag.data$chr)) {
 		curindex <- frag.data$start[x]:frag.data$end[x]
-		curf <- frags[curindex]
+		curf <- fragments[curindex]
 		mids <- (start(curf)+end(curf))/2
 		bin.id <- as.integer((mids-0.1)/width)+1L 
 		# The '-0.1' in the preceding step reduces 'mids' that are exact multiples 
 		# of 'width', so each bin is from (n*width, (n+1)*width] for integer 'n'.
 
-		stuff <- rle(bin.id)
-		ns <- length(stuff$value)
-		stuff$values <- 1:ns
-		nfrags[[x]] <- stuff$length
-		out.ids[curindex] <- inverse.rle(stuff)+last
+		processed <- rle(bin.id)
+		ns <- length(processed$value)
+		processed$values <- 1:ns
+		nfrags[[x]] <- processed$length
+		out.ids[curindex] <- inverse.rle(processed)+last
 		
-		endx <- cumsum(stuff$length)
+		endx <- cumsum(processed$length)
 		startx <- rep(1L, ns)
 		if (ns>=2L) { startx[-1] <- endx[-ns]+1L }
 		out.ranges[[x]] <- GRanges(frag.data$chr[x], IRanges(start(curf[startx]), end(curf[endx])))
@@ -111,28 +116,66 @@ squareCounts <- function(files, fragments, width=50000, restrict=NULL, filter=1L
 
 	# Wrapping up.
 	suppressWarnings(out.ranges <- do.call(c, out.ranges))
-	seqlevels(out.ranges) <- seqlevels(frags)
-	seqlengths(out.ranges) <- seqlengths(frags)
+	seqlevels(out.ranges) <- seqlevels(fragments)
+	seqlengths(out.ranges) <- seqlengths(fragments)
 	out.ranges$nfrags <- unlist(nfrags)
 	return(list(id=out.ids, region=out.ranges))
 }
 
 ####################################################################################################
 
-.baseHiCParser <- function(ok, files, anchor, target)
+.baseHiCParser <- function(ok, files, anchor, target, discard)
 # A courtesy function, to assist with loading counts in this function and others.
 {
 	overall<-list()
+	adisc <- discard[[anchor]]
+	tdisc <- discard[[target]]
+
 	for (x in 1:length(ok)) {
 		if (!ok[x]) { 
-			out<-data.frame(anchor.id=integer(0), target.id=integer(0), count=integer(0))
+			overall[[x]] <- data.frame(anchor.id=integer(0), target.id=integer(0))
 		} else {
 			out <- .getPairs(files[x], anchor, target)
-			check <- .Call(cxx_check_input, out$anchor.id, out$target.id, out$count)
+	
+			# Checking fidelity, figuring out which ones to throw out.
+			check <- .Call(cxx_check_input, out$anchor.id, out$target.id)
 			if (is.character(check)) { stop(check) }
+
+			# Overlapping with those in the discard intervals.
+			if (!is.null(adisc) || !is.null(tdisc)) {
+				a.hits <- t.hits <- FALSE
+ 			    if (!is.null(adisc)) {
+					a.hits <- overlapsAny(IRanges(out$anchor.pos, out$anchor.pos+abs(out$anchor.len)-1L), adisc, type="within")
+				}
+				if (!is.null(tdisc)) { 
+					t.hits <- overlapsAny(IRanges(out$target.pos, out$target.pos+abs(out$target.len)-1L), tdisc, type="within")
+				}
+				out <- out[!a.hits & !t.hits,,drop=FALSE]
+			}
+	
+			overall[[x]] <- out[,c("anchor.id", "target.id")]
 		}
-		overall[[x]]<-out
 	}
 	return(overall)
 }
 
+.splitDiscards <- function(discard) 
+# Splits the discard GRanges into a list of constituent chromosomes,
+# along with IRanges for everything. This allows easy access tot he
+{
+	if (is.null(discard) || length(discard)==0) { return(NULL) }
+	discard <- sort(discard)
+	all.chrs <- as.character(runValue(seqnames(discard)))
+	all.len <- runLength(seqnames(discard))
+	chr.ends <- cumsum(all.len)
+	chr.starts <- c(1L, chr.ends[-length(chr.ends)]+1L)
+
+	output <- list()
+	for (i in 1:length(all.chrs)) {
+		chr <- all.chrs[i]
+		ix <- chr.starts[i]:chr.ends[i]
+		output[[chr]] <- reduce(ranges(discard[ix]))
+	}
+
+	return(output)
+}
