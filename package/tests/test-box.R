@@ -20,7 +20,7 @@ comp <- function(reference, widths) {
 			anchors=all.a, targets=all.t, region=bindata$region)
 	}	
 
-	output<- do.call(boxPairs, c(collected, fragments=cutted, reference=reference))
+	output<- do.call(boxPairs, c(collected, param=pairParam(fragments=cutted), reference=reference))
 	stopifnot(length(output$indices)==length(widths))
 	for (x in 1:length(output$indices)) { 
 		curdex <- output$indices[[x]]
