@@ -76,7 +76,7 @@ augmentsim <- function(infile, frags, rlen=10) {
 		everything[[i]] <- collected
 	}
 
-	savePairs(do.call(rbind, everything), infile, frags)
+	savePairs(do.call(rbind, everything), infile, pairParam(frags))
 }
 
 # Discard data.
