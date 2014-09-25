@@ -10,15 +10,14 @@ suppressPackageStartupMessages(require(diffHic))
 dir.create("temp-marg")
 dir1<-"temp-marg/1.h5"
 dir2<-"temp-marg/2.h5"
-dir.create(dir1)
-dir.create(dir2)
 
 comp<-function(n1, n2, dist, cuts, restrict=NULL) {
 	simgen(dir1, n1, chromos)
 	simgen(dir2, n2, chromos)
-	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=1L, restrict=restrict)
-	frags<-marginCounts(c(dir1, dir2), fragments=cuts, width=dist, restrict=restrict)
-
+	param <- pairParam(fragments=cuts, restrict=restrict)
+	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=1L)
+	frags<-marginCounts(c(dir1, dir2), param=param, width=dist)
+  
 	n <- length(regions(y))
 	ref <- matrix(0L, n, 2)
 	for (x in 1:nrow(y)) {

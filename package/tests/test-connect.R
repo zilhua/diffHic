@@ -22,11 +22,10 @@ simranges <- function(cuts, nranges, min.size=1000, max.size=10000)
 	return(ranges)	
 }
 
-reconstruct <- function(pairs, counts) {
-	if (is.null(pairs) || nrow(pairs)<=1L) { return(list(pairs=pairs, counts=counts)) }
+reconstruct <- function(pairs, counts=rep(1L, nrow(pairs))) {
 	counts <- as.matrix(counts)
 	o <- order(pairs[,1], pairs[,2])
-	pairs <- pairs[o,]
+	pairs <- pairs[o,,drop=FALSE]
 	for (i in 1:ncol(counts)) { counts[,i] <- cumsum(counts[o,i]) }
 	last.diff <- c(diff(pairs[,1])!=0L | diff(pairs[,2])!=0L, TRUE)
 	my.count <- apply(counts, 2, FUN=function(x) { diff(c(0L, x[last.diff])) })
@@ -60,11 +59,10 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 				if (!any(basename(x$group)==cur.k & x$name==cur.l)) { next }
 				counts <- h5read(dirs[d], file.path(cur.k, cur.l))
 				for (xx in 1:ncol(counts)) { attributes(counts[,xx]) <- NULL }
-				totals[d] <- totals[d] + sum(counts$count)
+				totals[d] <- totals[d] + nrow(counts)
 
 				# Need in both.
 				collected <- list()
-				collected.counts <- list()
 				matched.a <- match(counts$anchor.id, cur.rle$values)
 				matched.t <- match(counts$target.id, cur.rle$values)
 				in.both <- !is.na(matched.a) & !is.na(matched.t)
@@ -79,17 +77,17 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 					flipped <- additionals[,2] >= additionals[,1]
 					additionals[flipped,] <- additionals[flipped,2:1]
 
-					additionals <- reconstruct(additionals, 1:nrow(additionals))$pairs # Eliminating redundant elements for each pair.
-					idex <- length(collected) + 1L
-					collected[[idex]] <- additionals
-					collected.counts[[idex]] <- rep(counts$count[j], nrow(additionals))
+					additionals <- reconstruct(additionals)$pairs # Eliminating redundant elements for each pair.
+					if (nrow(additionals)) { 
+						idex <- length(collected) + 1L
+						collected[[idex]] <- additionals
+					}
 				}
 			
 				# Assembling summary counts for this chromosome combination in this library.
+				if (!length(collected)) { next }
 				collected <- do.call(rbind, collected)
-				collected.counts <- do.call(c, collected.counts)
-				if (is.null(collected.counts)) { next }
-				out <- reconstruct(collected, collected.counts)
+				out <- reconstruct(collected)
 				idex <- length(allpairs) + 1L
 				allpairs[[idex]] <- out$pairs
 				allcounts[[idex]] <- out$counts
@@ -141,8 +139,13 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 	rank <- integer(length(ranges))
 	rank[order(matched, start(ranges), end(ranges))] <- 1:length(ranges)
 	left.is.anchor <- rank[left] > rank[right] 
-	ax <- ifelse(left.is.anchor, left, right)
-	tx <- ifelse(left.is.anchor, right, left)
+
+	if (length(left.is.anchor)) { 
+		ax <- ifelse(left.is.anchor, left, right)
+		tx <- ifelse(left.is.anchor, right, left)
+	} else {
+		ax <- tx <- integer(0)
+	}
 	
 	# Cleaning up the rest.
 	reo <- order(ax, tx)
@@ -165,15 +168,16 @@ dir2<-"temp-con/2.h5"
 samecomp <- function(nreads, cuts, ranges, filter=0L, type="any", restrict=NULL) {
 	simgen(dir1, nreads, chromos)
 	simgen(dir2, nreads, chromos)
-	
-	out <- connectCounts(c(dir1, dir2), fragments=cuts, regions=ranges, filter=filter, type=type, restrict=restrict)
+
+	param <- pairParam(cuts, restrict=restrict)
+	out <- connectCounts(c(dir1, dir2), regions=ranges, filter=filter, type=type, param=param) 
 	ref <- refline(c(dir1, dir2), cuts=cuts, ranges=ranges, filter=filter, type=type, restrict=restrict)
 	if (!identical(ref$pairs$anchor.id, out@anchor.id)) { stop("mismatch in anchor identities") }
 	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
 	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
 	if (!identical(ref$totals, totals(out)) ||
-		!identical(ref$totals, totalCounts(c(dir1, dir2), fragments=cuts, restrict=restrict))) { 
+		!identical(ref$totals, totalCounts(c(dir1, dir2), param=param))) {
 		stop("mismatch in total output") }	
 
 	return(cbind(head(ref$pairs), head(ref$counts)))
@@ -191,15 +195,15 @@ samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10))
 current.cuts <- simcuts(chromos)
 samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1))
 samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2))
-samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=5L)
-samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=5L)
+samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=2L)
+samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=2L)
 samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), type="within")
 
 current.cuts <- simcuts(chromos)
 samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1))
-samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), filter=5L)
-samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=5L)
-samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=5L)
+samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), filter=2L)
+samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=2L)
+samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=2L)
 samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), type="within")
 
 current.cuts <- simcuts(chromos)

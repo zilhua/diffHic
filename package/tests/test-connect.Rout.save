@@ -41,11 +41,10 @@ Type 'q()' to quit R.
 + 	return(ranges)	
 + }
 > 
-> reconstruct <- function(pairs, counts) {
-+ 	if (is.null(pairs) || nrow(pairs)<=1L) { return(list(pairs=pairs, counts=counts)) }
+> reconstruct <- function(pairs, counts=rep(1L, nrow(pairs))) {
 + 	counts <- as.matrix(counts)
 + 	o <- order(pairs[,1], pairs[,2])
-+ 	pairs <- pairs[o,]
++ 	pairs <- pairs[o,,drop=FALSE]
 + 	for (i in 1:ncol(counts)) { counts[,i] <- cumsum(counts[o,i]) }
 + 	last.diff <- c(diff(pairs[,1])!=0L | diff(pairs[,2])!=0L, TRUE)
 + 	my.count <- apply(counts, 2, FUN=function(x) { diff(c(0L, x[last.diff])) })
@@ -79,11 +78,10 @@ Type 'q()' to quit R.
 + 				if (!any(basename(x$group)==cur.k & x$name==cur.l)) { next }
 + 				counts <- h5read(dirs[d], file.path(cur.k, cur.l))
 + 				for (xx in 1:ncol(counts)) { attributes(counts[,xx]) <- NULL }
-+ 				totals[d] <- totals[d] + sum(counts$count)
++ 				totals[d] <- totals[d] + nrow(counts)
 + 
 + 				# Need in both.
 + 				collected <- list()
-+ 				collected.counts <- list()
 + 				matched.a <- match(counts$anchor.id, cur.rle$values)
 + 				matched.t <- match(counts$target.id, cur.rle$values)
 + 				in.both <- !is.na(matched.a) & !is.na(matched.t)
@@ -98,17 +96,17 @@ Type 'q()' to quit R.
 + 					flipped <- additionals[,2] >= additionals[,1]
 + 					additionals[flipped,] <- additionals[flipped,2:1]
 + 
-+ 					additionals <- reconstruct(additionals, 1:nrow(additionals))$pairs # Eliminating redundant elements for each pair.
-+ 					idex <- length(collected) + 1L
-+ 					collected[[idex]] <- additionals
-+ 					collected.counts[[idex]] <- rep(counts$count[j], nrow(additionals))
++ 					additionals <- reconstruct(additionals)$pairs # Eliminating redundant elements for each pair.
++ 					if (nrow(additionals)) { 
++ 						idex <- length(collected) + 1L
++ 						collected[[idex]] <- additionals
++ 					}
 + 				}
 + 			
 + 				# Assembling summary counts for this chromosome combination in this library.
++ 				if (!length(collected)) { next }
 + 				collected <- do.call(rbind, collected)
-+ 				collected.counts <- do.call(c, collected.counts)
-+ 				if (is.null(collected.counts)) { next }
-+ 				out <- reconstruct(collected, collected.counts)
++ 				out <- reconstruct(collected)
 + 				idex <- length(allpairs) + 1L
 + 				allpairs[[idex]] <- out$pairs
 + 				allcounts[[idex]] <- out$counts
@@ -160,8 +158,13 @@ Type 'q()' to quit R.
 + 	rank <- integer(length(ranges))
 + 	rank[order(matched, start(ranges), end(ranges))] <- 1:length(ranges)
 + 	left.is.anchor <- rank[left] > rank[right] 
-+ 	ax <- ifelse(left.is.anchor, left, right)
-+ 	tx <- ifelse(left.is.anchor, right, left)
++ 
++ 	if (length(left.is.anchor)) { 
++ 		ax <- ifelse(left.is.anchor, left, right)
++ 		tx <- ifelse(left.is.anchor, right, left)
++ 	} else {
++ 		ax <- tx <- integer(0)
++ 	}
 + 	
 + 	# Cleaning up the rest.
 + 	reo <- order(ax, tx)
@@ -184,15 +187,16 @@ Type 'q()' to quit R.
 > samecomp <- function(nreads, cuts, ranges, filter=0L, type="any", restrict=NULL) {
 + 	simgen(dir1, nreads, chromos)
 + 	simgen(dir2, nreads, chromos)
-+ 	
-+ 	out <- connectCounts(c(dir1, dir2), fragments=cuts, regions=ranges, filter=filter, type=type, restrict=restrict)
++ 
++ 	param <- pairParam(cuts, restrict=restrict)
++ 	out <- connectCounts(c(dir1, dir2), regions=ranges, filter=filter, type=type, param=param) 
 + 	ref <- refline(c(dir1, dir2), cuts=cuts, ranges=ranges, filter=filter, type=type, restrict=restrict)
 + 	if (!identical(ref$pairs$anchor.id, out@anchor.id)) { stop("mismatch in anchor identities") }
 + 	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
 + 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
 + 	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
 + 	if (!identical(ref$totals, totals(out)) ||
-+ 		!identical(ref$totals, totalCounts(c(dir1, dir2), fragments=cuts, restrict=restrict))) { 
++ 		!identical(ref$totals, totalCounts(c(dir1, dir2), param=param))) {
 + 		stop("mismatch in total output") }	
 + 
 + 	return(cbind(head(ref$pairs), head(ref$counts)))
@@ -203,260 +207,284 @@ Type 'q()' to quit R.
 > # Vanilla comparisons involving the same ranges.
 > current.cuts <- simcuts(chromos)
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1))
-[1] anchor.id target.id 1         2        
-<0 rows> (or 0-length row.names)
+  anchor.id target.id 1 2
+1         1         1 0 1
+2         2         2 2 1
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2))
-[1] anchor.id target.id 1         2        
-<0 rows> (or 0-length row.names)
+  anchor.id target.id 1 2
+1         2         1 0 1
+2         3         1 1 0
+3         3         3 0 2
+4         4         3 2 1
+5         4         4 0 5
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5))
   anchor.id target.id 1 2
-1         6         2 0 6
-2         6         3 7 0
-3         7         2 0 7
-4         7         4 7 0
-5         7         6 5 0
-6         8         3 4 0
+1         3         1 1 0
+2         3         2 0 1
+3         3         3 0 1
+4         4         2 5 1
+5         4         3 3 2
+6         4         4 1 1
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10))
   anchor.id target.id 1 2
-1         5         1 0 3
-2         7         1 0 1
-3         7         2 0 5
-4         7         4 4 0
-5         7         5 8 0
-6         7         6 1 0
+1         2         1 0 1
+2         2         2 0 1
+3         3         2 1 0
+4         4         2 3 0
+5         4         3 0 1
+6         4         4 0 1
 > 
 > current.cuts <- simcuts(chromos)
 > samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1))
   anchor.id target.id 1 2
-1         2         1 0 3
-2         2         2 0 6
+1         1         1 1 1
+2         2         1 2 3
+3         2         2 1 1
 > samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2))
   anchor.id target.id 1 2
-1         2         1 0 3
-2         3         3 0 8
-3         4         1 3 0
-> samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=5L)
+1         1         1 1 1
+2         2         1 1 2
+3         2         2 2 1
+4         3         1 2 1
+5         3         2 0 2
+6         4         2 1 1
+> samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=2L)
   anchor.id target.id 1 2
-1         3         2 9 0
-2         6         1 0 9
-3         9         2 6 0
-4         9         4 0 8
-5         9         5 5 0
-6         9         7 0 6
-> samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=5L)
+1         4         2 2 2
+2         4         3 1 2
+3         5         1 0 2
+4         5         2 1 1
+5         6         1 0 3
+6         6         4 3 1
+> samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=2L)
   anchor.id target.id 1 2
-1         4         1 9 0
-2         4         3 0 5
-3         5         5 9 0
-4         6         1 7 6
-5         6         2 0 6
-6         7         3 6 0
+1         1         1 1 1
+2         2         1 1 1
+3         2         2 1 1
+4         3         1 1 3
+5         3         2 1 3
+6         3         3 0 2
 > samecomp(200, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), type="within")
   anchor.id target.id 1 2
-1        16        16 0 7
+1         2         1 1 1
+2         3         1 1 0
+3         3         2 1 2
+4         4         1 1 1
+5         4         3 1 0
+6         5         1 1 0
 > 
 > current.cuts <- simcuts(chromos)
 > samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1))
   anchor.id target.id 1 2
+1         2         1 2 1
+> samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), filter=2L)
+  anchor.id target.id 1 2
 1         1         1 2 0
-> samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), filter=5L)
-  anchor.id target.id  1 2
-1         1         1 12 0
-2         3         1  0 7
-3         4         1  0 7
-4         4         2  0 8
-5         4         4  5 0
-> samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=5L)
+2         2         1 1 2
+3         2         2 2 0
+4         4         1 2 3
+5         4         2 2 1
+6         4         3 0 2
+> samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=2L)
   anchor.id target.id 1 2
-1         3         1 1 9
-2         3         3 8 0
-3         4         3 1 8
-4         5         2 0 9
-5         5         4 8 9
-6         6         4 3 6
-> samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=5L)
+1         1         1 3 2
+2         2         1 1 2
+3         2         2 1 1
+4         3         1 2 1
+5         3         2 2 4
+6         3         3 2 0
+> samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=2L)
   anchor.id target.id 1 2
-1         3         1 9 3
-2         3         2 9 3
-3         4         1 9 3
-4         4         2 9 3
-5         5         1 0 9
-6         5         3 0 9
+1         2         1 0 3
+2         2         2 0 6
+3         3         1 0 3
+4         3         2 1 8
+5         3         3 1 8
+6         4         1 1 3
 > samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), type="within")
   anchor.id target.id 1 2
-1        17        12 6 0
+1         1         1 3 1
+2         3         1 1 2
+3         3         3 0 1
+4         4         1 3 3
+5         4         2 1 0
+6         4         3 0 1
 > 
 > current.cuts <- simcuts(chromos)
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1))
-  anchor.id target.id 1  2
-1         2         2 4 11
+  anchor.id target.id  1  2
+1         1         1  3  0
+2         2         1  6  1
+3         2         2 12 14
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), type="within")
   anchor.id target.id 1 2
-1         4         4 4 0
+1         1         1 1 2
+2         2         1 4 2
+3         2         2 4 4
+4         4         1 3 2
+5         4         2 0 2
+6         4         4 1 0
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), filter=20L)
   anchor.id target.id  1  2
-1         3         1 13  7
-2         5         1 25  0
-3         9         8  8 16
-4        10         6 11 11
-5        10         7 11 11
+1         5         4  9 12
+2         7         6 16 13
+3         8         7 14 13
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), filter=5L)
-  anchor.id target.id 1  2
-1         3         2 4  6
-2         3         3 5  1
-3         4         1 4  6
-4         5         1 6 12
-5         5         3 8  0
-6         5         4 2  5
+  anchor.id target.id  1  2
+1         1         1 10  8
+2         2         1  8 10
+3         2         2  8  1
+4         3         1 12 11
+5         3         2  8 12
+6         3         3  3  8
 > 
 > # Altering the scope of the ranges.
 > current.cuts <- simcuts(chromos, min=50, max=100, overlap=4)
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300))
   anchor.id target.id 1 2
-1         5         2 0 5
-2         5         3 0 5
-3         5         4 0 5
-4         6         2 0 5
-5         6         3 0 5
-6         6         4 0 5
+1         4         1 2 0
+2         4         2 1 0
+3         4         3 1 0
+4         5         4 1 0
+5         6         4 1 0
+6         7         4 1 0
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), type="within")
-  anchor.id target.id  1 2
-1         4         2  5 0
-2         5         2  5 0
-3         6         2  5 0
-4         7         2  5 0
-5         8         2 14 0
-6         8         4  0 9
-> samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), filter=5)
   anchor.id target.id 1 2
-1         3         1 0 9
-2         3         2 0 9
-3         4         1 0 9
-4         4         2 0 9
-5         4         4 0 9
-6         5         1 0 5
+1         2         1 0 1
+2         2         2 0 1
+3         3         2 0 1
+4         8         2 1 0
+5        13         6 0 1
+6        13        13 1 0
+> samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), filter=5)
+[1] anchor.id target.id 1         2        
+<0 rows> (or 0-length row.names)
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=100, min=100, max=300))
   anchor.id target.id 1 2
-1         1         1 0 2
-2         2         1 0 3
-3         2         2 0 8
-4         3         2 0 8
-5         4         2 0 8
-6         5         2 0 8
+1        11         6 1 0
+2        11         7 1 0
+3        11         8 1 0
+4        11         9 1 0
+5        11        10 1 0
+6        11        11 1 0
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=200, min=100, max=300))
   anchor.id target.id 1 2
-1        13         1 1 0
-2        13         2 1 0
-3        14         1 1 0
-4        14         2 1 0
-5        15         1 1 0
-6        15         2 1 0
+1         7         1 0 1
+2         7         2 0 1
+3         8         1 0 1
+4         8         2 0 1
+5         9         1 0 1
+6         9         2 0 1
 > 
 > current.cuts <- simcuts(chromos, min=50, max=100, overlap=2)
 > samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300))
   anchor.id target.id 1 2
-1         1         1 1 0
-2         2         1 1 0
-3         2         2 1 3
-4         3         2 1 0
-5         4         1 1 7
-6         4         2 2 7
+1         2         1 0 2
+2         3         1 1 0
+3         3         3 1 1
+4         4         1 2 1
+5         4         2 4 3
+6         4         3 4 2
 > samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), type="within")
   anchor.id target.id 1 2
-1         2         2 9 0
-2         3         2 9 0
-3         3         3 9 0
-4         4         2 0 4
-5         4         3 0 4
-6         7         1 0 2
+1         3         1 1 0
+2         3         2 1 0
+3         3         3 1 1
+4         5         1 1 1
+5         5         2 1 0
+6         5         3 2 1
 > samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), filter=5)
   anchor.id target.id 1 2
-1         2         1 9 9
-2         2         2 7 1
-3         3         1 9 9
-4         3         2 7 1
-5         3         3 7 1
-6         4         1 9 9
+1         5         2 4 1
+2         7         2 2 3
+3         8         2 2 3
+4        11        10 4 2
+5        11        11 5 0
+6        12        10 4 2
 > samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=100, min=100, max=300))
-  anchor.id target.id  1 2
-1         3         1 10 0
-2         3         2 10 0
-3         3         3 10 0
-4         4         1  5 0
-5         4         2  5 0
-6         4         3 10 0
+  anchor.id target.id 1 2
+1         1         1 1 0
+2         2         1 2 0
+3         2         2 1 0
+4         3         1 2 0
+5         3         2 1 0
+6         3         3 1 0
 > samecomp(500, cuts=current.cuts, ranges=simranges(current.cuts, nranges=200, min=100, max=300))
-  anchor.id target.id  1 2
-1         1         1  3 0
-2         2         1 18 0
-3         2         2 16 7
-4         3         1  7 0
-5         3         2 16 7
-6         3         3  0 7
+  anchor.id target.id 1 2
+1         1         1 1 0
+2         2         1 1 0
+3         2         2 1 0
+4         3         1 1 0
+5         3         2 1 0
+6         3         3 1 0
 > 	
 > current.cuts <- simcuts(chromos, min=50, max=100)
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300))
-  anchor.id target.id 1  2
-1         1         1 3  0
-2         2         1 9 18
-3         2         2 0  4
-4         3         1 9 20
-5         3         2 0  4
-6         3         3 0  4
+  anchor.id target.id 1 2
+1         1         1 2 2
+2         2         1 1 2
+3         2         2 1 2
+4         3         1 4 2
+5         3         2 2 3
+6         3         3 3 4
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), type="within")
-  anchor.id target.id 1  2
-1         4         3 8  0
-2         5         3 8  0
-3         6         1 0 15
-4         6         2 0  9
-5         6         3 0  4
-6         7         1 6  0
+  anchor.id target.id 1 2
+1         2         1 1 2
+2         3         1 1 0
+3         4         1 3 1
+4         5         1 3 1
+5         6         1 3 1
+6         7         1 2 0
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=50, min=100, max=300), filter=5)
-  anchor.id target.id  1  2
-1         1         1 26 10
-2         2         1 26  5
-3         2         2 11  2
-4         3         1 31 20
-5         3         2 18  7
-6         3         3  4  5
+  anchor.id target.id 1 2
+1         4         2 3 3
+2         4         3 3 3
+3         5         2 3 3
+4         5         3 3 3
+5         6         1 4 1
+6         6         2 4 3
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=100, min=100, max=300))
-  anchor.id target.id  1  2
-1         2         1  9 11
-2         2         2  0 11
-3         3         1 33 34
-4         3         2 32 22
-5         3         3  9 13
-6         4         1 33 34
+  anchor.id target.id 1 2
+1         1         1 7 5
+2         2         1 7 5
+3         2         2 3 0
+4         3         1 4 2
+5         3         2 4 1
+6         4         1 6 3
 > samecomp(1000, cuts=current.cuts, ranges=simranges(current.cuts, nranges=200, min=100, max=300))
-  anchor.id target.id  1 2
-1         1         1 11 2
-2         2         1 11 1
-3         2         2 10 1
-4         3         1 11 2
-5         3         2 11 1
-6         3         3 11 2
+  anchor.id target.id 1 2
+1         1         1 4 2
+2         2         1 4 2
+3         2         2 3 1
+4         3         1 4 2
+5         3         2 3 1
+6         3         3 2 0
 > 
 > # Testing some restriction.	
 > current.cuts <- simcuts(chromos)
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1), restrict="chrA")
-[1] anchor.id target.id 1         2        
-<0 rows> (or 0-length row.names)
+  anchor.id target.id 1 2
+1         1         1 0 1
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), restrict="chrA")
   anchor.id target.id 1 2
-1         1         1 7 0
-2         2         1 4 0
+1         1         1 3 1
+2         2         1 1 0
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), restrict="chrA")
   anchor.id target.id 1 2
-1         4         1 3 0
-2         4         4 0 7
+1         2         1 1 0
+2         3         1 1 0
+3         4         1 1 1
+4         4         2 1 0
+5         5         1 2 1
+6         5         3 0 1
 > samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), restrict="chrA")
   anchor.id target.id 1 2
-1         4         1 0 1
-2         4         2 0 9
-3         4         3 0 9
-4         6         1 0 6
-5         6         4 6 0
-6         7         7 4 0
+1         1         1 0 1
+2         2         1 0 2
+3         2         2 0 1
+4         3         1 1 4
+5         3         2 1 2
+6         3         3 2 0
 > 
 > ###########################################################################################
 > # Cleaning up.
@@ -468,4 +496,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 55.783   0.350  56.325 
+ 55.073   0.264  55.453 

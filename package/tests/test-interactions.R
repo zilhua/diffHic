@@ -1,7 +1,6 @@
 ###################################################################################################
 # This tests the interaction counting capabilities of, well, the interaction counter. 
 
-set.seed(1001)
 Sys.setlocale(category="LC_COLLATE",locale="C")
 chromos<-c(chrA=51, chrB=31)
 source("simcounts.R")
@@ -66,13 +65,12 @@ finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL) {
 				for (i in 1:nrow(x[[g]])) {
 					a<-x[[g]][i,1]-anti.a
 					t<-x[[g]][i,2]-anti.t
-					m<-x[[g]][i,3]
 					if (g==1) { 
-						mat1[a,t]<-mat1[a,t]+m 
-						totals[1]<-totals[1]+m
+						mat1[a,t]<-mat1[a,t]+1L
+						totals[1]<-totals[1]+1L
 					} else { 
-						mat2[a,t]<-mat2[a,t]+m 
-						totals[2]<-totals[2]+m
+						mat2[a,t]<-mat2[a,t]+1L 
+						totals[2]<-totals[2]+1L
 					}
 				}
 			}
@@ -146,7 +144,8 @@ dir2<-"temp-inter/2.h5"
 comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL) {
 	simgen(dir1, npairs1, chromos)
 	simgen(dir2, npairs2, chromos)
-	y<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, filter=filter, restrict=restrict)
+	param <- pairParam(fragments=cuts, restrict=restrict)
+	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=filter)
 
 	ar <- anchors(y)
 	tr <- targets(y)
@@ -163,94 +162,88 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL) {
 
 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict)
 	if (!identical(totals(y), ref$total) || 
-		!identical(totals(y), totalCounts(c(dir1, dir2), fragments=cuts, restrict=restrict))) { 
+			!identical(totals(y), totalCounts(c(dir1, dir2), param=param))) {
 		stop("mismatches in library sizes") 
 	}
 	if (!identical(overall, ref$table)) { stop("mismatches in counts or region coordinates") }
 	if (filter<=1L && !identical(as.integer(colSums(counts(y))+0.5), totals(y))) { 
 		stop("sum of counts from binning should equal totals without filtering") }
 
-#	# Checking the fidelity of the filter.
-#	unbridled<-squareCounts(c(dir1, dir2), fragments=cuts, width=dist, self.circles=self, filter=0)
-#	keep<-rowSums(unbridled$counts)>=filter
-#	if (!identical(y$counts, unbridled$counts[keep,])) { stop("mismatches in counts after filtering") }
-#	modded<-unbridled$pairs[keep,]
-#	rownames(modded)<-NULL
-#	if (!identical(y$pairs, modded)) { stop("mismatches in pair IDs after filtering") }
 	return(head(overall))
 }
 
 ###################################################################################################
 # Checking a vanilla count.
 
-comp(10, 20, dist=10000, cuts=simcuts(chromos))
-comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
-comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=2))
-comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=5)
-comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=20)
-comp(10, 20, dist=5000, cuts=simcuts(chromos))
-comp(10, 20, dist=5000, cuts=simcuts(chromos, overlap=2))
-comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=5)
-comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=20)
-comp(10, 20, dist=1000, cuts=simcuts(chromos))
-comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=5)
-comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=20)
+set.seed(1001)
+comp(20, 20, dist=10000, cuts=simcuts(chromos))
+comp(20, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(20, 20, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(20, 20, dist=10000, cuts=simcuts(chromos), filter=2)
+comp(20, 20, dist=10000, cuts=simcuts(chromos), filter=5)
+comp(20, 20, dist=5000, cuts=simcuts(chromos))
+comp(20, 20, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(20, 20, dist=5000, cuts=simcuts(chromos), filter=2)
+comp(20, 20, dist=5000, cuts=simcuts(chromos), filter=5)
+comp(20, 20, dist=1000, cuts=simcuts(chromos))
+comp(20, 20, dist=1000, cuts=simcuts(chromos), filter=2)
+comp(20, 20, dist=1000, cuts=simcuts(chromos), filter=5)
 
 # Repeating a couple of times.
-comp(10, 10, dist=10000, cuts=simcuts(chromos))
-comp(10, 10, dist=10000, cuts=simcuts(chromos, overlap=4))
-comp(10, 10, dist=10000, cuts=simcuts(chromos, overlap=2))
-comp(10, 10, dist=10000, cuts=simcuts(chromos), filter=5)
-comp(10, 10, dist=10000, cuts=simcuts(chromos), filter=20)
-comp(10, 10, dist=5000, cuts=simcuts(chromos))
-comp(10, 10, dist=5000, cuts=simcuts(chromos, overlap=2))
-comp(10, 10, dist=5000, cuts=simcuts(chromos), filter=5)
-comp(10, 10, dist=5000, cuts=simcuts(chromos), filter=20)
-comp(10, 10, dist=1000, cuts=simcuts(chromos))
-comp(10, 10, dist=1000, cuts=simcuts(chromos), filter=5)
-comp(10, 10, dist=1000, cuts=simcuts(chromos), filter=20)
+comp(20, 40, dist=10000, cuts=simcuts(chromos))
+comp(20, 40, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(20, 40, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(20, 40, dist=10000, cuts=simcuts(chromos), filter=2)
+comp(20, 40, dist=10000, cuts=simcuts(chromos), filter=5)
+comp(20, 40, dist=5000, cuts=simcuts(chromos))
+comp(20, 40, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(20, 40, dist=5000, cuts=simcuts(chromos), filter=2)
+comp(20, 40, dist=5000, cuts=simcuts(chromos), filter=5)
+comp(20, 40, dist=1000, cuts=simcuts(chromos))
+comp(20, 40, dist=1000, cuts=simcuts(chromos), filter=2)
+comp(20, 40, dist=1000, cuts=simcuts(chromos), filter=5)
 
-comp(10, 20, dist=10000, cuts=simcuts(chromos))
-comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
-comp(10, 20, dist=10000, cuts=simcuts(chromos, overlap=2))
-comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=5)
-comp(10, 20, dist=10000, cuts=simcuts(chromos), filter=20)
-comp(10, 20, dist=5000, cuts=simcuts(chromos))
-comp(10, 20, dist=5000, cuts=simcuts(chromos, overlap=2))
-comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=5)
-comp(10, 20, dist=5000, cuts=simcuts(chromos), filter=20)
-comp(10, 20, dist=1000, cuts=simcuts(chromos))
-comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=5)
-comp(10, 20, dist=1000, cuts=simcuts(chromos), filter=20)
+comp(10, 40, dist=10000, cuts=simcuts(chromos))
+comp(10, 40, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(10, 40, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(10, 40, dist=10000, cuts=simcuts(chromos), filter=2)
+comp(10, 40, dist=10000, cuts=simcuts(chromos), filter=5)
+comp(10, 40, dist=5000, cuts=simcuts(chromos))
+comp(10, 40, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(10, 40, dist=5000, cuts=simcuts(chromos), filter=2)
+comp(10, 40, dist=5000, cuts=simcuts(chromos), filter=5)
+comp(10, 40, dist=1000, cuts=simcuts(chromos))
+comp(10, 40, dist=1000, cuts=simcuts(chromos), filter=2)
+comp(10, 40, dist=1000, cuts=simcuts(chromos), filter=5)
 
 ###################################################################################################
 # Another example, a bit more extreme with more overlaps.
 
-comp(50, 20, dist=10000, cuts=simcuts(chromos))
-comp(50, 20, dist=10000, cuts=simcuts(chromos, overlap=4))
-comp(50, 20, dist=10000, cuts=simcuts(chromos, overlap=2))
-comp(50, 20, dist=10000, cuts=simcuts(chromos), filter=5)
-comp(50, 20, dist=10000, cuts=simcuts(chromos), filter=20)
-comp(50, 20, dist=5000, cuts=simcuts(chromos))
-comp(50, 20, dist=5000, cuts=simcuts(chromos, overlap=2))
-comp(50, 20, dist=5000, cuts=simcuts(chromos), filter=5)
-comp(50, 20, dist=5000, cuts=simcuts(chromos), filter=20)
-comp(50, 20, dist=1000, cuts=simcuts(chromos))
-comp(50, 20, dist=1000, cuts=simcuts(chromos), filter=5)
-comp(50, 20, dist=1000, cuts=simcuts(chromos), filter=20)
+comp(50, 50, dist=10000, cuts=simcuts(chromos))
+comp(50, 50, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(50, 50, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(50, 50, dist=10000, cuts=simcuts(chromos), filter=2)
+comp(50, 50, dist=10000, cuts=simcuts(chromos), filter=5)
+comp(50, 50, dist=5000, cuts=simcuts(chromos))
+comp(50, 50, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(50, 50, dist=5000, cuts=simcuts(chromos), filter=2)
+comp(50, 50, dist=5000, cuts=simcuts(chromos), filter=5)
+comp(50, 50, dist=1000, cuts=simcuts(chromos))
+comp(50, 50, dist=1000, cuts=simcuts(chromos), filter=2)
+comp(50, 50, dist=1000, cuts=simcuts(chromos), filter=5)
 
-comp(30, 30, dist=10000, cuts=simcuts(chromos))
-comp(30, 30, dist=10000, cuts=simcuts(chromos, overlap=4))
-comp(30, 30, dist=10000, cuts=simcuts(chromos, overlap=2))
-comp(30, 30, dist=10000, cuts=simcuts(chromos), filter=5)
-comp(30, 30, dist=10000, cuts=simcuts(chromos), filter=20)
-comp(30, 30, dist=5000, cuts=simcuts(chromos))
-comp(30, 30, dist=5000, cuts=simcuts(chromos, overlap=2))
-comp(30, 30, dist=5000, cuts=simcuts(chromos), filter=5)
-comp(30, 30, dist=5000, cuts=simcuts(chromos), filter=20)
-comp(30, 30, dist=1000, cuts=simcuts(chromos))
-comp(30, 30, dist=1000, cuts=simcuts(chromos), filter=5)
-comp(30, 30, dist=1000, cuts=simcuts(chromos), filter=20)
+comp(30, 70, dist=10000, cuts=simcuts(chromos))
+comp(30, 70, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(30, 70, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(30, 70, dist=10000, cuts=simcuts(chromos), filter=2)
+comp(30, 70, dist=10000, cuts=simcuts(chromos), filter=5)
+comp(30, 70, dist=5000, cuts=simcuts(chromos))
+comp(30, 70, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(30, 70, dist=5000, cuts=simcuts(chromos), filter=2)
+comp(30, 70, dist=5000, cuts=simcuts(chromos), filter=5)
+comp(30, 70, dist=1000, cuts=simcuts(chromos))
+comp(30, 70, dist=1000, cuts=simcuts(chromos), filter=2)
+comp(30, 70, dist=1000, cuts=simcuts(chromos), filter=5)
 
 ###################################################################################################
 # A final example which is the pinnacle of extremity.
@@ -258,42 +251,56 @@ comp(30, 30, dist=1000, cuts=simcuts(chromos), filter=20)
 comp(200, 100, dist=10000, cuts=simcuts(chromos))
 comp(200, 100, dist=10000, cuts=simcuts(chromos, overlap=4))
 comp(200, 100, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(200, 100, dist=10000, cuts=simcuts(chromos), filter=2)
 comp(200, 100, dist=10000, cuts=simcuts(chromos), filter=5)
-comp(200, 100, dist=10000, cuts=simcuts(chromos), filter=20)
 comp(200, 100, dist=5000, cuts=simcuts(chromos))
 comp(200, 100, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(200, 100, dist=5000, cuts=simcuts(chromos), filter=2)
 comp(200, 100, dist=5000, cuts=simcuts(chromos), filter=5)
-comp(200, 100, dist=5000, cuts=simcuts(chromos), filter=20)
 comp(200, 100, dist=1000, cuts=simcuts(chromos))
+comp(200, 100, dist=1000, cuts=simcuts(chromos), filter=2)
 comp(200, 100, dist=1000, cuts=simcuts(chromos), filter=5)
-comp(200, 100, dist=1000, cuts=simcuts(chromos), filter=20)
 
-comp(50, 200, dist=10000, cuts=simcuts(chromos))
-comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=4))
-comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=2))
-comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=5)
-comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=20)
-comp(50, 200, dist=5000, cuts=simcuts(chromos))
-comp(50, 200, dist=5000, cuts=simcuts(chromos, overlap=2))
-comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=5)
-comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=20)
-comp(50, 200, dist=1000, cuts=simcuts(chromos))
-comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=5)
-comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=20)
+comp(250, 200, dist=10000, cuts=simcuts(chromos))
+comp(250, 200, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(250, 200, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(250, 200, dist=10000, cuts=simcuts(chromos), filter=2)
+comp(250, 200, dist=10000, cuts=simcuts(chromos), filter=5)
+comp(250, 200, dist=5000, cuts=simcuts(chromos))
+comp(250, 200, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(250, 200, dist=5000, cuts=simcuts(chromos), filter=2)
+comp(250, 200, dist=5000, cuts=simcuts(chromos), filter=5)
+comp(250, 200, dist=1000, cuts=simcuts(chromos))
+comp(250, 200, dist=1000, cuts=simcuts(chromos), filter=2)
+comp(250, 200, dist=1000, cuts=simcuts(chromos), filter=5)
 
+comp(500, 200, dist=10000, cuts=simcuts(chromos))
+comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=4))
+comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=2))
+comp(500, 200, dist=10000, cuts=simcuts(chromos), filter=2)
+comp(500, 200, dist=10000, cuts=simcuts(chromos), filter=5)
+comp(500, 200, dist=5000, cuts=simcuts(chromos))
+comp(500, 200, dist=5000, cuts=simcuts(chromos, overlap=2))
+comp(500, 200, dist=5000, cuts=simcuts(chromos), filter=2)
+comp(500, 200, dist=5000, cuts=simcuts(chromos), filter=5)
+comp(500, 200, dist=1000, cuts=simcuts(chromos))
+comp(500, 200, dist=1000, cuts=simcuts(chromos), filter=2)
+comp(500, 200, dist=1000, cuts=simcuts(chromos), filter=5)
+
+###################################################################################################
 # Testing some restriction.
-comp(50, 200, dist=10000, cuts=simcuts(chromos), restrict="chrB")
-comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=4), restrict="chrA")
-comp(50, 200, dist=10000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
-comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=5, restrict="chrB")
-comp(50, 200, dist=10000, cuts=simcuts(chromos), filter=20, restrict="chrA")
-comp(50, 200, dist=5000, cuts=simcuts(chromos), restrict="chrA")
-comp(50, 200, dist=5000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
-comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=5, restrict="chrB")
-comp(50, 200, dist=5000, cuts=simcuts(chromos), filter=20, restrict="chrA")
-comp(50, 200, dist=1000, cuts=simcuts(chromos), restrict="chrA")
-comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=5, restrict="chrB")
-comp(50, 200, dist=1000, cuts=simcuts(chromos), filter=20, restrict="chrA")
+comp(500, 200, dist=10000, cuts=simcuts(chromos), restrict="chrB")
+comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=4), restrict="chrA")
+comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
+comp(500, 200, dist=10000, cuts=simcuts(chromos), filter=2, restrict="chrB")
+comp(500, 200, dist=10000, cuts=simcuts(chromos), filter=5, restrict="chrA")
+comp(500, 200, dist=5000, cuts=simcuts(chromos), restrict="chrA")
+comp(500, 200, dist=5000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
+comp(500, 200, dist=5000, cuts=simcuts(chromos), filter=2, restrict="chrB")
+comp(500, 200, dist=5000, cuts=simcuts(chromos), filter=5, restrict="chrA")
+comp(500, 200, dist=1000, cuts=simcuts(chromos), restrict="chrA")
+comp(500, 200, dist=1000, cuts=simcuts(chromos), filter=2, restrict="chrB")
+comp(500, 200, dist=1000, cuts=simcuts(chromos), filter=5, restrict="chrA")
 
 ##################################################################################################
 # Cleaning up.
