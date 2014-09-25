@@ -19,12 +19,12 @@ SEXP count_marginals (SEXP all, SEXP bins, SEXP total) try {
 
     	for (int i=0; i<nlibs; ++i) {
         	SEXP current=VECTOR_ELT(all, i);
-        	if (!isNewList(current) || LENGTH(current)!=3) { 
-				throw std::runtime_error("interactions must be supplied as a data.frame with anchor.id, target.id and counts"); }
+        	if (!isNewList(current) || LENGTH(current)!=2) { 
+				throw std::runtime_error("interactions must be supplied as a data.frame with anchor.id, target.id"); }
 			
-			const int* aaptr, *ttptr, *ccptr;
+			const int* aaptr, *ttptr;
 			int num=0;
-        	for (int j=0; j<3; ++j) {
+        	for (int j=0; j<2; ++j) {
             	SEXP current_col=VECTOR_ELT(current, j);
             	if (!isInteger(current_col)) { throw std::runtime_error("interaction data must be in integer format"); }
             	int* ptr=INTEGER(current_col);
@@ -34,7 +34,6 @@ SEXP count_marginals (SEXP all, SEXP bins, SEXP total) try {
 						num=LENGTH(current_col);
 						break;
                 	case 1: ttptr=ptr; break;
-                	case 2: ccptr=ptr; break;
                 	default: break;
             	}
 			}
@@ -45,10 +44,10 @@ SEXP count_marginals (SEXP all, SEXP bins, SEXP total) try {
 				const int& cur_t=ttptr[j];
 				if (cur_a > nb || cur_t > nb) { throw std::runtime_error("anchor or target indices out of range for conversion to bin index"); }
 				const int& aid=bptr[cur_a];
-				optrs[i][aid]+=ccptr[j];
+				optrs[i][aid]+=1;
 				const int& tid=bptr[cur_t];
 				if (tid==aid) { continue; }
-				optrs[i][tid]+=ccptr[j];
+				optrs[i][tid]+=1;
 			}
 		}
 	} catch (std::exception& e) { 

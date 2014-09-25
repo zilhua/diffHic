@@ -11,16 +11,16 @@ SEXP count_patch(SEXP all, SEXP bin, SEXP filter) try {
 
 	// Setting up other structures, including pointers. We assume it's sorted on R's side.
 	const int nlibs=LENGTH(all);
-    std::deque<const int*> aptrs(nlibs), tptrs(nlibs), cptrs(nlibs);
+    std::deque<const int*> aptrs(nlibs), tptrs(nlibs);
 	std::deque<int> nums(nlibs), indices(nlibs);
 	std::priority_queue<coord, std::deque<coord>, std::greater<coord> > next;
     
 	for (int i=0; i<nlibs; ++i) {
         SEXP current=VECTOR_ELT(all, i);
-        if (!isNewList(current) || LENGTH(current)!=3) { 
-			throw std::runtime_error("interactions must be supplied as a data.frame with anchor.id, target.id and counts"); }
+        if (!isNewList(current) || LENGTH(current)!=2) { 
+			throw std::runtime_error("interactions must be supplied as a data.frame with anchor.id and target.id"); }
 
-        for (int j=0; j<3; ++j) {
+        for (int j=0; j<2; ++j) {
             SEXP current_col=VECTOR_ELT(current, j);
             if (!isInteger(current_col)) { throw std::runtime_error("interaction data must be in integer format"); }
             int* ptr=INTEGER(current_col);
@@ -30,7 +30,6 @@ SEXP count_patch(SEXP all, SEXP bin, SEXP filter) try {
 					nums[i]=LENGTH(current_col);
 					break;
                 case 1: tptrs[i]=ptr; break;
-                case 2: cptrs[i]=ptr; break;
                 default: break;
             }
 		}
@@ -68,7 +67,7 @@ SEXP count_patch(SEXP all, SEXP bin, SEXP filter) try {
 			do {
 				curlib=next.top().library;
 				int& libdex=indices[curlib];
-				curcounts[curdex+curlib]+=cptrs[curlib][libdex];				
+				curcounts[curdex+curlib]+=1;
 				next.pop();
  	           	if ((++libdex) < nums[curlib]) {
 					next.push(coord(bptr[aptrs[curlib][libdex]], bptr[tptrs[curlib][libdex]], curlib));
