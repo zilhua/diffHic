@@ -33,15 +33,19 @@ savePairs <- function(x, file, fragments)
 
     # Identifying the lengths of the relevant stretches of chromatin, and saving in assorted directories
     # (one per anchor chromosome).
-    out <- .sortedAggregate(data.frame(anchor.id=achr[new.o], target.id=tchr[new.o]))
+	new.achr <- achr[new.o]
+	new.tchr <- tchr[new.o]
+    is.diff <- c(TRUE, diff(new.achr)!=0L | diff(new.tchr)!=0L)
+	first.in.combo <- which(is.diff)
+	last.in.combo <- c(first.in.combo[-1]-1L, length(new.o))
+
 	.initializeH5(file)
-	for (ax in unique(out$anchor.id)) { .addGroup(file, all.chrs[ax]) }
-	collected <- list()
-    sofar <- 0L
-    for (y in 1:length(out$count)) {
-        current <- out$count[y]
-        .writePairs(x[sofar+1:current,], file, all.chrs[out$anchor.id[y]], all.chrs[out$target.id[y]])
-        sofar <- sofar+current
+	for (ax in unique(new.achr[first.in.combo])) { .addGroup(file, all.chrs[ax]) }
+    for (y in 1:length(first.in.combo)) {
+        current <- first.in.combo[y]:last.in.combo[y]
+		cur.a <- all.chrs[new.achr[current[1]]] 
+		cur.t <- all.chrs[new.tchr[current[1]]]
+        .writePairs(x[current,], file, cur.a, cur.t)
     }
     invisible(NULL)
 }
