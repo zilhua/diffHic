@@ -143,11 +143,103 @@ DIList <- function(counts, totals=colSums(counts), anchors, targets, regions) {
 }
 
 # Setting some methods inspired by equivalents in csaw.
-setMethod("normalize", signature("DIList"), function(object, ...) {
-	normalizeCounts(counts(object), lib.sizes=totals(object), ...)
-})
-
+setGeneric("asDGEList", function(object, ...) { standardGeneric("asDGEList") })
 setMethod("asDGEList", signature("DIList"), function(object, ...) {
 	DGEList(counts(object), lib.size=totals(object), ...)
 })
 
+########################################################################################
+# Defining the pairParam class.
+
+setClass("pairParam", representation(fragments="GRanges", restrict="character", discard="GRanges"))
+
+setValidity("pairParam", function(object) {
+	if (anyDuplicated(runValue(seqnames(object@fragments)))) { 
+		return('restriction fragments should be sorted by chromosome name')	
+	}
+	if (any( diff(as.integer(seqnames(object@fragments)))==0L &
+           ( diff(start(object@fragments)) <= 0L | diff(end(object@fragments) <= 0L) ) )) {
+		return('restriction fragments should be sorted by start and end coordinates')
+	}
+	if (any(strand(object@fragments)!="*") ) {
+		return('restriction fragment ranges should be unstranded')
+	}
+	return(TRUE)
+})
+
+setMethod("initialize", signature("pairParam"), function(.Object, ...) {
+	value <- callNextMethod()
+	validObject(value)
+	value
+})
+
+setMethod("$", signature("pairParam"), function(x, name) { 
+	slot(x, name)
+})
+
+setMethod("show", signature("pairParam"), function(object) {
+#	if (is.na(object@min.inward)) { 
+#		cat("No minimum insert size specified for inward-facing read pairs\n")
+#	} else {
+#		cat("Minimum insert size for inward-facing read pairs is", object@min.inward, "bp\n")
+#	} 
+#	if (is.na(object@min.outward)) { 
+#		cat("No minimum insert size specified for outward-facing read pairs\n")
+#	} else {
+#		cat("Minimum insert size for outward-facing read pairs is", object@min.outward, "bp\n")
+#	}
+#	if (is.na(object@max.frag)) {
+#		cat("No maximum fragment size specified\n")
+#	} else {
+#		cat("Maximum fragment size is", object@max.frag, "bp\n")
+#	}
+
+	nfrags <- length(object@fragments)
+	nchrs <- length(runValue(seqnames(object@fragments)))
+	cat("Genome contains", nfrags, "restriction", ifelse(nfrags==1L, "fragment", "fragments"), 
+		"across", nchrs, ifelse(nchrs==1L, "chromosome\n", "chromosomes\n"))
+
+	ndisc <- length(object@discard)
+	if (!ndisc) { 
+		cat("No discard regions specified\n")
+	} else {
+		cat(ndisc, "regions specified in which alignments are discarded\n")
+	}
+})
+
+pairParam <- function(fragments, 
+#	min.inward=NA, min.outward=NA, max.frag=NA, 
+	discard=GRanges(), restrict=NULL) 
+# This creates a SimpleList of parameter objects, specifying
+# how reads should be extracted from the BAM files. The aim is
+# to synchronize read loading throughout the package, such that
+# you don't have to manually respecify them in each function.
+#
+# written by Aaron Lun
+# 1 September 2014
+{
+#	max.frag <- as.integer(max.frag)
+#	min.inward <- as.integer(min.inward)
+#	min.outward <- as.integer(min.outward)
+	restrict <- as.character(restrict) 
+	new("pairParam", 
+#			max.frag=max.frag, min.inward=min.inward, min.outward=min.outward,
+		restrict=restrict, discard=discard, fragments=fragments)
+}
+
+setGeneric("reform", function(x, ...) { standardGeneric("reform") })
+setMethod("reform", signature("pairParam"), function(x, ...) {
+	incoming <- list(...)
+	sn <- slotNames(x)
+	for (sx in names(incoming)) {
+		val <- incoming[[sx]]
+		sx <- match.arg(sx, sn)
+		incoming[[sx]] <- switch(sx, 
+#			max.frag=as.integer(val),
+#			min.inward=as.integer(min.inward),
+#			min.outward=as.integer(min.outward),
+			restrict=as.character(restrict),
+			val)
+	}
+	do.call(initialize, c(x, incoming))
+}) 
