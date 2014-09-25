@@ -205,6 +205,13 @@ setMethod("show", signature("pairParam"), function(object) {
 	} else {
 		cat(ndisc, "regions specified in which alignments are discarded\n")
 	}
+
+	nr <- length(object@restrict)
+	if (!nr) { 
+		cat("No limits on chromosomes for read extraction\n")
+	} else {
+		cat("Read extraction is limited to", nr, ifelse(nr==1L, "chromosome\n", "chromosomes\n"))
+	}
 })
 
 pairParam <- function(fragments, 
@@ -236,9 +243,9 @@ setMethod("reform", signature("pairParam"), function(x, ...) {
 		sx <- match.arg(sx, sn)
 		incoming[[sx]] <- switch(sx, 
 #			max.frag=as.integer(val),
-#			min.inward=as.integer(min.inward),
-#			min.outward=as.integer(min.outward),
-			restrict=as.character(restrict),
+#			min.inward=as.integer(val),
+#			min.outward=as.integer(val),
+			restrict=as.character(val),
 			val)
 	}
 	do.call(initialize, c(x, incoming))
