@@ -6,12 +6,12 @@
 \description{Identifies the interacting pair of restriction fragments corresponding to each read pair in a Hi-C library.}
 
 \usage{
-preparePairs(bam, fragments, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq=NA)
+preparePairs(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq=NA)
 }
 
 \arguments{
 	\item{bam}{a character string containing the path to a name-sorted BAM file}
-	\item{fragments}{a \code{GRanges} object describing the boundaries of each restriction fragment on the reference genome}
+	\item{param}{a \code{pairParam} object containing read extraction parameters}
 	\item{file}{a character string specifying the path to an output index file}
 	\item{dedup}{a logical scalar indicating whether marked duplicate reads should be removed}
 	\item{yield}{a numeric scalar specifying the number of reads to extract at every iteration}
@@ -25,13 +25,13 @@ Thus, it makes sense to describe interactions in terms of restriction fragments.
 This function identifies the interacting fragments corresponding to each pair of reads in a Hi-C library. 
 To save space, it stores the indices of the interacting fragments for each read pair, rather than the fragments themselves.
 
-Indexing is performed by matching up the mapping coordinates for each read with the restriction fragment boundaries. 
-Needless to say, the boundary coordinates in \code{fragments} must correspond to the reference genome being used. 
+Indexing is performed by matching up the mapping coordinates for each read with the restriction fragment boundaries in \code{param$fragments}.
+Needless to say, the boundary coordinates in \code{param$fragments} must correspond to the reference genome being used. 
 In most cases, these can be generated using the \code{\link{cutGenome}} function from any given \code{BSgenome} object. 
 If, for any reason, a modified genome is used for alignment, then the coordinates of the restriction fragments on the modified genome are required.
 
 Each read pair subsequently becomes associated with a pair of restriction fragments.
-The anchor fragment is that with the higher genomic coordinate, i.e., the larger index in \code{fragments}.
+The anchor fragment is that with the higher genomic coordinate, i.e., the larger index in \code{param$fragments}.
 The target fragment is that with the smaller coordinate/index. 
 This definition avoids the need to consider both permutations of indices in a pair during downstream processing.
 }
@@ -68,6 +68,10 @@ The value of \code{yield} simply controls the amount of memory used by regulatin
 Large values will require more memory but will reduce the computation time. 
 Input files must be sorted by read name for proper execution of the function.
 Read pair information need not be synchronised so long as the pairing, first read and second read flags are appropriately set.
+
+Values of \code{param$discard} and \code{param$restrict} will be ignored here.
+Thus, no reads will be discarded if they lie outside the specified chromosomes, or if they lie within blacklisted regions.
+This function strictly processes each read according to its own merits.
 }
 
 \value{
@@ -76,19 +80,21 @@ Each object corresponds to a pair of anchor/target chromosomes.
 Each row of the dataframe contains information for a read pair, with one read mapped to each chromosome. 
 The dataframe contains several integer fields:
 \describe{
-  \item{anchor.id:}{index of the anchor restriction fragment}
-  \item{target.id:}{index of the target restriction fragment}
-  \item{length:}{length of the sequencing fragment corresponding to the read pair}
-  \item{orientation:}{flag specifying the strand orientation of the reads}
-  \item{gap:}{distance between two reads if they are on the same chromosome, \code{NA} otherwise}
+  \item{\code{anchor.id}:}{index of the anchor restriction fragment}
+  \item{\code{target.id}:}{index of the target restriction fragment}
+  \item{\code{anchor.pos}:}{mapping coordinate of the read (or for chimeras, the 5' segment thereof) on the anchor fragment}
+  \item{\code{target.pos}:}{mapping coordinate of read on the target fragment}
+  \item{\code{anchor.len}:}{length of the alignment on the anchor fragment, set to a negative value if the alignment is on the reverse strand}
+  \item{\code{target.len}:}{length of the alignment on the target fragment, set to a negative value if reverse stranded}
 }
 See \code{\link{getPairData}} for more details on \code{length}, \code{orientation} and \code{gap}.  
+
 An integer vector is also returned from the function, containing various diagnostics:
 \describe{
-	\item{pairs:}{an integer vector containing \code{total}, the total number of read pairs; \code{marked}, read pairs with at least one marked 5' end; \code{filtered}, read pairs lost due to low MAPQ scores for the 5' end(s); \code{mapped}, read pairs considered as successfully mapped (i.e., not marked or filtered); \code{dangling}, discarded read pairs representing dangling ends; and \code{other}, discarded read pairs mapped to the same fragment that are not dangling ends or self-circles}
-	\item{same.id:}{an integer vector containing \code{dangling}, the number of read pairs that are dangling ends; and \code{self.circles}, the number of read pairs forming self-circles}
-	\item{singles:}{an integer scalar specifying the number of reads without a mate}
-	\item{chimeras:}{an integer vector containing \code{total}, the total number of read pairs with one chimeric read; \code{mapped}, chimeric read pairs with both 5' ends mapped; \code{multi}, mapped chimeric pairs with at least one successfully mapped 3' segment; and \code{invalid}, read pairs where the 3' location of one read disagrees with the 5' location of the mate}
+	\item{\code{pairs}:}{an integer vector containing \code{total}, the total number of read pairs; \code{marked}, read pairs with at least one marked 5' end; \code{filtered}, read pairs lost due to low MAPQ scores for the 5' end(s); \code{mapped}, read pairs considered as successfully mapped (i.e., not marked or filtered); \code{dangling}, discarded read pairs representing dangling ends; and \code{other}, discarded read pairs mapped to the same fragment that are not dangling ends or self-circles}
+	\item{\code{same.id}:}{an integer vector containing \code{dangling}, the number of read pairs that are dangling ends; and \code{self.circles}, the number of read pairs forming self-circles}
+	\item{\code{singles}:}{an integer scalar specifying the number of reads without a mate}
+	\item{\code{chimeras}:}{an integer vector containing \code{total}, the total number of read pairs with one chimeric read; \code{mapped}, chimeric read pairs with both 5' ends mapped; \code{multi}, mapped chimeric pairs with at least one successfully mapped 3' segment; and \code{invalid}, read pairs where the 3' location of one read disagrees with the 5' location of the mate}
 }
 }
 
@@ -101,12 +107,13 @@ An integer vector is also returned from the function, containing various diagnos
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts) 
 
 tmpf <- "gunk.h5"
-preparePairs(hic.file, cuts, tmpf)
-preparePairs(hic.file, cuts, tmpf, minq=50)
-preparePairs(hic.file, cuts, tmpf, ichim=TRUE)
-preparePairs(hic.file, cuts, tmpf, dedup=FALSE)
+preparePairs(hic.file, param, tmpf)
+preparePairs(hic.file, param, tmpf, minq=50)
+preparePairs(hic.file, param, tmpf, ichim=TRUE)
+preparePairs(hic.file, param, tmpf, dedup=FALSE)
 
 \dontshow{
 unlink(tmpf)
