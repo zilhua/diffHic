@@ -34,6 +34,7 @@ Any additional fields in \code{x} will also be saved to file.
 Users are recommended to put in \code{xxx.pos} and \code{xxx.len} fields (where \code{xxx} is replaced with \code{anchor} or \code{target}).
 This will allow removal of reads in \code{param$discard} during counting (e.g., with \code{\link{squareCounts}}).
 It will also allow proper calculation of statistics with \code{\link{getPairData}}, and quality control with \code{\link{prunePairs}}.
+See the output of \code{\link{preparePairs}} for more details on the specification of the fields.
 }
 
 \examples{
@@ -45,7 +46,8 @@ n <- 1000
 all.a <- as.integer(runif(n, 1L, length(cuts)))
 all.t <- as.integer(runif(n, 1L, length(cuts)))
 x <- data.frame(anchor.id=pmax(all.a, all.t), target.id=pmin(all.a, all.t),
-    orientation=round(runif(n, 0, 4)), length=as.integer(runif(n, 100, 10000)))
+	anchor.pos=runif(1:100), anchor.len=10, 
+	target.pos=runif(1:100), target.len=-10)
 x <- x[order(x$anchor.id, x$target.id),]
 
 fout <- "temp2.h5"
