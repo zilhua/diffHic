@@ -172,7 +172,7 @@ Type 'q()' to quit R.
 + 	panchor <- pchrs > schrs | 
 + 		(pchrs==schrs & pfrag > sfrag) | 
 + 		(pchrs==schrs & pfrag==sfrag & ppos > spos)
-+ 	gaps<-ifelse(pchrs==schrs, ifelse(panchor, ppos-spos, spos-ppos)+rlen, NA)
++ 	inserts<-ifelse(pchrs==schrs, pmax(ppos, spos)-pmin(spos, ppos)+rlen, NA)
 + 	orientations<-ifelse(pstr, 0L, ifelse(panchor, 1L, 2L))+ifelse(sstr, 0L, ifelse(panchor, 2L, 1L))
 + 
 + 	################ ACTUAL MATCH ###################
@@ -180,10 +180,6 @@ Type 'q()' to quit R.
 + 
 + 	tmpdir<-paste0(fname, "_temp")
 + 	diagnostics <- preparePairs(out, outfrags, tmpdir, yield=yield);
-+ 	cntdir1 <- paste0(fname, "_temp_count1")
-+ 	cntdir2 <- paste0(fname, "_temp_count2")
-+ 	cntdir3 <- paste0(fname, "_temp_count3")
-+ 	cntdir4 <- paste0(fname, "_temp_count4")
 +    	
 + 	stopifnot(sum(codes==1L)==diagnostics$same.id[["dangling"]])
 + 	stopifnot(sum(codes==3L)==diagnostics$same.id[["self.circle"]])
@@ -195,13 +191,6 @@ Type 'q()' to quit R.
 + 	stopifnot(diagnostics$chimeras[["total"]]==0L)
 + 	stopifnot(diagnostics$chimeras[["mapped"]]==0L)
 + 	stopifnot(diagnostics$chimeras[["invalid"]]==0L)
-+ 	
-+ 	# Checking counts.
-+ 	stats1 <- countPairs(tmpdir, cntdir1)
-+ 	threshold<-500
-+ 	stats2 <- countPairs(tmpdir, cntdir2, max.length=threshold)
-+ 	stats3 <- countPairs(tmpdir, cntdir3, min.ingap=threshold)
-+ 	stats4 <- countPairs(tmpdir, cntdir4, min.outgap=threshold)
 + 
 + 	# Anchor/target synchronisation is determined by order in 'fragments' (and thusly, in max.cuts).
 + 	offset<-c(0L, cumsum(max.cuts))
@@ -228,10 +217,10 @@ Type 'q()' to quit R.
 + 			target<-target+offset[j]
 + 			totes<-frag.lens[stuff]
 + 			cur.ori<-orientations[stuff]
-+ 			cur.gap<-gaps[stuff]
-+ 			o<-order(anchor, target, totes, cur.ori, cur.gap)
++ 			cur.insert<-inserts[stuff]
++ 			o<-order(anchor, target, totes, cur.ori, cur.insert)
 + 
-+ 			# Checking anchor/target/length/orientation/gap statistics (sorting to ensure comparability).
++ 			# Checking anchor/target/length/orientation/insert statistics (sorting to ensure comparability).
 + 			achr<-names(max.cuts)[i]
 + 			tchr<-names(max.cuts)[j]
 + 			if (!(achr%in%names(indices)) || !(tchr %in% names(indices[[achr]]))) { 
@@ -240,52 +229,19 @@ Type 'q()' to quit R.
 + 			}
 + 			current<-h5read(tmpdir, file.path(achr, tchr))
 + 			for (x in 1:ncol(current)) { attributes(current[,x]) <- NULL }
-+ 			current<-current[order(current$anchor.id, current$target.id, current$length, current$orientation, current$gap),]
-+ 			stopifnot(identical(current$anchor.id, anchor[o]))
-+ 			stopifnot(identical(current$target.id, target[o]))
-+ 			stopifnot(identical(current$length, totes[o]))
-+ 			stopifnot(identical(current$orientation, cur.ori[o]))
-+ 			stopifnot(identical(current$gap, cur.gap[o]))
++ 			collated <- diffHic:::.getStats(current, achr==tchr, start(outfrags), end(outfrags))
 + 			
-+ 			# Checking counts for this particular thing.
-+ 			for (k in 1:4) {
-+ 				curdir <- get(paste0("cntdir", k))
-+ 				stats <- get(paste0("stats", k))
-+ 				curdex <- h5ls(curdir)
-+ 				is.present <- any(basename(curdex$group)==achr & curdex$name==tchr & curdex$otype=="H5I_DATASET")
-+ 				if (!is.present) {
-+ 					current2 <- data.frame(anchor.id=integer(0), target.id=integer(0), count=integer(0))
-+ 				} else {
-+ 					current2 <- h5read(curdir, file.path(achr, tchr))
-+ 					for (x in 1:ncol(current2)) { attributes(current2[,x]) <- NULL }
-+ 				}
-+ 
-+ 				copy.current<-current
-+ 				if (k==2) {
-+ 					keep <- copy.current$length<=threshold
-+ 					copy.current <- copy.current[keep,]
-+ 					stats[["length"]] <- stats[["length"]] - sum(!keep) 
-+ 				} else if (k==3) { 
-+ 					keep <- copy.current$gap >= threshold | is.na(copy.current$gap) | copy.current$orientation!=1L
-+ 					copy.current <- copy.current[keep,]
-+ 					stats[["ingap"]] <- stats[["ingap"]] - sum(!keep)
-+ 				} else if (k==4) {
-+ 					keep <- copy.current$gap >= threshold | is.na(copy.current$gap) | copy.current$orientation!=2L
-+ 					copy.current <- copy.current[keep,]
-+ 					stats[["outgap"]] <- stats[["outgap"]] - sum(!keep)
-+ 				}
-+ 				stats[["total"]] <- stats[["total"]] - nrow(current)
-+ 				stats[["retained"]] <- stats[["retained"]] - nrow(copy.current)
-+ 				assign(paste0("stats", k), stats)
-+ 				if (!nrow(current2) && !nrow(copy.current)) { next }
-+ 
-+ 				ref<-aggregate(length~anchor.id+target.id, data=copy.current, FUN=length)
-+ 				ref<-ref[order(ref$anchor.id, ref$target.id),]
-+ 				colnames(ref)[3]<-"count"
-+ 				rownames(ref)<-NULL
-+ 				if (!identical(current2, ref)) { stop("counted values don't match up") }
++ 			o2 <- order(current$anchor.id, current$target.id, collated$length, collated$orientation, collated$insert)
++ 			stopifnot(identical(current$anchor.id[o2], anchor[o]))
++ 			stopifnot(identical(current$target.id[o2], target[o]))
++ 			stopifnot(identical(collated$length[o2], totes[o]))
++ 			stopifnot(identical(collated$orientation[o2], cur.ori[o]))
++ 			if (!identical(collated$insert[o2], cur.insert[o])) { 
++ 				print(cbind(collated$insert[o2], cur.insert[o]))
++ 				print(current[o2,])
 + 			}
-+ 			
++ 			stopifnot(identical(collated$insert[o2], cur.insert[o]))
++ 				
 + 			# Checking that we're looking at the right combination.
 + 	        uniq.a<-unique(fchrs[current[,1]])
 + 			uniq.t<-unique(fchrs[current[,2]])
@@ -297,29 +253,25 @@ Type 'q()' to quit R.
 + 
 + 	# Checking there's nothing left.
 + 	if (!is.null(unlist(used))) { stop("objects left unused in the directory") }
-+ 	if (any(stats1!=0L) || any(stats2!=0L) || any(stats3!=0L) || any(stats4!=0L)) { 
-+ 		print(stats1)
-+ 		print(stats2)
-+ 		print(stats3)
-+ 		print(stats4)
-+ 		stop("incorrect statistic summation during counting")
-+ 	}
 + 
-+ 	# Length gap and orientation checking.
++ 	# Length insert and orientation checking.
 + 	keepers<-codes==0L | codes==2L
 + 	valid.len<-frag.lens[keepers]
-+ 	valid.gap<-gaps[keepers]
++ 	valid.insert<-inserts[keepers]
 + 	valid.ori<-orientations[keepers]
-+ 	o<-order(valid.len, valid.ori, valid.gap)
-+ 	auxiliary<-getPairData(tmpdir, ori=TRUE, gap=TRUE)
++ 	o<-order(valid.len, valid.ori, valid.insert)
++ 	auxiliary<-getPairData(tmpdir, outfrags)
 + 	o2<-do.call(order, auxiliary)
 + 	if (!identical(valid.len[o], auxiliary$length[o2])) { stop("extracted fragment sizes don't match up") }
-+ 	if (!identical(valid.gap[o], auxiliary$gap[o2])) { stop("extracted gaps don't match up") }
++ 	if (!identical(valid.insert[o], auxiliary$insert[o2])) { stop("extracted inserts don't match up") }
 + 	if (!identical(valid.ori[o], auxiliary$orientation[o2])) { stop("extracted orientations don't match up") }
 + 
 + 	curdex <- h5ls(tmpdir)
-+ 	curdex <- curdex[curdex$otype=="H5I_DATASET",][1,]	
-+ 	return(head(h5read(tmpdir, file.path(curdex$group, curdex$name))))
++ 	curdex <- curdex[curdex$otype=="H5I_DATASET",][1,]
++ 	returned <- h5read(tmpdir, file.path(curdex$group, curdex$name))
++ 	processed <- diffHic:::.getStats(returned, basename(curdex$group)==curdex$name, start(outfrags), end(outfrags))
++ 	return(head(data.frame(anchor.id=returned$anchor.id, target.id=returned$target.id, length=processed$length,
++ 		orientation=processed$orientation, insert=processed$insert)))
 + }
 > 
 > ####################################################################################################
@@ -335,270 +287,270 @@ Type 'q()' to quit R.
 Loading required package: Rsamtools
 Loading required package: XVector
 Loading required package: Biostrings
-  anchor.id target.id length orientation gap
-1        23         1    344           1  NA
-2        26         4    274           3  NA
-3        26        10    400           1  NA
-4        26        20    247           2  NA
-5        29        15    240           1  NA
+  anchor.id target.id length orientation insert
+1        23         1    344           1     NA
+2        26         4    274           3     NA
+3        26        10    400           1     NA
+4        26        20    247           2     NA
+5        29        15    240           1     NA
 > comp(fname, npairs=50, max.cuts=max.cuts)
-  anchor.id target.id length orientation  gap
-1         4         3    271           3  503
-2        10         2    126           3 2285
-3        12         2    221           1 2785
-4        12         8    435           2  944
-5        14        13    104           0  257
-6        15         2    406           3 3682
+  anchor.id target.id length orientation insert
+1         4         3    271           3    503
+2        10         2    126           3   2285
+3        12         2    221           1   2785
+4        12         8    435           2    944
+5        14        13    104           0    257
+6        15         2    406           3   3682
 > comp(fname, npairs=100, max.cuts=max.cuts)
-  anchor.id target.id length orientation  gap
-1         2         1    306           2  198
-2        10         7    423           3 1262
-3        13         9    290           3 1439
-4        15         7    201           1 2778
-5        17         6    379           2 3260
-6        18        14    719           2  879
+  anchor.id target.id length orientation insert
+1         2         1    306           2    198
+2        10         7    423           3   1262
+3        13         9    290           3   1439
+4        15         7    201           1   2778
+5        17         6    379           2   3260
+6        18        14    719           2    879
 > 
 > # Ramping up the aggression in terms of self-circles.
 > 
 > comp(fname, npairs=20, max.cuts=c(chrA=3L))
-  anchor.id target.id length orientation gap
-1         2         1    350           1 360
-2         2         1    306           3 624
-3         2         1    467           2 365
-4         2         2    394           0 270
-5         2         2    407           0 245
-6         3         1    489           1 875
+  anchor.id target.id length orientation insert
+1         2         1    350           1    360
+2         2         1    306           3    624
+3         2         1    467           2    365
+4         2         2    394           0    270
+5         2         2    407           0    245
+6         3         1    489           1    875
 > comp(fname, npairs=50, max.cuts=c(chrA=3L))
-  anchor.id target.id length orientation gap
-1         1         1    157           0  35
-2         2         1    512           2 166
-3         2         1    100           3 227
-4         2         1    109           2 569
-5         2         1    226           3 359
-6         2         1    153           0 460
+  anchor.id target.id length orientation insert
+1         1         1    157           0     35
+2         2         1    512           2    166
+3         2         1    100           3    227
+4         2         1    109           2    569
+5         2         1    226           3    359
+6         2         1    153           0    460
 > comp(fname, npairs=100, max.cuts=c(chrA=3L))
-  anchor.id target.id length orientation gap
-1         1         1    276           0  78
-2         1         1    124           0 102
-3         1         1    143           3 119
-4         1         1     56           3  46
-5         2         1    226           3  79
-6         2         1     80           1  90
+  anchor.id target.id length orientation insert
+1         1         1    276           0     78
+2         1         1    124           0    102
+3         1         1    143           3    119
+4         1         1     56           3     46
+5         2         1    226           3     79
+6         2         1     80           1     90
 > 
 > # Increasing the number of reads all round.
 > 
 > comp(fname, npairs=200, size=c(500, 1000), max.cuts=max.cuts);
-  anchor.id target.id length orientation  gap
-1         6         2    607           2 3623
-2         7         1   1192           2 4545
-3         7         2   1114           2 3766
-4         7         7    644           0  618
-5         8         1   1144           3 5767
-6         8         1    984           0 5938
+  anchor.id target.id length orientation insert
+1         6         2    607           2   3623
+2         7         1   1192           2   4545
+3         7         2   1114           2   3766
+4         7         7    644           0    618
+5         8         1   1144           3   5767
+6         8         1    984           0   5938
 > comp(fname, npairs=1000, size=c(500, 1000), max.cuts=max.cuts);
-  anchor.id target.id length orientation  gap
-1         4         2    363           2 1686
-2         4         4   1470           3   80
-3         4         4    489           3  399
-4         6         2    796           2 2626
-5         6         4    714           1 1412
-6         6         5    424           3  330
+  anchor.id target.id length orientation insert
+1         4         2    363           2   1686
+2         4         4   1470           3     80
+3         4         4    489           3    399
+4         6         2    796           2   2626
+5         6         4    714           1   1412
+6         6         5    424           3    330
 > 
 > # Adding some singletons.
 > 
 > comp(fname, npairs=200, size=c(20, 100), max.cuts=max.cuts, singles=10)
-  anchor.id target.id length orientation gap
-1         3         2     96           3  73
-2         3         3    116           0  74
-3         5         5    130           0  30
-4         6         2     50           0 309
-5         6         6     33           0  19
-6        11         7    145           0 259
+  anchor.id target.id length orientation insert
+1         3         2     96           3     73
+2         3         3    116           0     74
+3         5         5    130           0     30
+4         6         2     50           0    309
+5         6         6     33           0     19
+6        11         7    145           0    259
 > comp(fname, npairs=200, size=c(20, 100), max.cuts=max.cuts, singles=50)
-  anchor.id target.id length orientation gap
-1         7         3     53           3 304
-2         8         3    124           3 296
-3         9         3     50           0 368
-4        10         8     50           1 137
-5        13         2    104           0 913
-6        14         4     69           0 734
+  anchor.id target.id length orientation insert
+1         7         3     53           3    304
+2         8         3    124           3    296
+3         9         3     50           0    368
+4        10         8     50           1    137
+5        13         2    104           0    913
+6        14         4     69           0    734
 > 
 > # Making the fragments smaller.
 > 
 > comp(fname, npairs=200, size=c(60, 100), rlen=50, max.cuts=max.cuts)
-  anchor.id target.id length orientation gap
-1         5         1    136           0 561
-2         6         1    120           1 699
-3         6         1    122           2 699
-4         8         2    169           1 843
-5         8         3    124           1 685
-6         9         4    113           2 719
+  anchor.id target.id length orientation insert
+1         5         1    136           0    561
+2         6         1    120           1    699
+3         6         1    122           2    699
+4         8         2    169           1    843
+5         8         3    124           1    685
+6         9         4    113           2    719
 > comp(fname, npairs=500, size=c(60, 100), rlen=50, max.cuts=max.cuts)
-  anchor.id target.id length orientation gap
-1         2         2    135           3  73
-2         3         1    140           0 306
-3         4         4    111           2  52
-4         5         4    117           0 165
-5         5         4    122           3 163
-6         8         4    122           2 570
+  anchor.id target.id length orientation insert
+1         2         2    135           3     73
+2         3         1    140           0    306
+3         4         4    111           2     52
+4         5         4    117           0    165
+5         5         4    122           3    163
+6         8         4    122           2    570
 > 
 > # Trying out negative spacings (i.e., non-filled genomes)
 > 
 > comp(fname, npairs=200, size=c(500, 1000), spacer=-2, max.cuts=max.cuts);
-  anchor.id target.id length orientation  gap
-1         3         1   1256           3 1313
-2         3         1    500           3 1955
-3         5         3    995           2 1283
-4         7         4    649           2 2443
-5         9         8   1040           1 1038
-6        11         3    906           1 6508
+  anchor.id target.id length orientation insert
+1         3         1   1256           3   1313
+2         3         1    500           3   1955
+3         5         3    995           2   1283
+4         7         4    649           2   2443
+5         9         8   1040           1   1038
+6        11         3    906           1   6508
 > comp(fname, npairs=1000, size=c(500, 1000), spacer=-2, max.cuts=max.cuts);
-  anchor.id target.id length orientation  gap
-1         2         2    522           0  374
-2         3         1    989           0 1246
-3         4         2    933           0 1198
-4         4         3    648           0  187
-5         4         3   1025           2  394
-6         5         2   1014           3 2228
+  anchor.id target.id length orientation insert
+1         2         2    522           0    374
+2         3         1    989           0   1246
+3         4         2    933           0   1198
+4         4         3    648           0    187
+5         4         3   1025           2    394
+6         5         2   1014           3   2228
 > comp(fname, npairs=200, size=c(500, 1000), spacer=-4, max.cuts=max.cuts);
-  anchor.id target.id length orientation   gap
-1         5         3   1157           1  1678
-2         9         6    538           0  2829
-3        13         8   1293           3  3847
-4        14         1   1022           0 11028
-5        14        11    904           0  1681
-6        14        14    869           0   589
+  anchor.id target.id length orientation insert
+1         5         3   1157           1   1678
+2         9         6    538           0   2829
+3        13         8   1293           3   3847
+4        14         1   1022           0  11028
+5        14        11    904           0   1681
+6        14        14    869           0    589
 > comp(fname, npairs=1000, size=c(500, 1000), spacer=-4, max.cuts=max.cuts);
-  anchor.id target.id length orientation  gap
-1         4         2    815           1 1610
-2         4         3    747           2  950
-3         4         3    813           2  884
-4         4         3    689           3  528
-5         7         1    688           2 4549
-6         7         2    954           1 3971
+  anchor.id target.id length orientation insert
+1         4         2    815           1   1610
+2         4         3    747           2    950
+3         4         3    813           2    884
+4         4         3    689           3    528
+5         7         1    688           2   4549
+6         7         2    954           1   3971
 > 
 > comp(fname, npairs=200, size=c(20, 100), spacer=-2, max.cuts=max.cuts, singles=10)
-  anchor.id target.id length orientation gap
-1         5         2     45           2 193
-2        10         2     20           3 535
-3        10         9     55           0 108
-4        13         4     75           1 697
-5        14        11     61           2 252
-6        14        13     99           2  42
+  anchor.id target.id length orientation insert
+1         5         2     45           2    193
+2        10         2     20           3    535
+3        10         9     55           0    108
+4        13         4     75           1    697
+5        14        11     61           2    252
+6        14        13     99           2     42
 > comp(fname, npairs=200, size=c(20, 100), spacer=-2, max.cuts=max.cuts, singles=50)
-  anchor.id target.id length orientation gap
-1         5         1    122           2 288
-2         6         4     83           1 178
-3         7         6     45           3  51
-4         7         6     72           0  72
-5         8         8    109           3  13
-6         9         4     85           0 308
+  anchor.id target.id length orientation insert
+1         5         1    122           2    288
+2         6         4     83           1    178
+3         7         6     45           3     51
+4         7         6     72           0     72
+5         8         8    109           3     13
+6         9         4     85           0    308
 > comp(fname, npairs=200, size=c(20, 100), spacer=-4, max.cuts=max.cuts, singles=10)
-  anchor.id target.id length orientation gap
-1         5         4     65           1  61
-2         6         4     97           3 111
-3         8         3     88           0 328
-4         8         3     18           1 268
-5         9         3     53           0 409
-6         9         9    141           3  53
+  anchor.id target.id length orientation insert
+1         5         4     65           1     61
+2         6         4     97           3    111
+3         8         3     88           0    328
+4         8         3     18           1    268
+5         9         3     53           0    409
+6         9         9    141           3     53
 > comp(fname, npairs=200, size=c(20, 100), spacer=-4, max.cuts=max.cuts, singles=50)
-  anchor.id target.id length orientation gap
-1         5         2     41           0 167
-2         5         3     56           1 101
-3         8         6     96           3  66
-4        12         2     44           0 485
-5        12         3     74           0 457
-6        12        12     33           3  15
+  anchor.id target.id length orientation insert
+1         5         2     41           0    167
+2         5         3     56           1    101
+3         8         6     96           3     66
+4        12         2     44           0    485
+5        12         3     74           0    457
+6        12        12     33           3     15
 > 
 > comp(fname, npairs=200, size=c(60, 100), spacer=-4, rlen=50, max.cuts=max.cuts)
-  anchor.id target.id length orientation gap
-1         3         2    121           3  95
-2         8         2     82           2 584
-3         9         7     86           0 231
-4        11         7     80           1 306
-5        14        12     38           1  99
-6        14        14    116           2  52
+  anchor.id target.id length orientation insert
+1         3         2    121           3     95
+2         8         2     82           2    584
+3         9         7     86           0    231
+4        11         7     80           1    306
+5        14        12     38           1     99
+6        14        14    116           2     52
 > comp(fname, npairs=500, size=c(60, 100), spacer=-4, rlen=50, max.cuts=max.cuts)
-  anchor.id target.id length orientation gap
-1         4         2     74           3 149
-2         4         2     71           0 158
-3         5         4    139           2 109
-4         6         4     82           3 186
-5         8         4    113           2 363
-6         8         6     81           3 204
+  anchor.id target.id length orientation insert
+1         4         2     74           3    149
+2         4         2     71           0    158
+3         5         4    139           2    109
+4         6         4     82           3    186
+5         8         4    113           2    363
+6         8         6     81           3    204
 > comp(fname, npairs=200, size=c(60, 100), spacer=-2, rlen=50, max.cuts=max.cuts)
-  anchor.id target.id length orientation gap
-1         3         2    105           3 128
-2         4         1    141           2 273
-3         6         5     53           1  51
-4         8         7    115           0 120
-5        10         3    104           1 549
-6        10         6     47           0 356
+  anchor.id target.id length orientation insert
+1         3         2    105           3    128
+2         4         1    141           2    273
+3         6         5     53           1     51
+4         8         7    115           0    120
+5        10         3    104           1    549
+6        10         6     47           0    356
 > comp(fname, npairs=500, size=c(60, 100), spacer=-2, rlen=50, max.cuts=max.cuts)
-  anchor.id target.id length orientation gap
-1         2         1    154           0 154
-2         2         1    148           3 191
-3         7         7     44           0  78
-4         8         6     38           1 102
-5         9         2     64           1 492
-6         9         4     68           1 360
+  anchor.id target.id length orientation insert
+1         2         1    154           0    154
+2         2         1    148           3    191
+3         7         7     44           0     78
+4         8         6     38           1    102
+5         9         2     64           1    492
+6         9         4     68           1    360
 > 
 > # Trying it out with some more elements in a more restricted space.
 > 
 > comp(fname, npairs=500, size=c(100, 500), max.cuts=c(chrA=2L))
-  anchor.id target.id length orientation gap
-1         1         1    460           0 142
-2         1         1    891           0  87
-3         1         1    770           3  48
-4         1         1    378           0 176
-5         1         1     89           3  21
-6         1         1    229           0  65
+  anchor.id target.id length orientation insert
+1         1         1    460           0    142
+2         1         1    891           0     87
+3         1         1    770           3     48
+4         1         1    378           0    176
+5         1         1     89           3     21
+6         1         1    229           0     65
 > comp(fname, npairs=200, size=c(500, 1000), max.cuts=c(chrA=2L, chrB=1L))
-  anchor.id target.id length orientation gap
-1         1         1    617           0 465
-2         1         1   1509           3  49
-3         1         1    146           0  24
-4         1         1    481           3 171
-5         1         1   1155           0  33
-6         1         1   1151           0 181
+  anchor.id target.id length orientation insert
+1         1         1    617           0    465
+2         1         1   1509           3     49
+3         1         1    146           0     24
+4         1         1    481           3    171
+5         1         1   1155           0     33
+6         1         1   1151           0    181
 > comp(fname, npairs=1000, size=c(20, 50), max.cuts=c(chrA=1L))
-  anchor.id target.id length orientation gap
-1         1         1     26           3  14
-2         1         1     58           0  14
-3         1         1     36           3  14
-4         1         1     33           3  11
-5         1         1     51           3  25
-6         1         1     44           2  13
+  anchor.id target.id length orientation insert
+1         1         1     26           3     14
+2         1         1     58           0     14
+3         1         1     36           3     14
+4         1         1     33           3     11
+5         1         1     51           3     25
+6         1         1     44           2     13
 > 
 > # Adding lots of chromosomes.
 > 
 > max.cuts<-c(chrA=5L, chrB=6L, chrC=7L, chrD=4L, chrE=3L, chrF=1L, chrG=2L)
 > comp(fname, npairs=200, size=c(500, 1000), max.cuts=max.cuts);
-  anchor.id target.id length orientation  gap
-1         3         2    950           3  409
-2         3         3    654           3  438
-3         4         3    579           0 1084
-4         5         3   1364           1 1923
+  anchor.id target.id length orientation insert
+1         3         2    950           3    409
+2         3         3    654           3    438
+3         4         3    579           0   1084
+4         5         3   1364           1   1923
 > comp(fname, npairs=1000, size=c(50, 100), max.cuts=max.cuts);
-  anchor.id target.id length orientation gap
-1         2         1     86           0  67
-2         2         2     98           0  14
-3         2         2     54           3  36
-4         2         2     88           2  17
-5         3         2    108           0  72
-6         3         2    110           1 120
+  anchor.id target.id length orientation insert
+1         2         1     86           0     67
+2         2         2     98           0     14
+3         2         2     54           3     36
+4         2         2     88           2     17
+5         3         2    108           0     72
+6         3         2    110           1    120
 > comp(fname, npairs=200, size=c(100, 500), max.cuts=max.cuts);
-  anchor.id target.id length orientation gap
-1         3         2    171           3 539
-2         4         2    384           0 546
+  anchor.id target.id length orientation insert
+1         3         2    171           3    539
+2         4         2    384           0    546
 > comp(fname, npairs=1000, size=c(200, 300), max.cuts=max.cuts);
-  anchor.id target.id length orientation gap
-1         2         2    351           0  59
-2         3         1    256           2 508
-3         3         2    236           0 264
-4         3         2    283           1 293
-5         3         2    348           0 170
-6         4         1    236           1 728
+  anchor.id target.id length orientation insert
+1         2         2    351           0     59
+2         3         1    256           2    508
+3         3         2    236           0    264
+4         3         2    283           1    293
+5         3         2    348           0    170
+6         4         1    236           1    728
 > 
 > ###################################################################################################
 > # Trying to do simulations with chimeras is hellishly complicated, so we're just going to settle for 
@@ -645,7 +597,10 @@ $chimeras
 + 	for (ax in names(indices)) {
 + 		if (is.null(output[[ax]])) { output[[ax]]<-list() }
 + 		for (tx in names(indices[[ax]])) {
-+ 			output[[ax]][[tx]]<-h5read(dir, file.path(ax, tx))
++ 			extracted <- h5read(dir, file.path(ax, tx))
++ 			processed <- diffHic:::.getStats(extracted, ax==tx, start(cuts), end(cuts))
++ 			output[[ax]][[tx]] <- data.frame(anchor.id=extracted$anchor.id, target.id=extracted$target.id,
++ 				length=processed$length, orientation=processed$orientation, insert=processed$insert)
 + 			if (!is.null(named[[ix]])) { rownames(output[[ax]][[tx]])<-named[[ix]] }
 + 			ix <- ix + 1L
 + 		}
@@ -655,37 +610,37 @@ $chimeras
 > printfun(tmpdir, named=named)
 $chrA
 $chrA$chrA
-                   anchor.id target.id length orientation gap
-chimeric.invalid.5         2         1     40           1  40
-good.1                     2         1     80           1  80
-good.2                     2         1     60           2  54
-good.3                     4         1     40           3 160
-chimeric.invalid.4         4         2     20           1  66
-good.4                     4         2     80           0 114
-chimeric.invalid.6         4         3     10           1  10
-other.1                    4         4     65           0  35
+                   anchor.id target.id length orientation insert
+chimeric.invalid.5         2         1     40           1     40
+good.1                     2         1     80           1     80
+good.2                     2         1     60           2     54
+good.3                     4         1     40           3    160
+chimeric.invalid.4         4         2     20           1     66
+good.4                     4         2     80           0    114
+chimeric.invalid.6         4         3     10           1     10
+other.1                    4         4     65           0     35
 
 
 $chrB
 $chrB$chrA
-                   anchor.id target.id length orientation gap
-good.8                     5         2     10           2  NA
-good.5                     5         3     30           2  NA
-chimeric.good.4            5         4     30           2  NA
-chimeric.good.5            5         4     25           0  NA
-chimeric.good.1            6         1     35           0  NA
-chimeric.invalid.2         6         2     10           1  NA
-chimeric.invalid.1         6         3     10           1  NA
-chimeric.invalid.3         6         3     20           3  NA
-chimeric.invalid.7         6         3     15           3  NA
-chimeric.good.2            7         3     20           1  NA
+                   anchor.id target.id length orientation insert
+good.8                     5         2     10           2     NA
+good.5                     5         3     30           2     NA
+chimeric.good.4            5         4     30           2     NA
+chimeric.good.5            5         4     25           0     NA
+chimeric.good.1            6         1     35           0     NA
+chimeric.invalid.2         6         2     10           1     NA
+chimeric.invalid.1         6         3     10           1     NA
+chimeric.invalid.3         6         3     20           3     NA
+chimeric.invalid.7         6         3     15           3     NA
+chimeric.good.2            7         3     20           1     NA
 
 $chrB$chrB
-                anchor.id target.id length orientation gap
-good.7                  6         5     25           2  64
-good.6                  7         5     35           3  84
-chimeric.good.3         7         6     10           1  10
-other.2                 7         7     30           2  13
+                anchor.id target.id length orientation insert
+good.7                  6         5     25           2     64
+good.6                  7         5     35           3     84
+chimeric.good.3         7         6     10           1     10
+other.2                 7         7     30           2     13
 
 
 > 
@@ -726,32 +681,32 @@ $chimeras
 > printfun(tmpdir2, named=named)
 $chrA
 $chrA$chrA
-                   anchor.id target.id length orientation gap
-chimeric.invalid.5         2         1     40           1  40
-good.1                     2         1     80           1  80
-good.2                     2         1     60           2  54
-good.3                     4         1     40           3 160
-chimeric.invalid.4         4         2     20           1  66
-good.4                     4         2     80           0 114
-chimeric.invalid.6         4         3     10           1  10
+                   anchor.id target.id length orientation insert
+chimeric.invalid.5         2         1     40           1     40
+good.1                     2         1     80           1     80
+good.2                     2         1     60           2     54
+good.3                     4         1     40           3    160
+chimeric.invalid.4         4         2     20           1     66
+good.4                     4         2     80           0    114
+chimeric.invalid.6         4         3     10           1     10
 
 
 $chrB
 $chrB$chrA
-                   anchor.id target.id length orientation gap
-good.8                     5         2     10           2  NA
-good.5                     5         3     30           2  NA
-chimeric.good.1            6         1     35           0  NA
-chimeric.invalid.2         6         2     10           1  NA
-chimeric.invalid.3         6         3     20           3  NA
-chimeric.invalid.7         6         3     15           3  NA
+                   anchor.id target.id length orientation insert
+good.8                     5         2     10           2     NA
+good.5                     5         3     30           2     NA
+chimeric.good.1            6         1     35           0     NA
+chimeric.invalid.2         6         2     10           1     NA
+chimeric.invalid.3         6         3     20           3     NA
+chimeric.invalid.7         6         3     15           3     NA
 
 $chrB$chrB
-                anchor.id target.id length orientation gap
-good.7                  6         5     25           2  64
-good.6                  7         5     35           3  84
-chimeric.good.3         7         6     10           1  10
-other.2                 7         7     30           2  13
+                anchor.id target.id length orientation insert
+good.7                  6         5     25           2     64
+good.6                  7         5     35           3     84
+chimeric.good.3         7         6     10           1     10
+other.2                 7         7     30           2     13
 
 
 > 
@@ -782,27 +737,27 @@ $chimeras
 > printfun(tmpdir2, named=named)
 $chrA
 $chrA$chrA
-                   anchor.id target.id length orientation gap
-good.1                     2         1     80           1  80
-good.2                     2         1     60           2  54
-good.3                     4         1     40           3 160
-chimeric.invalid.4         4         2     20           1  66
-good.4                     4         2     80           0 114
+                   anchor.id target.id length orientation insert
+good.1                     2         1     80           1     80
+good.2                     2         1     60           2     54
+good.3                     4         1     40           3    160
+chimeric.invalid.4         4         2     20           1     66
+good.4                     4         2     80           0    114
 
 
 $chrB
 $chrB$chrA
-                anchor.id target.id length orientation gap
-good.8                  5         2     10           2  NA
-good.5                  5         3     30           2  NA
-chimeric.good.1         6         1     35           0  NA
+                anchor.id target.id length orientation insert
+good.8                  5         2     10           2     NA
+good.5                  5         3     30           2     NA
+chimeric.good.1         6         1     35           0     NA
 
 $chrB$chrB
-                anchor.id target.id length orientation gap
-good.7                  6         5     25           2  64
-good.6                  7         5     35           3  84
-chimeric.good.3         7         6     10           1  10
-other.2                 7         7     30           2  13
+                anchor.id target.id length orientation insert
+good.7                  6         5     25           2     64
+good.6                  7         5     35           3     84
+chimeric.good.3         7         6     10           1     10
+other.2                 7         7     30           2     13
 
 
 > 
@@ -845,193 +800,33 @@ $chimeras
 > printfun(tmpdir2, named=named)
 $chrA
 $chrA$chrA
-                   anchor.id target.id length orientation gap
-chimeric.invalid.5         2         1     40           1  40
-good.2                     2         1     60           2  54
-chimeric.invalid.4         4         2     20           1  66
-good.4                     4         2     80           0 114
+                   anchor.id target.id length orientation insert
+chimeric.invalid.5         2         1     40           1     40
+good.2                     2         1     60           2     54
+chimeric.invalid.4         4         2     20           1     66
+good.4                     4         2     80           0    114
 
 
 $chrB
 $chrB$chrA
-                   anchor.id target.id length orientation gap
-good.8                     5         2     10           2  NA
-good.5                     5         3     30           2  NA
-chimeric.good.1            6         1     35           0  NA
-chimeric.invalid.3         6         3     20           3  NA
-chimeric.invalid.7         6         3     15           3  NA
+                   anchor.id target.id length orientation insert
+good.8                     5         2     10           2     NA
+good.5                     5         3     30           2     NA
+chimeric.good.1            6         1     35           0     NA
+chimeric.invalid.3         6         3     20           3     NA
+chimeric.invalid.7         6         3     15           3     NA
 
 $chrB$chrB
-                anchor.id target.id length orientation gap
-good.7                  6         5     25           2  64
-good.6                  7         5     35           3  84
-chimeric.good.3         7         6     10           1  10
-other.2                 7         7     30           2  13
+                anchor.id target.id length orientation insert
+good.7                  6         5     25           2     64
+good.6                  7         5     35           3     84
+chimeric.good.3         7         6     10           1     10
+other.2                 7         7     30           2     13
 
 
 > 
 > ###################################################################################################
 > # This tests whether they are counted properly. 
-> 
-> countPairs(tmpdir, cntdir)
-   total   length    ingap   outgap retained 
-      22        0        0        0       22 
-> printfun(cntdir)
-$chrA
-$chrA$chrA
-  anchor.id target.id count
-1         2         1     3
-2         4         1     1
-3         4         2     2
-4         4         3     1
-5         4         4     1
-
-
-$chrB
-$chrB$chrA
-  anchor.id target.id count
-1         5         2     1
-2         5         3     1
-3         5         4     2
-4         6         1     1
-5         6         2     1
-6         6         3     3
-7         7         3     1
-
-$chrB$chrB
-  anchor.id target.id count
-1         6         5     1
-2         7         5     1
-3         7         6     1
-4         7         7     1
-
-
-> 
-> countPairs(tmpdir2, cntdir)
-   total   length    ingap   outgap retained 
-      13        0        0        0       13 
-> printfun(cntdir)
-$chrA
-$chrA$chrA
-  anchor.id target.id count
-1         2         1     2
-2         4         2     2
-
-
-$chrB
-$chrB$chrA
-  anchor.id target.id count
-1         5         2     1
-2         5         3     1
-3         6         1     1
-4         6         3     2
-
-$chrB$chrB
-  anchor.id target.id count
-1         6         5     1
-2         7         5     1
-3         7         6     1
-4         7         7     1
-
-
-> 
-> countPairs(tmpdir, cntdir, max.length=50)
-   total   length    ingap   outgap retained 
-      22        4        0        0       18 
-> printfun(cntdir)
-$chrA
-$chrA$chrA
-  anchor.id target.id count
-1         2         1     1
-2         4         1     1
-3         4         2     1
-4         4         3     1
-
-
-$chrB
-$chrB$chrA
-  anchor.id target.id count
-1         5         2     1
-2         5         3     1
-3         5         4     2
-4         6         1     1
-5         6         2     1
-6         6         3     3
-7         7         3     1
-
-$chrB$chrB
-  anchor.id target.id count
-1         6         5     1
-2         7         5     1
-3         7         6     1
-4         7         7     1
-
-
-> 
-> countPairs(tmpdir, cntdir, min.ingap=50)
-   total   length    ingap   outgap retained 
-      22        0        3        0       19 
-> printfun(cntdir)
-$chrA
-$chrA$chrA
-  anchor.id target.id count
-1         2         1     2
-2         4         1     1
-3         4         2     2
-4         4         4     1
-
-
-$chrB
-$chrB$chrA
-  anchor.id target.id count
-1         5         2     1
-2         5         3     1
-3         5         4     2
-4         6         1     1
-5         6         2     1
-6         6         3     3
-7         7         3     1
-
-$chrB$chrB
-  anchor.id target.id count
-1         6         5     1
-2         7         5     1
-3         7         7     1
-
-
-> 
-> countPairs(tmpdir, cntdir, min.outgap=50)
-   total   length    ingap   outgap retained 
-      22        0        0        1       21 
-> printfun(cntdir)
-$chrA
-$chrA$chrA
-  anchor.id target.id count
-1         2         1     3
-2         4         1     1
-3         4         2     2
-4         4         3     1
-5         4         4     1
-
-
-$chrB
-$chrB$chrA
-  anchor.id target.id count
-1         5         2     1
-2         5         3     1
-3         5         4     2
-4         6         1     1
-5         6         2     1
-6         6         3     3
-7         7         3     1
-
-$chrB$chrB
-  anchor.id target.id count
-1         6         5     1
-2         7         5     1
-3         7         6     1
-
-
 > 
 > unlink(dir, recursive=TRUE) # Cleaning up
 > 
@@ -1040,4 +835,4 @@ $chrB$chrB
 > 
 > proc.time()
    user  system elapsed 
- 26.804   0.385  27.287 
+ 16.949   0.312  17.315 

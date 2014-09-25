@@ -153,18 +153,15 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 	panchor <- pchrs > schrs | 
 		(pchrs==schrs & pfrag > sfrag) | 
 		(pchrs==schrs & pfrag==sfrag & ppos > spos)
-	gaps<-ifelse(pchrs==schrs, ifelse(panchor, ppos-spos, spos-ppos)+rlen, NA)
+	inserts<-ifelse(pchrs==schrs, pmax(ppos, spos)-pmin(spos, ppos)+rlen, NA)
 	orientations<-ifelse(pstr, 0L, ifelse(panchor, 1L, 2L))+ifelse(sstr, 0L, ifelse(panchor, 2L, 1L))
 
 	################ ACTUAL MATCH ###################
 	# Assembling the output list for comparison.
 
 	tmpdir<-paste0(fname, "_temp")
-	diagnostics <- preparePairs(out, outfrags, tmpdir, yield=yield);
-	cntdir1 <- paste0(fname, "_temp_count1")
-	cntdir2 <- paste0(fname, "_temp_count2")
-	cntdir3 <- paste0(fname, "_temp_count3")
-	cntdir4 <- paste0(fname, "_temp_count4")
+	param <- pairParam(fragments=outfrags)
+	diagnostics <- preparePairs(out, param, tmpdir, yield=yield);
    	
 	stopifnot(sum(codes==1L)==diagnostics$same.id[["dangling"]])
 	stopifnot(sum(codes==3L)==diagnostics$same.id[["self.circle"]])
@@ -176,13 +173,6 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 	stopifnot(diagnostics$chimeras[["total"]]==0L)
 	stopifnot(diagnostics$chimeras[["mapped"]]==0L)
 	stopifnot(diagnostics$chimeras[["invalid"]]==0L)
-	
-	# Checking counts.
-	stats1 <- countPairs(tmpdir, cntdir1)
-	threshold<-500
-	stats2 <- countPairs(tmpdir, cntdir2, max.length=threshold)
-	stats3 <- countPairs(tmpdir, cntdir3, min.ingap=threshold)
-	stats4 <- countPairs(tmpdir, cntdir4, min.outgap=threshold)
 
 	# Anchor/target synchronisation is determined by order in 'fragments' (and thusly, in max.cuts).
 	offset<-c(0L, cumsum(max.cuts))
@@ -209,10 +199,10 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 			target<-target+offset[j]
 			totes<-frag.lens[stuff]
 			cur.ori<-orientations[stuff]
-			cur.gap<-gaps[stuff]
-			o<-order(anchor, target, totes, cur.ori, cur.gap)
+			cur.insert<-inserts[stuff]
+			o<-order(anchor, target, totes, cur.ori, cur.insert)
 
-			# Checking anchor/target/length/orientation/gap statistics (sorting to ensure comparability).
+			# Checking anchor/target/length/orientation/insert statistics (sorting to ensure comparability).
 			achr<-names(max.cuts)[i]
 			tchr<-names(max.cuts)[j]
 			if (!(achr%in%names(indices)) || !(tchr %in% names(indices[[achr]]))) { 
@@ -221,52 +211,19 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 			}
 			current<-h5read(tmpdir, file.path(achr, tchr))
 			for (x in 1:ncol(current)) { attributes(current[,x]) <- NULL }
-			current<-current[order(current$anchor.id, current$target.id, current$length, current$orientation, current$gap),]
-			stopifnot(identical(current$anchor.id, anchor[o]))
-			stopifnot(identical(current$target.id, target[o]))
-			stopifnot(identical(current$length, totes[o]))
-			stopifnot(identical(current$orientation, cur.ori[o]))
-			stopifnot(identical(current$gap, cur.gap[o]))
+			collated <- diffHic:::.getStats(current, achr==tchr, start(outfrags), end(outfrags))
 			
-			# Checking counts for this particular thing.
-			for (k in 1:4) {
-				curdir <- get(paste0("cntdir", k))
-				stats <- get(paste0("stats", k))
-				curdex <- h5ls(curdir)
-				is.present <- any(basename(curdex$group)==achr & curdex$name==tchr & curdex$otype=="H5I_DATASET")
-				if (!is.present) {
-					current2 <- data.frame(anchor.id=integer(0), target.id=integer(0), count=integer(0))
-				} else {
-					current2 <- h5read(curdir, file.path(achr, tchr))
-					for (x in 1:ncol(current2)) { attributes(current2[,x]) <- NULL }
-				}
-
-				copy.current<-current
-				if (k==2) {
-					keep <- copy.current$length<=threshold
-					copy.current <- copy.current[keep,]
-					stats[["length"]] <- stats[["length"]] - sum(!keep) 
-				} else if (k==3) { 
-					keep <- copy.current$gap >= threshold | is.na(copy.current$gap) | copy.current$orientation!=1L
-					copy.current <- copy.current[keep,]
-					stats[["ingap"]] <- stats[["ingap"]] - sum(!keep)
-				} else if (k==4) {
-					keep <- copy.current$gap >= threshold | is.na(copy.current$gap) | copy.current$orientation!=2L
-					copy.current <- copy.current[keep,]
-					stats[["outgap"]] <- stats[["outgap"]] - sum(!keep)
-				}
-				stats[["total"]] <- stats[["total"]] - nrow(current)
-				stats[["retained"]] <- stats[["retained"]] - nrow(copy.current)
-				assign(paste0("stats", k), stats)
-				if (!nrow(current2) && !nrow(copy.current)) { next }
-
-				ref<-aggregate(length~anchor.id+target.id, data=copy.current, FUN=length)
-				ref<-ref[order(ref$anchor.id, ref$target.id),]
-				colnames(ref)[3]<-"count"
-				rownames(ref)<-NULL
-				if (!identical(current2, ref)) { stop("counted values don't match up") }
+			o2 <- order(current$anchor.id, current$target.id, collated$length, collated$orientation, collated$insert)
+			stopifnot(identical(current$anchor.id[o2], anchor[o]))
+			stopifnot(identical(current$target.id[o2], target[o]))
+			stopifnot(identical(collated$length[o2], totes[o]))
+			stopifnot(identical(collated$orientation[o2], cur.ori[o]))
+			if (!identical(collated$insert[o2], cur.insert[o])) { 
+				print(cbind(collated$insert[o2], cur.insert[o]))
+				print(current[o2,])
 			}
-			
+			stopifnot(identical(collated$insert[o2], cur.insert[o]))
+				
 			# Checking that we're looking at the right combination.
 	        uniq.a<-unique(fchrs[current[,1]])
 			uniq.t<-unique(fchrs[current[,2]])
@@ -278,29 +235,25 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 
 	# Checking there's nothing left.
 	if (!is.null(unlist(used))) { stop("objects left unused in the directory") }
-	if (any(stats1!=0L) || any(stats2!=0L) || any(stats3!=0L) || any(stats4!=0L)) { 
-		print(stats1)
-		print(stats2)
-		print(stats3)
-		print(stats4)
-		stop("incorrect statistic summation during counting")
-	}
 
-	# Length gap and orientation checking.
+	# Length insert and orientation checking.
 	keepers<-codes==0L | codes==2L
 	valid.len<-frag.lens[keepers]
-	valid.gap<-gaps[keepers]
+	valid.insert<-inserts[keepers]
 	valid.ori<-orientations[keepers]
-	o<-order(valid.len, valid.ori, valid.gap)
-	auxiliary<-getPairData(tmpdir, ori=TRUE, gap=TRUE)
+	o<-order(valid.len, valid.ori, valid.insert)
+	auxiliary<-getPairData(tmpdir, param)
 	o2<-do.call(order, auxiliary)
 	if (!identical(valid.len[o], auxiliary$length[o2])) { stop("extracted fragment sizes don't match up") }
-	if (!identical(valid.gap[o], auxiliary$gap[o2])) { stop("extracted gaps don't match up") }
+	if (!identical(valid.insert[o], auxiliary$insert[o2])) { stop("extracted inserts don't match up") }
 	if (!identical(valid.ori[o], auxiliary$orientation[o2])) { stop("extracted orientations don't match up") }
 
 	curdex <- h5ls(tmpdir)
-	curdex <- curdex[curdex$otype=="H5I_DATASET",][1,]	
-	return(head(h5read(tmpdir, file.path(curdex$group, curdex$name))))
+	curdex <- curdex[curdex$otype=="H5I_DATASET",][1,]
+	returned <- h5read(tmpdir, file.path(curdex$group, curdex$name))
+	processed <- diffHic:::.getStats(returned, basename(curdex$group)==curdex$name, start(outfrags), end(outfrags))
+	return(head(data.frame(anchor.id=returned$anchor.id, target.id=returned$target.id, length=processed$length,
+		orientation=processed$orientation, insert=processed$insert)))
 }
 
 ####################################################################################################
@@ -398,7 +351,10 @@ printfun<-function(dir, named=NULL) {
 	for (ax in names(indices)) {
 		if (is.null(output[[ax]])) { output[[ax]]<-list() }
 		for (tx in names(indices[[ax]])) {
-			output[[ax]][[tx]]<-h5read(dir, file.path(ax, tx))
+			extracted <- h5read(dir, file.path(ax, tx))
+			processed <- diffHic:::.getStats(extracted, ax==tx, start(cuts), end(cuts))
+			output[[ax]][[tx]] <- data.frame(anchor.id=extracted$anchor.id, target.id=extracted$target.id,
+				length=processed$length, orientation=processed$orientation, insert=processed$insert)
 			if (!is.null(named[[ix]])) { rownames(output[[ax]][[tx]])<-named[[ix]] }
 			ix <- ix + 1L
 		}
@@ -464,21 +420,6 @@ printfun(tmpdir2, named=named)
 
 ###################################################################################################
 # This tests whether they are counted properly. 
-
-countPairs(tmpdir, cntdir)
-printfun(cntdir)
-
-countPairs(tmpdir2, cntdir)
-printfun(cntdir)
-
-countPairs(tmpdir, cntdir, max.length=50)
-printfun(cntdir)
-
-countPairs(tmpdir, cntdir, min.ingap=50)
-printfun(cntdir)
-
-countPairs(tmpdir, cntdir, min.outgap=50)
-printfun(cntdir)
 
 unlink(dir, recursive=TRUE) # Cleaning up
 
