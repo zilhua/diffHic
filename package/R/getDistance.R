@@ -23,7 +23,7 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 	return(output)
 }
 
-getArea <- function(data, fragments=NULL)
+getArea <- function(data, param=NULL)
 # Computing the number of restriction fragment pairs in the interaction space.
 # This allows adjustment of abundances for comparison between differently-sized areas.
 # Special behaviour is necessary on the diagonal, as only half the fragments are actually used.
@@ -41,8 +41,9 @@ getArea <- function(data, fragments=NULL)
 	returned <- curnfrag * data@region$nfrags[tx]
 	returned[is.same] <- curnfrag[is.same]*(curnfrag[is.same]+1)/2
 
-	if (!is.null(fragments)) { 
+	if (!is.null(param)) { 
 		# Detour to protect against overlapping regions.
+		fragments <- param$fragments
 		fdata <- .checkFragments(fragments)
 
 		left.edge <- pmax(start(data@region)[ax], start(data@region)[tx])
