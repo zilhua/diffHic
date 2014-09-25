@@ -5,16 +5,15 @@
 \description{Count the number of read pairs connecting pairs of user-specified regions}
 
 \usage{ 
-connectCounts(files, fragments, regions, filter=1L, type="any", restrict=NULL)
+connectCounts(files, param, regions, filter=1L, type="any")
 }
 
 \arguments{
    \item{files}{a character vector containing the paths to the count file for each library}
-   \item{fragments}{a \code{GRanges} object containing the boundaries of restriction fragments on the genome of interest}
+   \item{param}{a \code{pairParam} object containing read extraction parameters}
    \item{regions}{a \code{GRanges} object specifying the regions between which read pairs should be counted}
    \item{filter}{an integer scalar specifying the minimum count for each interaction}
    \item{type}{a character string specifying how restriction fragments should be assigned to regions}
-   \item{restrict}{a character vector specifying the allowable chromosome names}
 }
 
 \value{
@@ -40,6 +39,9 @@ The modified regions can be extracted from the \code{regions} slot in the output
 Note that these will be reordered compared to the input \code{regions}.
 The ordering permutation can be recovered from the \code{original} metadata field of the \code{GRanges} object.
 Similarly, the number of restriction fragments assigned to each interval is stored in the \code{nfrags} metadata field.
+
+Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
+Similarly, any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
 }
 
 \seealso{
@@ -53,17 +55,17 @@ Similarly, the number of restriction fragments assigned to each interval is stor
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 # Setting up the parameters
 fout <- "output"
-preparePairs(hic.file, cuts, fout)
-countPairs(fout)
+invisible(preparePairs(hic.file, param, fout))
 regions <- GRanges("chrA", IRanges(c(1, 100, 150), c(20, 140, 160)))
 regions2 <- suppressWarnings(c(regions, GRanges("chrB", IRanges(50, 100))))
 
 # Collating to count combinations.
-connectCounts(fout, cuts, regions=regions, filter=1L)
-connectCounts(fout, cuts, regions=regions2, filter=1L)
-connectCounts(fout, cuts, regions=regions2, filter=1L, type="within")
+connectCounts(fout, param, regions=regions, filter=1L)
+connectCounts(fout, param, regions=regions2, filter=1L)
+connectCounts(fout, param, regions=regions2, filter=1L, type="within")
 }
 
