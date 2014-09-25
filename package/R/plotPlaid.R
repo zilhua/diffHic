@@ -1,4 +1,4 @@
-plotPlaid <- function(file, fragments, anchor, target=anchor, 
+plotPlaid <- function(file, param, anchor, target=anchor, 
    	width=10000, col="red", cap=20, xlab=NULL, ylab=NULL, 
 	diag=TRUE, count=FALSE, count.args=list(), ...)
 # This function takes a set of boundaries and a count directory and it generates a plaid plot of 
@@ -10,7 +10,7 @@ plotPlaid <- function(file, fragments, anchor, target=anchor,
 # written by Aaron Lun
 # sometime in 2012.
 {
-	if (!is.integer(width)) { width<-as.integer(width) }
+	width<-as.integer(width) 
 	achr <- as.character(seqnames(anchor))
 	tchr <- as.character(seqnames(target))
 	astart <- start(anchor)
@@ -19,7 +19,14 @@ plotPlaid <- function(file, fragments, anchor, target=anchor,
 	tend <- end(target)
     if (length(achr)!=1L) { stop("exactly one anchor range is required for plotting") }
     if (length(tchr)!=1L) { stop("exactly one target range is required for plotting") }
+
+	# Setting up the parameters
+	fragments <- param$fragments
 	if (!(achr %in% seqlevels(fragments)) || !(tchr %in% seqlevels(fragments))) { stop("anchor/target chromosome names not in cut site list") }
+	min.ingap <- param$min.inward
+	min.outgap <- param$min.outward
+	max.frag <- param$max.frag
+	discard <- .splitDiscards(param$discard)
 
 	# Setting up the boundaries.
 	a.min <- max(1L, astart)
@@ -42,11 +49,11 @@ plotPlaid <- function(file, fragments, anchor, target=anchor,
 	all.dex <- .loadIndices(file)
 	flipped <- FALSE
 	if (!is.null(all.dex[[achr]][[tchr]])) {
-		current <- .getPairs(file, achr, tchr)
+		current <- .baseHiCParser(TRUE, file, achr, tchr, discard=discard)[[1]]
 	} else if (!is.null(all.dex[[tchr]][[achr]])) { 
-		current <- .getPairs(file, tchr, achr)
+		current <- .baseHiCParser(TRUE, file, tchr, achr, discard=discard)[[1]]
 		flipped <- TRUE
-	} else { current<-data.frame(anchor.id=integer(0), target.id=integer(0), count=integer(0)) }
+	} else { current<-data.frame(anchor.id=integer(0), target.id=integer(0)) }
 
 	# Generating a plot.
 	if (is.null(xlab)) { xlab <- achr }
@@ -93,8 +100,7 @@ plotPlaid <- function(file, fragments, anchor, target=anchor,
 	return(invisible(NULL))
 }
 
-rotPlaid <- function(file, fragments, region, width=10000, col="red", cap=20, xlab=NULL,
-    ylab="Gap", ...) 
+rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=NULL, ylab="Gap", ...)
 # This constructs a sideways plot of interaction intensities.
 # Boxes represent interactions where the interacting loci are
 # on the x-axis, extended from the diagonal.
@@ -107,7 +113,14 @@ rotPlaid <- function(file, fragments, region, width=10000, col="red", cap=20, xl
 	xstart <- start(region)
 	xend <- end(region)
 	if (length(xchr)!=1L) { stop("exactly one region is required for plotting") }
-	if (!xchr %in% seqlevels(fragments)) { stop("anchor/target chromosome names not in cut site list") }
+
+	# Setting up the parameters
+	fragments <- param$fragments
+	if (!xchr %in% seqlevels(fragments)) { stop("anchor/target chromosome names not in cut site list") } 
+	min.ingap <- param$min.inward
+	min.outgap <- param$min.outwar
+	max.frag <- param$max.frag
+	discard <- .splitDiscards(param$discard)
 
 	# Setting up the boundaries.
 	x.min <- max(1L, xstart)
@@ -123,9 +136,9 @@ rotPlaid <- function(file, fragments, region, width=10000, col="red", cap=20, xl
 	# Pulling out the read pair indices from each file.
 	all.dex <- .loadIndices(file)
 	if (!is.null(all.dex[[xchr]][[xchr]])) {
-		current <- .getPairs(file, xchr, xchr)
+		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard)[[1]]
 	} else { 
-		current<-data.frame(anchor.id=integer(0), target.id=integer(0), count=integer(0)) 
+		current<-data.frame(anchor.id=integer(0), target.id=integer(0))
 	}
 
 	# Computing the max height.
