@@ -1,4 +1,4 @@
-mergePairs <- function(files, file.out, is.count=TRUE)
+mergePairs <- function(files, file.out)
 # This function merges one or more separate count files together. It also produces a new index file
 # representing the updated values of the older count file combination. The algorithm proceeds
 # by reading all the index files in; splitting by anchor/target combinations, and then pulling out
@@ -25,9 +25,6 @@ mergePairs <- function(files, file.out, is.count=TRUE)
 			}
 			out <- do.call(rbind, out)
             out <- out[order(out$anchor.id, out$target.id),]
-			if (is.count) {  # Checking whether it's count data, in which case we sum it.
-        		out <- .sortedAggregate(out, mode="sum")
-			}
 			.writePairs(out, tmpf, ac, tc)
         }
     }
