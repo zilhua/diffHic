@@ -17,7 +17,7 @@ savecomp<-function(n, nfrags, nchrs) {
 		seqinfo=Seqinfo(seqnames=paste0("chr", 1:nchrs)))
 	blah<-sort(blah)
 	newdir<-file.path(tmp, "output")
-	savePairs(collected, newdir, fragments=blah)
+	savePairs(collected, newdir, pairParam(fragments=blah))
 
 	# Checking if everything makes sense.
 	chrs<-as.character(seqnames(blah))
@@ -73,14 +73,14 @@ mergecomp<-function(nl, n, nfrags, nchrs) {
 		collected <- data.frame(anchor.id=pmax(ai, ti), target.id=pmin(ai, ti), junk=ai+ti, more.junk=ai-ti)
 		allcounts[[x]]<-collected
 		allfiles[[x]]<-  file.path(tmp, paste0("output_", x))
-		savePairs(collected, allfiles[[x]], fragments=blah)
+		savePairs(collected, allfiles[[x]], pairParam(fragments=blah))
 	}
 	
 	# Comparing the combined with a more brutal merger.		
 	allfiles<-unlist(allfiles)
 	allcounts<-do.call(rbind, allcounts)
 	rdir<-file.path(tmp, "output_ref")
-	savePairs(allcounts, rdir, fragments=blah)
+	savePairs(allcounts, rdir, pairParam(fragments=blah))
 
 	mdir<-file.path(tmp, "output_merged")
 	mergePairs(allfiles, mdir)

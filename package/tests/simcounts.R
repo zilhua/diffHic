@@ -22,7 +22,7 @@ simgen <- function(dir, num, chromos) {
 		}
 	}
 	tmpfrags<-GRanges(rep(names(chromos), chromos), IRanges(1:sum(chromos), 1:sum(chromos)))
-	savePairs(overall, dir, tmpfrags)
+	savePairs(overall, dir, pairParam(tmpfrags))
 }
 
 # Spawning a new cut site set-up.
