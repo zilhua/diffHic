@@ -7,16 +7,16 @@
 \description{Plot interactions between two sequences in a plaid format with informative colouring}
 
 \usage{
-plotPlaid(file, fragments, anchor, target=anchor, 
+plotPlaid(file, param, anchor, target=anchor, 
     width=10000, col="red", cap=20, xlab=NULL, ylab=NULL, 
 	diag=TRUE, count=FALSE, count.args=list(), ...)
-rotPlaid(file, fragments, region, width=10000, col="red", 
+rotPlaid(file, param, region, width=10000, col="red", 
     cap=20, xlab=NULL, ylab="Gap", ...) 
 }
 
 \arguments{
 	\item{file}{character string specifying the path to an index file produced by \code{\link{countPairs}}}
-	\item{fragments}{a \code{GRanges} object containing the boundaries of the restriction fragments on each chromosome}
+	\item{param}{a \code{pairParam} object containing read extraction parameters}
 	\item{anchor}{a \code{GRanges} object of length 1 specifying the anchor region}
 	\item{target}{a \code{GRanges} object of length 1 specifying the target region}
 	\item{region}{a \code{GRanges} object of length 1 specifying the region of interest}
@@ -65,34 +65,34 @@ A (rotated) plaid plot is produced on the current graphics device.
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 originals <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(originals)
 
 # Setting up parameters
 fout <- "temp_saved.h5"
-invisible(preparePairs(hic.file, originals, fout))
-invisible(countPairs(fout))
+invisible(preparePairs(hic.file, param, fout))
 
 # Constructing intra-chromosomal plaid plots around various regions
-plotPlaid(fout, originals, anchor=GRanges("chrA", IRanges(1, 100)), 
+plotPlaid(fout, param, anchor=GRanges("chrA", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50, diag=TRUE)
-plotPlaid(fout, originals, anchor=GRanges("chrA", IRanges(1, 100)), 
+plotPlaid(fout, param, anchor=GRanges("chrA", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50, diag=FALSE)
 
 # Constructing plaid plots around various regions
-plotPlaid(fout, originals, anchor=GRanges("chrB", IRanges(1, 100)), 
+plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50)
-plotPlaid(fout, originals, anchor=GRanges("chrB", IRanges(1, 100)), 
+plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=100)
 
 # For a hypothetical second library which is half the size of the previous one:
-plotPlaid(fout, originals, anchor=GRanges("chrB", IRanges(1, 100)),
+plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)),
     target=GRanges("chrA", IRanges(1, 200)), width=100, cap=20, count=TRUE)
-plotPlaid(fout, originals, anchor=GRanges("chrB", IRanges(1, 100)),
+plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)),
     target=GRanges("chrA", IRanges(1, 200)), width=100, cap=40,
     count=TRUE, count.args=list(col="blue"))
 
 # Rotated
-rotPlaid(fout, originals, region=GRanges("chrA", IRanges(1, 200)), width=50)
-rotPlaid(fout, originals, region=GRanges("chrA", IRanges(1, 200)), width=100)
+rotPlaid(fout, param, region=GRanges("chrA", IRanges(1, 200)), width=50)
+rotPlaid(fout, param, region=GRanges("chrA", IRanges(1, 200)), width=100)
 
 \dontshow{
 unlink(fout, recursive=TRUE)
