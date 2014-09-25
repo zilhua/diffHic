@@ -211,7 +211,7 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 			}
 			current<-h5read(tmpdir, file.path(achr, tchr))
 			for (x in 1:ncol(current)) { attributes(current[,x]) <- NULL }
-			collated <- diffHic:::.getStats(current, achr==tchr, start(outfrags), end(outfrags))
+			collated <- diffHic:::.getStats(current, achr==tchr, outfrags)
 			
 			o2 <- order(current$anchor.id, current$target.id, collated$length, collated$orientation, collated$insert)
 			stopifnot(identical(current$anchor.id[o2], anchor[o]))
@@ -251,7 +251,7 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 	curdex <- h5ls(tmpdir)
 	curdex <- curdex[curdex$otype=="H5I_DATASET",][1,]
 	returned <- h5read(tmpdir, file.path(curdex$group, curdex$name))
-	processed <- diffHic:::.getStats(returned, basename(curdex$group)==curdex$name, start(outfrags), end(outfrags))
+	processed <- diffHic:::.getStats(returned, basename(curdex$group)==curdex$name, outfrags)
 	return(head(data.frame(anchor.id=returned$anchor.id, target.id=returned$target.id, length=processed$length,
 		orientation=processed$orientation, insert=processed$insert)))
 }
@@ -328,6 +328,7 @@ comp(fname, npairs=1000, size=c(200, 300), max.cuts=max.cuts);
 hic.file<-system.file("exdata", "hic_sort.bam", package="diffHic")
 break.file<-system.file("exdata", "cuts.rds", package="diffHic")
 cuts<-readRDS(break.file)
+param <- pairParam(cuts)
 tmpdir<-file.path(dir, "gunk")
 cntdir<-file.path(dir, "gunkcount")
 
@@ -342,7 +343,7 @@ named <- list(c("chimeric.invalid.5", "good.1", "good.2", "good.3", "chimeric.in
 # We also have 3 unmapped reads, 3 dangling ends, 2 self-circles, 2 singletons.
 # For chimeras, all have mapped 5' and 3' ends, 7 of which are invalid.
 	
-preparePairs(hic.file, cuts, tmpdir, dedup=FALSE)
+preparePairs(hic.file, param, tmpdir, dedup=FALSE)
 
 printfun<-function(dir, named=NULL) {
 	output<-list()
@@ -352,7 +353,7 @@ printfun<-function(dir, named=NULL) {
 		if (is.null(output[[ax]])) { output[[ax]]<-list() }
 		for (tx in names(indices[[ax]])) {
 			extracted <- h5read(dir, file.path(ax, tx))
-			processed <- diffHic:::.getStats(extracted, ax==tx, start(cuts), end(cuts))
+			processed <- diffHic:::.getStats(extracted, ax==tx, cuts)
 			output[[ax]][[tx]] <- data.frame(anchor.id=extracted$anchor.id, target.id=extracted$target.id,
 				length=processed$length, orientation=processed$orientation, insert=processed$insert)
 			if (!is.null(named[[ix]])) { rownames(output[[ax]][[tx]])<-named[[ix]] }
@@ -378,7 +379,7 @@ printfun(tmpdir, named=named)
 # chimeric$multi and -2 to chimeric$invalid. 
 
 tmpdir2<-file.path(dir, "gunk2")
-preparePairs(hic.file, cuts, tmpdir2)
+preparePairs(hic.file, param, tmpdir2)
 named <- list(c("chimeric.invalid.5", "good.1", "good.2", "good.3", "chimeric.invalid.4", "good.4", "chimeric.invalid.6"),
 	c("good.8", "good.5", "chimeric.good.1", "chimeric.invalid.2", "chimeric.invalid.3", "chimeric.invalid.7"),
 	c("good.7", "good.6", "chimeric.good.3", "other.2"))
@@ -389,7 +390,7 @@ printfun(tmpdir2, named=named)
 # Note that chimeric.invalid.4 is still okay as ther invalid component is removed
 # by duplicate removal (for some reason; that shouldn't happen in real data).
 
-preparePairs(hic.file, cuts, tmpdir2, ichim=FALSE)
+preparePairs(hic.file, param, tmpdir2, ichim=FALSE)
 named <- list(c("good.1", "good.2", "good.3", "chimeric.invalid.4", "good.4"),
 	c("good.8", "good.5", "chimeric.good.1"),
 	c("good.7", "good.6", "chimeric.good.3", "other.2"))
@@ -412,7 +413,7 @@ printfun(tmpdir2, named=named)
 #	B/A = good.8, good.5, chimeric.invalid.7
 # 	B/B = good.7, good.6, chimeric.good.
 
-preparePairs(hic.file, cuts, tmpdir2, minq=100)
+preparePairs(hic.file, param, tmpdir2, minq=100)
 named <- list(c("chimeric.invalid.5", "good.2", "chimeric.invalid.4", "good.4"),
 	c("good.8", "good.5", "chimeric.good.1", "chimeric.invalid.3", "chimeric.invalid.7"),
 	c("good.7", "good.6", "chimeric.good.3", "other.2"))

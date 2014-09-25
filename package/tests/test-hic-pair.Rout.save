@@ -179,7 +179,8 @@ Type 'q()' to quit R.
 + 	# Assembling the output list for comparison.
 + 
 + 	tmpdir<-paste0(fname, "_temp")
-+ 	diagnostics <- preparePairs(out, outfrags, tmpdir, yield=yield);
++ 	param <- pairParam(fragments=outfrags)
++ 	diagnostics <- preparePairs(out, param, tmpdir, yield=yield);
 +    	
 + 	stopifnot(sum(codes==1L)==diagnostics$same.id[["dangling"]])
 + 	stopifnot(sum(codes==3L)==diagnostics$same.id[["self.circle"]])
@@ -229,7 +230,7 @@ Type 'q()' to quit R.
 + 			}
 + 			current<-h5read(tmpdir, file.path(achr, tchr))
 + 			for (x in 1:ncol(current)) { attributes(current[,x]) <- NULL }
-+ 			collated <- diffHic:::.getStats(current, achr==tchr, start(outfrags), end(outfrags))
++ 			collated <- diffHic:::.getStats(current, achr==tchr, outfrags)
 + 			
 + 			o2 <- order(current$anchor.id, current$target.id, collated$length, collated$orientation, collated$insert)
 + 			stopifnot(identical(current$anchor.id[o2], anchor[o]))
@@ -260,7 +261,7 @@ Type 'q()' to quit R.
 + 	valid.insert<-inserts[keepers]
 + 	valid.ori<-orientations[keepers]
 + 	o<-order(valid.len, valid.ori, valid.insert)
-+ 	auxiliary<-getPairData(tmpdir, outfrags)
++ 	auxiliary<-getPairData(tmpdir, param)
 + 	o2<-do.call(order, auxiliary)
 + 	if (!identical(valid.len[o], auxiliary$length[o2])) { stop("extracted fragment sizes don't match up") }
 + 	if (!identical(valid.insert[o], auxiliary$insert[o2])) { stop("extracted inserts don't match up") }
@@ -269,7 +270,7 @@ Type 'q()' to quit R.
 + 	curdex <- h5ls(tmpdir)
 + 	curdex <- curdex[curdex$otype=="H5I_DATASET",][1,]
 + 	returned <- h5read(tmpdir, file.path(curdex$group, curdex$name))
-+ 	processed <- diffHic:::.getStats(returned, basename(curdex$group)==curdex$name, start(outfrags), end(outfrags))
++ 	processed <- diffHic:::.getStats(returned, basename(curdex$group)==curdex$name, outfrags)
 + 	return(head(data.frame(anchor.id=returned$anchor.id, target.id=returned$target.id, length=processed$length,
 + 		orientation=processed$orientation, insert=processed$insert)))
 + }
@@ -559,6 +560,7 @@ Loading required package: Biostrings
 > hic.file<-system.file("exdata", "hic_sort.bam", package="diffHic")
 > break.file<-system.file("exdata", "cuts.rds", package="diffHic")
 > cuts<-readRDS(break.file)
+> param <- pairParam(cuts)
 > tmpdir<-file.path(dir, "gunk")
 > cntdir<-file.path(dir, "gunkcount")
 > 
@@ -573,7 +575,7 @@ Loading required package: Biostrings
 > # We also have 3 unmapped reads, 3 dangling ends, 2 self-circles, 2 singletons.
 > # For chimeras, all have mapped 5' and 3' ends, 7 of which are invalid.
 > 	
-> preparePairs(hic.file, cuts, tmpdir, dedup=FALSE)
+> preparePairs(hic.file, param, tmpdir, dedup=FALSE)
 $pairs
    total   marked filtered   mapped 
       30        0        3       27 
@@ -598,7 +600,7 @@ $chimeras
 + 		if (is.null(output[[ax]])) { output[[ax]]<-list() }
 + 		for (tx in names(indices[[ax]])) {
 + 			extracted <- h5read(dir, file.path(ax, tx))
-+ 			processed <- diffHic:::.getStats(extracted, ax==tx, start(cuts), end(cuts))
++ 			processed <- diffHic:::.getStats(extracted, ax==tx, cuts)
 + 			output[[ax]][[tx]] <- data.frame(anchor.id=extracted$anchor.id, target.id=extracted$target.id,
 + 				length=processed$length, orientation=processed$orientation, insert=processed$insert)
 + 			if (!is.null(named[[ix]])) { rownames(output[[ax]][[tx]])<-named[[ix]] }
@@ -659,7 +661,7 @@ other.2                 7         7     30           2     13
 > # chimeric$multi and -2 to chimeric$invalid. 
 > 
 > tmpdir2<-file.path(dir, "gunk2")
-> preparePairs(hic.file, cuts, tmpdir2)
+> preparePairs(hic.file, param, tmpdir2)
 $pairs
    total   marked filtered   mapped 
       30        7        3       20 
@@ -715,7 +717,7 @@ other.2                 7         7     30           2     13
 > # Note that chimeric.invalid.4 is still okay as ther invalid component is removed
 > # by duplicate removal (for some reason; that shouldn't happen in real data).
 > 
-> preparePairs(hic.file, cuts, tmpdir2, ichim=FALSE)
+> preparePairs(hic.file, param, tmpdir2, ichim=FALSE)
 $pairs
    total   marked filtered   mapped 
       30        7        3       20 
@@ -778,7 +780,7 @@ other.2                 7         7     30           2     13
 > #	B/A = good.8, good.5, chimeric.invalid.7
 > # 	B/B = good.7, good.6, chimeric.good.
 > 
-> preparePairs(hic.file, cuts, tmpdir2, minq=100)
+> preparePairs(hic.file, param, tmpdir2, minq=100)
 $pairs
    total   marked filtered   mapped 
       30        7        9       14 
@@ -835,4 +837,4 @@ other.2                 7         7     30           2     13
 > 
 > proc.time()
    user  system elapsed 
- 16.949   0.312  17.315 
+ 14.086   0.253  14.405 
