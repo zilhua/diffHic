@@ -7,7 +7,7 @@
 extern "C" { 
 
 static const R_CallMethodDef all_call_entries[] = {
-	CALLDEF(check_input, 3),
+	CALLDEF(check_input, 2),
 	CALLDEF(cluster_2d, 5),
 	CALLDEF(split_clusters, 6),
 	CALLDEF(collect_background, 4),
@@ -16,6 +16,7 @@ static const R_CallMethodDef all_call_entries[] = {
 	CALLDEF(count_patch, 3),
 	CALLDEF(iterative_correction, 9),
 	CALLDEF(report_hic_pairs, 11),
+    CALLDEF(pair_stats, 9),
   	{NULL, NULL, 0}
 };
 
