@@ -1,0 +1,89 @@
+\name{pairParam}
+\docType{class}
+
+\alias{pairParam}
+\alias{pairParam-class}
+\alias{$,pairParam-method}
+\alias{show,pairParam-method}
+\alias{reform}
+\alias{reform,pairParam-method}
+
+\title{pairParam class and methods}
+\description{Class to specify read pair loading parameters}
+
+\details{
+Each pairParam object stores a number of parameters to extract reads from a BAM file.
+Slots are defined as:
+\describe{
+	\item{\code{fragments}:}{a \code{GRanges} object containing the coordinates of the restriction fragments}
+	\item{\code{restrict}:}{a character vector containing the names of allowable chromosomes from which reads will be extracted}
+	\item{\code{discard}:}{a \code{GRanges} object containing intervals in which any alignments will be discarded}
+}
+
+The \code{fragments} object defines the genomic interval spanned by each restriction fragment.
+All reads are generated around restriction sites, so the spatial resolution of the experiment depends on such sites.
+The object can be can be obtained by applying \code{\link{cutGenome}} on an appropriate \code{BSgenome} object.
+
+If \code{restrict} is supplied, reads will only be extracted for the specified chromosomes. 
+This is useful to restrict the analysis to interesting chromosomes, e.g., no contigs/scaffolds or mitochondria. 
+
+If \code{discard} is set, a read will be removed if the corresponding alignment is wholly contained within the supplied ranges. 
+This is useful for removing reads in repeat regions. 
+}
+
+\section{Constructor}{
+\describe{
+	\item{}{\code{pairParam(fragments, discard=GRanges(), restrict=NULL)}:
+		Creates a pairParam object. 
+		Each argument is placed in the corresponding slot, with coercion into the appropriate type.
+	}
+}
+}
+
+\section{Subsetting}{
+In the code snippets below, \code{x} is a pairParam object.
+\describe{
+	\item{}{\code{x$name}: 
+	Returns the value in slot \code{name}.
+	}
+}
+}
+
+\section{Other methods}{
+In the code snippets below, \code{x} is a pairParam object.
+\describe{
+    \item{}{\code{show(x)}:
+	Describes the parameter settings in plain English.
+  	}
+	\item{}{\code{reform(x, ...)}:
+		Creates a new pairParam object, based on the existing \code{x}.
+		Any named arguments in \code{...} are used to modify the values of the slots in the new object, with type coercion as necessary.
+	}
+}	
+}
+
+\author{
+Aaron Lun
+}
+
+\seealso{
+\code{\link{cutGenome}},
+\code{\link{squareCounts}}
+}
+
+\examples{
+cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+		
+blah <- pairParam(cuts)
+blah <- pairParam(cuts, discard=GRanges("chrA", IRanges(1, 10)))
+blah <- pairParam(cuts, restrict='chr2')
+blah$min.inward
+blah$restrict
+
+# Use 'reform' if only some arguments need to be changed.
+blah
+reform(blah, restrict='chr3')
+reform(blah, discard=GRanges())
+}
+
+\keyword{counting}
