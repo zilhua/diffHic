@@ -21,10 +21,6 @@
 \alias{[,DIList,ANY,ANY-method}
 \alias{show,DIList-method}
 
-\alias{average}
-\alias{average,DIList-method}
-\alias{normalize}
-\alias{normalize,DIList-method}
 \alias{asDGEList}
 \alias{asDGEList,DIList-method}
 
@@ -113,11 +109,6 @@ In the code snippets below, \code{x} is a DIList object.
 		By default the \code{show} method displays count and interval data for the top 5 interactions.
 		Data for all interactions will be shown if there are no more than 10 interactions.
 	}
-	\item{}{\code{normalize(x, ...)}:
-		Normalizes the counts between libraries in \code{x}.
- 		Count data and library sizes are passed to the \code{\link{normalizeCounts}} function, along with any arguments in \code{...}.
-		A numeric matrix or vector is then returned, depending on the type of normalization.
-	}
 	\item{}{\code{asDGEList(x, ...)}:
 		Extracts count data and library sizes, and returns the same data as a \code{DGEList}.
 		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
@@ -147,11 +138,9 @@ counts(blah)
 totals(blah)
 regions(blah)
 
-normalize(blah, type="loess")
 asDGEList(blah)
 }
 
 \seealso{
-\code{\link{normalizeCounts}},
 \code{\link{DGEList}}
 }
