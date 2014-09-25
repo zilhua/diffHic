@@ -44,7 +44,7 @@ getArea <- function(data, param=NULL)
 	if (!is.null(param)) { 
 		# Detour to protect against overlapping regions.
 		fragments <- param$fragments
-		fdata <- .checkFragments(fragments)
+		fdata <- .delimitFragments(fragments)
 
 		left.edge <- pmax(start(data@region)[ax], start(data@region)[tx])
 		right.edge <- pmin(end(data@region)[ax], end(data@region)[tx])

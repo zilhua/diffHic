@@ -12,7 +12,7 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 	type <- match.arg(type)
 	flank <- as.integer(flank)
 	if (flank <= 0L) { stop("flank width must be a positive integer") }
-	rdata <- .checkFragments(regions(data))
+	rdata <- .delimitFragments(regions(data))
 	last.id <- rdata$end
 	first.id <- rdata$start
 	names(last.id) <- names(first.id) <- rdata$chr

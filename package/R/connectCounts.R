@@ -16,7 +16,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 	discard <- .splitDiscards(param$discard)
 
 	# Figuring out which regions are anchor or targets.
-	fdata <- .checkFragments(fragments)
+	fdata <- .delimitFragments(fragments)
 	matched <- match(as.character(seqnames(regions)), fdata$chr)
 	if (any(is.na(matched))) { stop("chromosome present in regions and not in fragments") }
 	o <- order(matched, start(regions), end(regions))

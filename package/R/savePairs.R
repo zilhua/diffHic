@@ -23,7 +23,7 @@ savePairs <- function(x, file, param)
 
     # Need to reorder so fragments are sorted by chromosome COMBINATION. 
     # Sort is stable, no need to supply x$anchor.id/x$target.id in 'order'.
-    frag.out <- .checkFragments(param$fragments)
+    frag.out <- .delimitFragments(param$fragments)
 	all.chrs <- frag.out$chr
 	full.chrs <- rep(1:length(all.chrs), frag.out$end-frag.out$start+1L)
     achr <- full.chrs[x$anchor.id]

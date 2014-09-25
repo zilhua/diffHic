@@ -12,7 +12,7 @@ preparePairs<-function(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq
 	scuts <- ecuts <- list()
 	boost.idx<- list()
 	fragments <- param$fragments
-	frag.data <- .checkFragments(fragments)
+	frag.data <- .delimitFragments(fragments)
 	chrs <- frag.data$chr
 
 	curends<-end(fragments)
@@ -131,23 +131,14 @@ preparePairs<-function(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq
 				chimeras=chimeras))
 }
 
-.checkFragments <- function(fragments) 
-# Checking incoming fragments for correctness. Checks that the chromosome names
-# are in some reasonable order, and checks that the fragment start/ends are all
-# sorted (nested fragments are not allowed).
+.delimitFragments <- function(fragments) 
+# Gets the start and end for each chromosome in the fragment list. There's no need
+# to check for correctness, as all objects take a pairParam object (and checking is
+# performed therein).
 {
 	ref.chrs <- as.character(runValue(seqnames(fragments)))
-	if (anyDuplicated(ref.chrs)) { stop("fragments should be ordered by chromosome") }
 	ref.len <- runLength(seqnames(fragments))
 	end.index <- cumsum(ref.len)
 	start.index <- end.index - ref.len + 1L
-
-	for (x in 1:length(ref.chrs)) { 
-		curf <- fragments[start.index[x]:end.index[x]]
-		if (is.unsorted(start(curf)) || is.unsorted(end(curf))) { 
-			stop("fragments per chromosome should be sorted by genomic coordinate") 
-		}
-	}
-
 	return(list(chr=ref.chrs, start=start.index, end=end.index))
 }

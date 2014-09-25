@@ -90,7 +90,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	out.ids<-integer(length(fragments))
 	out.ranges<-list()
 	last<-0L
-	frag.data <- .checkFragments(fragments)
+	frag.data <- .delimitFragments(fragments)
 	nfrags <- list() 
 	
 	for (x in 1:length(frag.data$chr)) {
