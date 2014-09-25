@@ -6,14 +6,13 @@
 \description{Collate count combinations for interactions between pairs of bins across multiple Hi-C libraries.}
 
 \usage{
-squareCounts(files, fragments, width=50000, restrict=NULL, filter=1L)
+squareCounts(files, param, width=50000, filter=1L)
 }
 
 \arguments{
 	\item{files}{a character vector containing paths to the index files generated from each Hi-C library}
-	\item{fragments}{a \code{GRanges} object containing the boundaries of restriction fragments on the genome of interest}
+	\item{param}{a \code{pairParam} object containing read extraction parameters}
 	\item{width}{an integer scalar specifying the width of each square in base pairs}
-    \item{restrict}{a character vector specifying the allowable chromosome names}
 	\item{filter}{an integer scalar specifying the minimum count for each square}
 }
 
@@ -22,7 +21,7 @@ A \code{DIList} object is returned containing the number of read pairs for each 
 }
 
 \details{
-The genome is first split into non-overlapping adjacent bins of size \code{width}, with the exclusion of any chromosomes not in \code{restrict} (all chromosomes are used by default).
+The genome is first split into non-overlapping adjacent bins of size \code{width}.
 These bins are rounded to the nearest restriction site, forming the sides of potential squares.
 The number of restriction fragments in each bin is stored as \code{nfrags} in the metadata of the output \code{region}.
 Each square represents an interaction between the corresponding rounded bins on the genome. 
@@ -51,26 +50,25 @@ Another option is to increase \code{width} to reduce the total number of bins in
 %
 % It's hard to know which it is. Gets counted in the same squares, but can't tell if it's consistent with more or less compaction.
 
-The index file for each library should be prepared by \code{\link{countPairs}}. 
-The coordinates in \code{fragments} should correspond to the boundaries of the restriction fragments in the genome of interest. 
-This can  be obtained using \code{\link{cutGenome}} on a \code{BSgenome} object.
+Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
+Similarly, any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
 }
 
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(fragments=cuts)
 
 # Setting up the parameters
 fout <- "output.h5"
-invisible(preparePairs(hic.file, cuts, file=fout))
-countPairs(fout)
+invisible(preparePairs(hic.file, param, file=fout))
 
 # Collating to count combinations.
-squareCounts(fout, cuts)
-squareCounts(fout, cuts, filter=1)
-squareCounts(fout, cuts, width=50, filter=1)
-squareCounts(fout, cuts, width=100, filter=1)
-squareCounts(fout, cuts, width=100, restrict="chrA", filter=1)
+squareCounts(fout, param)
+squareCounts(fout, param, filter=1)
+squareCounts(fout, param, width=50, filter=1)
+squareCounts(fout, param, width=100, filter=1)
+squareCounts(fout, reform(param, restrict="chrA"), width=100, filter=1)
 
 \dontshow{
 unlink(fout, recursive=TRUE)
@@ -80,7 +78,6 @@ unlink(fout, recursive=TRUE)
 \author{Aaron Lun}
 
 \seealso{
-\code{\link{countPairs}}, 
 \code{\link{cutGenome}},
 \code{\link{DIList-class}}
 }
