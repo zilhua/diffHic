@@ -101,7 +101,7 @@ An integer vector is also returned from the function, containing various diagnos
 \author{Aaron Lun}
 
 \seealso{
-\code{\link{cutGenome}}, \code{\link{countPairs}}, \code{\link{mergePairs}}, \code{\link{getPairData}}
+\code{\link{cutGenome}}, \code{\link{prunePairs}}, \code{\link{mergePairs}}, \code{\link{getPairData}}
 }
 
 \examples{

@@ -15,7 +15,7 @@ rotPlaid(file, param, region, width=10000, col="red",
 }
 
 \arguments{
-	\item{file}{character string specifying the path to an index file produced by \code{\link{countPairs}}}
+	\item{file}{character string specifying the path to an index file produced by \code{\link{preparePairs}}}
 	\item{param}{a \code{pairParam} object containing read extraction parameters}
 	\item{anchor}{a \code{GRanges} object of length 1 specifying the anchor region}
 	\item{target}{a \code{GRanges} object of length 1 specifying the target region}
@@ -100,7 +100,7 @@ unlink(fout, recursive=TRUE)
 }
 
 \seealso{
-	\code{\link{squareCounts}}, \code{\link{countPairs}} 
+	\code{\link{preparePairs}}
 }
 
 \references{

@@ -19,7 +19,7 @@ An integer vector is returned containing the total number of read pairs in each 
 }
 
 \details{
-As the name suggests, this function counts the total number of read pairs in each index file prepared by \code{\link{countPairs}}.
+As the name suggests, this function counts the total number of read pairs in each index file prepared by \code{\link{preparePairs}}.
 Use of \code{param$fragments} ensures that the chromosome names in each index file are consistent with those in the desired genome (e.g., from \code{\link{cutGenome}}).
 Similarly, \code{param$restrict} and \code{param$discard} willl determine which read pairs are used.
 }
@@ -53,7 +53,7 @@ unlink(fout, recursive=TRUE)
 \author{Aaron Lun}
 
 \seealso{
-\code{\link{countPairs}}, 
+\code{\link{preparePairs}}, 
 \code{\link{cutGenome}},
 }
 

@@ -77,7 +77,7 @@ cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
 blah <- pairParam(cuts)
 blah <- pairParam(cuts, discard=GRanges("chrA", IRanges(1, 10)))
 blah <- pairParam(cuts, restrict='chr2')
-blah$min.inward
+blah$fragments
 blah$restrict
 
 # Use 'reform' if only some arguments need to be changed.

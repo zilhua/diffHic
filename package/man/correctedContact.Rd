@@ -78,12 +78,12 @@ Dividing the count by the product of the biases will obtain the estimated contac
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 # Setting up the parameters
 fout <- "output"
-preparePairs(hic.file, cuts, fout)
-countPairs(fout)
-data <- squareCounts(fout, cuts, width=50, filter=1L)
+invisible(preparePairs(hic.file, param, fout))
+data <- squareCounts(fout, param, width=50, filter=1L)
 
 # Correcting.
 stuff <- correctedContact(data)
