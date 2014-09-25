@@ -62,7 +62,7 @@ param <- pairParam(cuts)
 
 # Setting up the parameters (low filter is just to get more bin pairs)
 fout <- "output.h5"
-preparePairs(hic.file, param, fout)
+invisible(preparePairs(hic.file, param, fout))
 y <- squareCounts(fout, param, width=50, filter=1)
 y2 <- squareCounts(fout, param, width=25, filter=1)
 
