@@ -5,13 +5,13 @@
 \description{Match smaller bin pairs to the larger bin pairs in which they are nested.}
 
 \usage{
-boxPairs(reference, ..., fragments)
+boxPairs(reference, ..., param)
 }
 
 \arguments{
 \item{reference}{an integer scalar specifying the reference bin size}
 \item{...}{one or more named \code{DIList} objects produced by \code{\link{squareCounts}}, with smaller bin sizes than \code{reference}}
-\item{fragments}{a \code{GRanges} object containing the boundaries of the restriction fragments in the genome}
+\item{param}{a \code{pairParam} object containing read extraction parameters}
 }
 
 \value{
@@ -58,17 +58,17 @@ Aaron Lun
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 # Setting up the parameters (low filter is just to get more bin pairs)
 fout <- "output.h5"
-preparePairs(hic.file, cuts, fout)
-countPairs(fout)
-y <- squareCounts(fout, cuts, width=50, filter=1)
-y2 <- squareCounts(fout, cuts, width=25, filter=1)
+preparePairs(hic.file, param, fout)
+y <- squareCounts(fout, param, width=50, filter=1)
+y2 <- squareCounts(fout, param, width=25, filter=1)
 
 # Clustering.
-boxPairs(reference=100, larger=y, smaller=y2, fragments=cuts)
-boxPairs(reference=50, larger=y, smaller=y2, fragments=cuts)
+boxPairs(reference=100, larger=y, smaller=y2, param=param)
+boxPairs(reference=50, larger=y, smaller=y2, param=param)
 
 \dontshow{
 unlink(fout, recursive=TRUE)
