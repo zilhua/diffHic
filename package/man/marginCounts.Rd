@@ -6,14 +6,13 @@
 \description{Count the number of read pairs mapped to each bin across multiple Hi-C libraries.}
 
 \usage{
-marginCounts(files, fragments, width=500000, restrict=NULL)
+marginCounts(files, param, width=500000)
 }
 
 \arguments{
 	\item{files}{a character vector containing paths to the index files}
-	\item{fragments}{a \code{GRanges} object containing the boundaries of restriction fragments in the genome}
-	\item{width}{an integer scalar specifying the width of each bin}
-    \item{restrict}{a character vector specifying the allowable chromosome names}
+	\item{param}{a \code{pairParam} object containing read extraction parameters}
+	\item{width}{an integer scalar specifying the width of each bin} 
 }
 
 \value{
@@ -33,22 +32,25 @@ Each row of the output refers to a single bin in the linear genome, instead of a
 
 Larger marginal counts can be collected by increasing the \code{width} value. 
 However, this comes at the cost of spatial resolution (and potentially detection power) as adjacent events in the same concatenation can no longer be distinguished. 
+
+Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
+Similarly, any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
 }
 
 \examples{
-hic.file<-system.file("exdata", "hic_sort.bam", package="diffHic")
-originals<-readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
+cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(fragments=cuts)
 
 # Setting up the parameters
 fout <- "output.h5"
-preparePairs(hic.file, originals, fout)
-countPairs(fout)
+invisible(preparePairs(hic.file, param, fout))
 
 # Collating to count combinations.
-marginCounts(fout, originals, width=10)
-marginCounts(fout, originals, width=50)
-marginCounts(fout, originals, width=50, restrict="chrA")
-marginCounts(fout, originals, width=100)
+marginCounts(fout, param, width=10)
+marginCounts(fout, param, width=50)
+marginCounts(fout, reform(param, restrict="chrA"), width=50)
+marginCounts(fout, param, width=100)
 
 \dontshow{
 unlink(fout, recursive=TRUE)
