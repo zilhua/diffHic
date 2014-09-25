@@ -1,36 +1,33 @@
 ###################################################################################################
 # This provides some functions to simulation fragments and the count directories.
 
-simgen <- function(dir, num, chromos, max.count=10) {
+simgen <- function(dir, num, chromos) {
 	bonus<-c(0L, cumsum(as.integer(unlist(chromos))))
 	overall<-NULL
 	for (i in 1:length(chromos)) { 
-		max.anchor<-chromos[[i]];
-		suppressWarnings(dir.create(file.path(dir, names(chromos)[i])))
+		max.anchor<-chromos[[i]]
 		for (j in 1:i) {
-			max.target<-chromos[[j]];
-			anchors<-as.integer(floor(runif(num, 1, max.anchor)));
-			targets<-as.integer(floor(runif(num, 1, max.target)));
+			max.target<-chromos[[j]]
+			anchors<-as.integer(floor(runif(num, 1, max.anchor)))
+			targets<-as.integer(floor(runif(num, 1, max.target)))
 			if (i==j){
-				anchor.1<-pmax(anchors, targets);
-				target.1<-pmin(anchors, targets);
-				anchors<-anchor.1;
-				targets<-target.1;
+				anchor.1<-pmax(anchors, targets)
+				target.1<-pmin(anchors, targets)
+				anchors<-anchor.1
+				targets<-target.1
 			}
-			counts<-as.integer(floor(runif(num, 1, max.count)));
-			cyrrebt<-data.frame(anchor.id=anchors+bonus[i], target.id=targets+bonus[j], count=counts); 
+			cyrrebt<-data.frame(anchor.id=anchors+bonus[i], target.id=targets+bonus[j], 
+					anchor.pos=0L, target.pos=0L, anchor.len=0L, target.len=0L)
 			overall<-rbind(overall, cyrrebt)
 		}
 	}
 	tmpfrags<-GRanges(rep(names(chromos), chromos), IRanges(1:sum(chromos), 1:sum(chromos)))
-	overall<-overall[order(overall[,1], overall[,2]),]
-	overall<-diffHic:::.sortedAggregate(overall, mode="sum")
 	savePairs(overall, dir, tmpfrags)
 }
 
 # Spawning a new cut site set-up.
 
-simcuts<-function(chromos, min=1000, max=10000, overlap=0L) {
+simcuts<-function(chromos, min=500, max=2000, overlap=0L) {
 	cuts<-list()
 	overlap <- as.integer(overlap)
 	for (i in 1:length(chromos)) { 
@@ -44,6 +41,50 @@ simcuts<-function(chromos, min=1000, max=10000, overlap=0L) {
 	names(cuts)<-NULL
 	suppressWarnings(cuts<-do.call(c, cuts))
 	return(cuts)
+}
+
+# Adding in some positional information to each HDF5 file.
+
+augmentsim <- function(infile, frags, rlen=10) {
+	allfs <- start(frags)
+	allfe <- end(frags)
+   	x <- h5ls(infile)
+	x <- x[x$otype=="H5I_DATASET",]
+
+	everything <- list()
+	for (i in 1:nrow(x)) { 
+		cpath <- file.path(x$group[i], x$name[i])
+		collected <- h5read(infile, cpath)
+		num <- nrow(collected)
+		
+		a.s <- allfs[collected$anchor.id]		
+		a.e <- allfe[collected$anchor.id]
+		astr <- rbinom(num, 1, 0.5)==1L
+		a.s2 <- ifelse(astr, a.s, pmin(a.e, a.s - rlen + 1L))
+		a.e2 <- ifelse(astr, pmax(a.s, a.e - rlen + 1L), a.e)
+		collected$anchor.pos <- as.integer(runif(nrow(collected), min=a.s2, max=a.e2))
+		collected$anchor.len <- as.integer(rlen * ifelse(astr, 1, -1))
+
+		t.s <- allfs[collected$target.id]
+		t.e <- allfe[collected$target.id]
+		tstr <- rbinom(num, 1, 0.5)==1L
+		t.s2 <- ifelse(astr, t.s, pmin(t.e, t.s - rlen + 1L))
+		t.e2 <- ifelse(astr, pmax(t.s, t.e - rlen + 1L), t.e)
+		collected$target.pos <- as.integer(runif(nrow(collected), min=t.s2, max=t.e2))
+		collected$target.len <- as.integer(rlen * ifelse(tstr, 1, -1))
+
+		everything[[i]] <- collected
+	}
+
+	savePairs(do.call(rbind, everything), infile, frags)
+}
+
+# Discard data.
+
+makeDiscard <- function(ndisc, sizeof, chromosomes) {
+	chosen <- sample(length(chromosomes), ndisc, replace=TRUE)
+	chosen.pos <- runif(ndisc, 1, chromosomes[chosen]-sizeof)
+	reduce(GRanges(names(chromosomes)[chosen], IRanges(chosen.pos, chosen.pos+sizeof-1L)))
 }
 
 ###################################################################################################
