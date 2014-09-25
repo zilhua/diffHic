@@ -6,13 +6,13 @@
 \description{Save a dataframe of interactions into a directory structure for rapid chromosomal access.}
 
 \usage{
-savePairs(x, file, fragments)
+savePairs(x, file, param)
 }
 
 \arguments{
 	\item{x}{a sorted dataframe with integer fields \code{anchor.id} and \code{fragment.id} for each interaction}
 	\item{file}{a character string specifying the path for the output index file}
-    \item{fragments}{a \code{GRanges} object describing the boundaries of each restriction fragment on the reference genome}
+	\item{param}{a \code{pairParam} object containing read extraction parameters}
 }
 
 \value{
@@ -22,18 +22,24 @@ A character string containing the path to the index file in the directory is inv
 
 \details{
 This function facilitates the input of processed Hi-C data from other sources into the current pipeline. 
-Each entry in \code{x} refers to the index of \code{fragments} to denote the interacting regions. 
-Any additional fields in \code{x} will also be saved to file, e.g., \code{gap}, \code{length}, \code{orientation}.
-
+Each entry in \code{x$anchor.id} and \code{x$target.id} refers to the index of \code{param$fragments} to denote the interacting regions. 
 The \code{x} object will be resorted by \code{anchor.id}, then \code{target.id}.
 If necessary, anchor and target IDs will be switched such that the former is never less than the latter. 
-Also, the coordinates of the restriction fragment boundaries in \code{fragments} must correspond to the reference genome being used. 
+
+The coordinates of the restriction fragment boundaries in \code{param$fragments} should correspond to the reference genome being used. 
 In most cases, these can be generated using the \code{\link{cutGenome}} function from any given \code{BSgenome} object.
+Values of \code{param$discard} and \code{param$restrict} will be ignored here.
+
+Any additional fields in \code{x} will also be saved to file.
+Users are recommended to put in \code{xxx.pos} and \code{xxx.len} fields (where \code{xxx} is replaced with \code{anchor} or \code{target}).
+This will allow removal of reads in \code{param$discard} during counting (e.g., with \code{\link{squareCounts}}).
+It will also allow proper calculation of statistics with \code{\link{getPairData}}, and quality control with \code{\link{prunePairs}}.
 }
 
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <-readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 n <- 1000
 all.a <- as.integer(runif(n, 1L, length(cuts)))
@@ -43,7 +49,7 @@ x <- data.frame(anchor.id=pmax(all.a, all.t), target.id=pmin(all.a, all.t),
 x <- x[order(x$anchor.id, x$target.id),]
 
 fout <- "temp2.h5"
-savePairs(x, fout, cuts)
+savePairs(x, fout, param)
 require(rhdf5)
 head(h5read(fout, "chrA/chrA"))
 
@@ -55,6 +61,7 @@ unlink(fout)
 \author{Aaron Lun}
 
 \seealso{
-	\code{\link{preparePairs}}, \code{\link{cutGenome}}
+	\code{\link{preparePairs}}, 
+	\code{\link{cutGenome}}
 }
 

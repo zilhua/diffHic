@@ -1,4 +1,4 @@
-savePairs <- function(x, file, fragments)
+savePairs <- function(x, file, param)
 # This function saves all counts in 'x' into a set of gzipped files in 'dir', along with
 # an index file specifying the identity of each observed chromosome combination corresponding
 # to each file. This speeds up any attempt at random access. The idea is to act as a 
@@ -23,7 +23,7 @@ savePairs <- function(x, file, fragments)
 
     # Need to reorder so fragments are sorted by chromosome COMBINATION. 
     # Sort is stable, no need to supply x$anchor.id/x$target.id in 'order'.
-    frag.out <- .checkFragments(fragments)
+    frag.out <- .checkFragments(param$fragments)
 	all.chrs <- frag.out$chr
 	full.chrs <- rep(1:length(all.chrs), frag.out$end-frag.out$start+1L)
     achr <- full.chrs[x$anchor.id]
