@@ -19,10 +19,20 @@ mergePairs <- function(files, file.out)
         for (tc in names(current)) {
             fnames<-current[[tc]]
 
-			out <- list()	
+			out <- list()
+			my.names <- NULL	
 			for (ix in 1:length(fnames)) { 
-				if (fnames[ix]) { out[[ix]] <- .getPairs(files[ix], ac, tc) }
+				if (!fnames[ix]) { next }
+				xx <- .getPairs(files[ix], ac, tc) 
+				if (is.null(my.names)) { 
+					my.names <- colnames(xx) 
+				} else if (!identical(my.names, colnames(xx))) {
+					warning("column names are not identical between objects to be merged")
+				}
+				out[[length(out)+1L]] <- xx
 			}
+
+			# No need to protect against an empty list; there must be one non-empty element for .loadIndices to get here.
 			out <- do.call(rbind, out)
             out <- out[order(out$anchor.id, out$target.id),]
 			.writePairs(out, tmpf, ac, tc)
