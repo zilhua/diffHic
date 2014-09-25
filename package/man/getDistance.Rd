@@ -34,14 +34,14 @@ Interchromosomal interactions are marked with \code{NA}.
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 # Setting up the parameters
 fout <- "output.h5"
-preparePairs(hic.file, cuts, fout)
-countPairs(fout)
+invisible(preparePairs(hic.file, param, fout))
 
 # Collating to count combinations.
-y<-squareCounts(fout, cuts, width=10, filter=-1)
+y <- squareCounts(fout, param, width=10, filter=-1)
 getDistance(y)
 getDistance(y, type="gap")
 getDistance(y, type="span")

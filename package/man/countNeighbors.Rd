@@ -42,12 +42,12 @@ Prior filtering should not be performed as low-abundance bin pairs are informati
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 # Setting up the parameters
 fout <- "output"
-preparePairs(hic.file, cuts, fout)
-countPairs(fout)
-data <- squareCounts(fout, cuts, width=50, filter=1L)
+invisible(preparePairs(hic.file, param, fout))
+data <- squareCounts(fout, param, width=50, filter=1L)
 
 # Collating neighbor counts.
 surrounds <- countNeighbors(data, flank=1, type="both")

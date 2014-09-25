@@ -42,12 +42,12 @@ Aaron Lun
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 # Setting up the parameters (low filter is just to get more bin pairs)
 fout <- "output.h5"
-preparePairs(hic.file, cuts, fout)
-countPairs(fout)
-y <- squareCounts(fout, cuts, width=50, filter=1)
+invisible(preparePairs(hic.file, param, fout))
+y <- squareCounts(fout, param, width=50, filter=1)
 
 # Clustering.
 clusterPairs(y, tol=10)
@@ -56,7 +56,7 @@ clusterPairs(y, tol=100)
 clusterPairs(y, tol=100, upper=50)
 
 # Repeating with a more stringent filter.
-y <- squareCounts(fout, cuts, width=50, filter=2)
+y <- squareCounts(fout, param, width=50)
 clusterPairs(y, tol=10)
 clusterPairs(y, tol=50)
 clusterPairs(y, tol=100)
