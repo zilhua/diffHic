@@ -23,9 +23,6 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	# Setting up the parameters
 	fragments <- param$fragments
 	if (!(achr %in% seqlevels(fragments)) || !(tchr %in% seqlevels(fragments))) { stop("anchor/target chromosome names not in cut site list") }
-	min.ingap <- param$min.inward
-	min.outgap <- param$min.outward
-	max.frag <- param$max.frag
 	discard <- .splitDiscards(param$discard)
 
 	# Setting up the boundaries.
@@ -37,7 +34,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	
 	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that edges of the plot are retained).
 	keep.a <- keep.t <- overlapsAny(fragments, anchor, maxgap=width(anchor)/2)
-	if (anchor!=target) { 
+	if (achr!=tchr || astart!=tstart || aend!=tend) {
 		keep.t <- overlapsAny(fragments, target, maxgap=width(target)/2)
 	}
 	keep <- keep.a | keep.t
@@ -117,9 +114,6 @@ rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=N
 	# Setting up the parameters
 	fragments <- param$fragments
 	if (!xchr %in% seqlevels(fragments)) { stop("anchor/target chromosome names not in cut site list") } 
-	min.ingap <- param$min.inward
-	min.outgap <- param$min.outwar
-	max.frag <- param$max.frag
 	discard <- .splitDiscards(param$discard)
 
 	# Setting up the boundaries.
