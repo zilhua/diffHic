@@ -6,13 +6,12 @@
 \description{Get the total number of read pairs in a set of Hi-C libraries.}
 
 \usage{
-totalCounts(files, fragments=NULL, restrict=NULL)
+totalCounts(files, param)
 }
 
 \arguments{
 	\item{files}{a character vector containing paths to the index files generated from each Hi-C library}
-	\item{fragments}{a \code{GRanges} object containing the boundaries of restriction fragments on the genome of interest}
-    \item{restrict}{a character vector specifying the allowable chromosome names}
+	\item{param}{a \code{pairParam} object containing read extraction parameters}
 }
 
 \value{
@@ -21,28 +20,30 @@ An integer vector is returned containing the total number of read pairs in each 
 
 \details{
 As the name suggests, this function counts the total number of read pairs in each index file prepared by \code{\link{countPairs}}.
-Specification of \code{fragments} is recommended to ensure that the chromosome names in each index file are consistent with those in the desired genome (e.g., from \code{\link{cutGenome}}).
-Similarly, \code{restrict} can be used to restrict the chromosomes across which read pairs are counted.
+Use of \code{param$fragments} ensures that the chromosome names in each index file are consistent with those in the desired genome (e.g., from \code{\link{cutGenome}}).
+Similarly, \code{param$restrict} and \code{param$discard} willl determine which read pairs are used.
 }
 
 \examples{
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+param <- pairParam(cuts)
 
 # Setting up the parameters
 fout <- "output.h5"
-invisible(preparePairs(hic.file, cuts, file=fout))
-countPairs(fout)
+invisible(preparePairs(hic.file, param, file=fout))
 
 # Counting totals.
-totalCounts(fout)
-totals(squareCounts(fout, cuts, width=10))
+totalCounts(fout, param)
+totals(squareCounts(fout, param, width=10))
 
-totalCounts(fout, restrict="chrA")
-totals(squareCounts(fout, cuts, width=10, restrict="chrA"))
+new.param <- reform(param, restrict="chrA")
+totalCounts(fout, new.param)
+totals(squareCounts(fout, new.param, width=10))
 
-totalCounts(fout, restrict="chrB")
-totals(squareCounts(fout, cuts, width=10, restrict="chrB"))
+new.param <- reform(param, restrict="chrB")
+totalCounts(fout, new.param)
+totals(squareCounts(fout, new.param, width=10))
 
 \dontshow{
 unlink(fout, recursive=TRUE)
