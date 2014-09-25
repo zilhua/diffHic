@@ -23,123 +23,13 @@ Type 'q()' to quit R.
 > suppressPackageStartupMessages(require(diffHic))
 > suppressPackageStartupMessages(require(rhdf5))
 > 
-> countcomp<-function(n, nfrags, maxc) {
-+ 	ai<-as.integer(runif(n, 1, nfrags))
-+ 	ti<-as.integer(runif(n, 1, nfrags))
-+ 	co<-as.integer(runif(n, 1, maxc))
-+ 	out<-data.frame(anchor.id=ai, target.id=ti, count=co)
-+ 	out<-out[order(ai, ti),]
-+ 
-+ 	# Checking counting.
-+ 	counted<-diffHic:::.sortedAggregate(out)
-+ 	comp<-aggregate(co~ai+ti, data=NULL, FUN=length)
-+ 	comp<-comp[order(comp[,1], comp[,2]),]
-+ 	stopifnot(identical(counted$count, comp[,3]))
-+ 	
-+ 	# Checking summation.
-+ 	counted<-diffHic:::.sortedAggregate(out, mode="sum")
-+ 	comp<-aggregate(co~ai+ti, data=NULL, FUN=sum)
-+ 	comp<-comp[order(comp[,1], comp[,2]),]
-+ 	stopifnot(identical(counted$count, comp[,3]))
-+ 	return(head(counted))
-+ }
-> 
-> set.seed(1452312)
-> 
-> countcomp(100, 10, 5)
-  anchor.id target.id count
-1         1         1    13
-2         1         2     1
-3         1         3     2
-4         1         4     1
-5         1         8     5
-6         1         9     3
-> countcomp(100, 10, 15)
-  anchor.id target.id count
-1         1         1    13
-2         1         2     7
-3         1         3    13
-4         1         5     7
-5         1         6     7
-6         1         7    15
-> countcomp(100, 10, 25)
-  anchor.id target.id count
-1         1         1    23
-2         1         2    22
-3         1         3     4
-4         1         4     1
-5         1         6    16
-6         1         7    17
-> countcomp(10, 100, 5)
-  anchor.id target.id count
-1         1        56     1
-2         8         2     2
-3         9        65     2
-4        15        81     1
-5        28        35     1
-6        37        47     4
-> countcomp(10, 100, 15)
-  anchor.id target.id count
-1         4        38     6
-2        32        41     1
-3        42        72     3
-4        57        52    13
-5        58        24     4
-6        76        60     1
-> countcomp(10, 100, 25)
-  anchor.id target.id count
-1         5        83    20
-2         9        66    20
-3        12        36    17
-4        13         2     5
-5        20        65    19
-6        36        47    11
-> countcomp(50, 50, 5)
-  anchor.id target.id count
-1         1        12     4
-2         2        36     3
-3         3         2     3
-4         3        33     1
-5         6         1     3
-6         8        32     2
-> countcomp(50, 50, 15)
-  anchor.id target.id count
-1         1        33    12
-2         1        49     8
-3         2        14    12
-4         2        18     1
-5         2        23    14
-6         3        20     9
-> countcomp(50, 50, 25)
-  anchor.id target.id count
-1         1        30     5
-2         1        47     4
-3         2        36     6
-4         3         8    22
-5         3        30    21
-6         3        33    16
-> 
-> ####################################################################################################
-> # Now, checking the behaviour of savePairs. In particular, looking for correct indexing.
-> 
 > tmp<-"temp-pairs"
 > dir.create(tmp)
 > savecomp<-function(n, nfrags, nchrs) {
 + 	# Simulating the dudes (target<=anchor at all times).
 + 	ai<-as.integer(runif(n, 1, nfrags))
 + 	ti<-as.integer(runif(n, 1, nfrags))
-+ 	out<-data.frame(anchor.id=pmax(ai, ti), target.id=pmin(ai, ti))
-+ 	out<-out[order(out$anchor.id, out$target.id),]
-+ 	collected<-diffHic:::.sortedAggregate(out)
-+ 
-+ 	# Shuffling the counts.
-+ 	original <- collected
-+ 	reorder <- nrow(collected):1 
-+ 	collected <- collected[reorder,]
-+ 	keep <- 1:nrow(collected) %% 3 == 0L
-+ 	temp <- collected$anchor.id[keep]
-+ 	collected$anchor.id[keep] <- collected$target.id[keep]
-+ 	collected$target.id[keep] <- temp
++ 	collected <- data.frame(anchor.id=pmax(ai, ti), target.id=pmin(ai, ti), junk=ai+ti, more.junk=ai-ti)
 + 
 + 	# Simulating the fragment IDs.
 + 	blah<-GRanges(sample(paste0("chr", 1:nchrs), nfrags, replace=TRUE), IRanges(1:nfrags, 1:nfrags+10),
@@ -157,8 +47,8 @@ Type 'q()' to quit R.
 + 		reread<-h5read(newdir, file.path(indices$group[x], indices$name[x]))
 + 		for (y in 1:ncol(reread)) { attributes(reread[,y]) <- NULL }
 + 		regot[[x]] <- reread
-+ 		comp<-diffHic:::.sortedAggregate(reread, mode="sum")
-+ 		stopifnot(identical(comp, reread))
++ 		o <- order(reread$anchor.id, reread$target.id)
++ 		stopifnot(all(diff(o)==1L)) 
 + 
 + 		uniq.a<-unique(chrs[reread[,1]])
 + 		uniq.t<-unique(chrs[reread[,2]])
@@ -168,84 +58,86 @@ Type 'q()' to quit R.
 + 
 + 	# Checking that the stored result is the same.
 + 	regot <- do.call(rbind, regot)
-+ 	regot <- regot[order(regot$anchor.id, regot$target.id),]
++ 	regot <- regot[order(regot$anchor.id, regot$target.id, regot$junk, regot$more.junk),]
++ 	original <- collected[order(collected$anchor.id, collected$target.id, collected$junk, collected$more.junk),]
 + 	rownames(original) <- rownames(regot) <- NULL 
 + 	stopifnot(identical(original, regot))
 + 	head(regot)
 + }
 > 
+> set.seed(23192382)
 > savecomp(100, 10, 5)
-  anchor.id target.id count
-1         1         1     1
-2         2         1     5
-3         3         1     1
-4         3         2     2
-5         3         3     2
-6         4         1     1
+  anchor.id target.id junk more.junk
+1         2         1    3        -1
+2         2         2    4         0
+3         3         1    4        -2
+4         3         2    5        -1
+5         3         2    5         1
+6         3         2    5         1
 > savecomp(100, 10, 15)
-  anchor.id target.id count
-1         1         1     1
-2         2         1     3
-3         3         1     1
-4         3         2     3
-5         4         1     3
-6         4         2     3
+  anchor.id target.id junk more.junk
+1         1         1    2         0
+2         1         1    2         0
+3         2         1    3        -1
+4         2         1    3        -1
+5         2         1    3         1
+6         2         2    4         0
 > savecomp(100, 10, 25)
-  anchor.id target.id count
-1         1         1     2
-2         3         1     2
-3         3         2     3
-4         3         3     1
-5         4         1     3
-6         4         2     2
+  anchor.id target.id junk more.junk
+1         2         1    3        -1
+2         2         1    3        -1
+3         3         1    4        -2
+4         3         1    4        -2
+5         3         1    4        -2
+6         3         1    4        -2
 > savecomp(10, 100, 5)
-  anchor.id target.id count
-1        55        43     1
-2        59        38     1
-3        61         4     1
-4        71        30     1
-5        74        44     1
-6        84        30     1
+  anchor.id target.id junk more.junk
+1        19         5   24        14
+2        20         8   28       -12
+3        47         1   48        46
+4        55        40   95        15
+5        65        64  129         1
+6        67        62  129         5
 > savecomp(10, 100, 15)
-  anchor.id target.id count
-1        13         6     1
-2        39        21     1
-3        56        20     1
-4        70        16     1
-5        77        60     1
-6        80        16     1
+  anchor.id target.id junk more.junk
+1        29        12   41        17
+2        36        35   71         1
+3        38        29   67        -9
+4        72        15   87       -57
+5        74        17   91        57
+6        76        19   95       -57
 > savecomp(10, 100, 25)
-  anchor.id target.id count
-1         9         6     1
-2        36         8     1
-3        48         5     1
-4        66        53     1
-5        76        22     1
-6        77        48     1
+  anchor.id target.id junk more.junk
+1        38         9   47        29
+2        41        21   62        20
+3        43        13   56       -30
+4        61        33   94       -28
+5        70        30  100        40
+6        75        65  140        10
 > savecomp(50, 50, 5)
-  anchor.id target.id count
-1         6         1     1
-2         8         7     2
-3         9         4     1
-4        10         3     1
-5        14         7     1
-6        15         1     1
+  anchor.id target.id junk more.junk
+1        10         8   18         2
+2        12         3   15        -9
+3        15         4   19       -11
+4        18        10   28         8
+5        19        19   38         0
+6        20         8   28       -12
 > savecomp(50, 50, 15)
-  anchor.id target.id count
-1         7         7     1
-2         9         8     1
-3        11         1     1
-4        13         9     1
-5        14         3     1
-6        14        11     1
+  anchor.id target.id junk more.junk
+1        11         3   14        -8
+2        12        10   22        -2
+3        17         5   22       -12
+4        21        12   33         9
+5        23        10   33        13
+6        24         5   29       -19
 > savecomp(50, 50, 25)
-  anchor.id target.id count
-1         7         5     1
-2         8         6     1
-3         9         7     1
-4        15         2     1
-5        17         1     1
-6        17         9     1
+  anchor.id target.id junk more.junk
+1        10         4   14        -6
+2        10        10   20         0
+3        14         2   16        12
+4        15         5   20        10
+5        15        10   25         5
+6        16         7   23        -9
 > 
 > ####################################################################################################
 > # Finally, chekcing the merging algorithms.
@@ -260,9 +152,7 @@ Type 'q()' to quit R.
 + 		# Simulating the dudes (target<=anchor at all times).
 + 		ai<-as.integer(runif(n, 1, nfrags))
 + 		ti<-as.integer(runif(n, 1, nfrags))
-+ 		out<-data.frame(anchor.id=pmax(ai, ti), target.id=pmin(ai, ti))
-+ 		out<-out[order(out$anchor.id, out$target.id),]
-+ 		collected<-diffHic:::.sortedAggregate(out)
++ 		collected <- data.frame(anchor.id=pmax(ai, ti), target.id=pmin(ai, ti), junk=ai+ti, more.junk=ai-ti)
 + 		allcounts[[x]]<-collected
 + 		allfiles[[x]]<-  file.path(tmp, paste0("output_", x))
 + 		savePairs(collected, allfiles[[x]], fragments=blah)
@@ -271,12 +161,11 @@ Type 'q()' to quit R.
 + 	# Comparing the combined with a more brutal merger.		
 + 	allfiles<-unlist(allfiles)
 + 	allcounts<-do.call(rbind, allcounts)
-+ 	allcounts<-allcounts[order(allcounts[,1], allcounts[,2]),]
-+ 	allcounts<-diffHic:::.sortedAggregate(allcounts, mode="sum")
-+ 	mdir<-file.path(tmp, "output_merged")
-+ 	mergePairs(allfiles, mdir)
 + 	rdir<-file.path(tmp, "output_ref")
 + 	savePairs(allcounts, rdir, fragments=blah)
++ 
++ 	mdir<-file.path(tmp, "output_merged")
++ 	mergePairs(allfiles, mdir)
 + 
 + 	# Comparing internal objects.
 + 	combodirs<-c(mdir, rdir)
@@ -285,85 +174,67 @@ Type 'q()' to quit R.
 + 		for (y in names(out[[x]])) {
 + 			current<-out[[x]][[y]]
 + 			stopifnot(all(current))
-+ 			stopifnot(identical(h5read(mdir, file.path(x, y)), h5read(rdir, file.path(x, y))))
++ 
++ 			alpha <- h5read(mdir, file.path(x, y))
++ 			alpha <- alpha[do.call(order, alpha),]
++ 			bravo <- h5read(rdir, file.path(x, y))
++ 			bravo <- bravo[do.call(order, bravo),]
++ 			rownames(alpha) <- rownames(bravo) <- NULL
++ 			stopifnot(identical(alpha, bravo))
 + 		}
 + 	}
 + 
-+ 	return(head(allcounts))
++ 	top.hit <- names(out)[1]
++ 	return(head(alpha))
 + }
 > 
 > mergecomp(2, 100, 10, 5)
-  anchor.id target.id count
-1         1         1     1
-2         2         1     7
-3         2         2     2
-4         3         1     4
-5         3         2     7
-6         3         3     4
+  anchor.id target.id junk more.junk
+1         7         7   14         0
+2         8         7   15        -1
+3         8         7   15        -1
+4         8         7   15        -1
+5         8         7   15        -1
+6         8         7   15        -1
 > mergecomp(3, 100, 10, 15)
-  anchor.id target.id count
-1         1         1     7
-2         2         1     4
-3         2         2     7
-4         3         1     8
-5         3         2     9
-6         3         3     6
+  anchor.id target.id junk more.junk
+1         8         8   16         0
+2         9         8   17        -1
+3         9         8   17        -1
+4         9         8   17         1
+5         9         8   17         1
+6         9         8   17         1
 > mergecomp(4, 100, 10, 25)
-  anchor.id target.id count
-1         1         1    13
-2         2         1     9
-3         2         2     8
-4         3         1     8
-5         3         2     7
-6         3         3     6
+  anchor.id target.id junk more.junk
+1         2         2    4         0
+2         2         2    4         0
+3         2         2    4         0
+4         2         2    4         0
+5         2         2    4         0
 > mergecomp(3, 10, 100, 5)
-  anchor.id target.id count
-1        21        16     1
-2        24         5     1
-3        25        18     1
-4        30         4     1
-5        30        24     1
-6        45        22     1
+  anchor.id target.id junk more.junk
+1        91        72  163       -19
 > mergecomp(4, 10, 100, 15)
-  anchor.id target.id count
-1        16        15     1
-2        20         3     1
-3        21         8     1
-4        28        22     1
-5        38         6     1
-6        39        30     1
+  anchor.id target.id junk more.junk
+1        65        54  119        11
 > mergecomp(2, 10, 100, 25)
-  anchor.id target.id count
-1        30        15     1
-2        36        17     1
-3        41        31     1
-4        52        11     1
-5        54        14     1
-6        57        49     1
+  anchor.id target.id junk more.junk
+1        25        21   46         4
 > mergecomp(4, 50, 50, 5)
-  anchor.id target.id count
-1         4         1     1
-2         5         1     1
-3         7         3     1
-4         9         1     1
-5         9         2     1
-6         9         3     1
+  anchor.id target.id junk more.junk
+1        42        39   81         3
+2        43        40   83        -3
+3        46        44   90         2
+4        49        39   88        10
+5        49        40   89         9
+6        49        40   89         9
 > mergecomp(2, 50, 50, 15)
-  anchor.id target.id count
-1         5         3     1
-2         9         7     1
-3        10         7     1
-4        11         6     1
-5        12         9     1
-6        14        11     1
+  anchor.id target.id junk more.junk
+1        28        27   55        -1
 > mergecomp(3, 50, 50, 25)
-  anchor.id target.id count
-1         5         2     1
-2         9         7     1
-3        10         5     1
-4        10         7     1
-5        11        10     1
-6        12         8     1
+  anchor.id target.id junk more.junk
+1        13         8   21        -5
+2        13        11   24        -2
 > 
 > ####################################################################################################
 > # Cleaning up.
@@ -376,4 +247,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 17.606   0.447  18.132 
+ 17.493   0.366  17.885 
