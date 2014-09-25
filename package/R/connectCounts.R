@@ -1,4 +1,4 @@
-connectCounts <- function(files, fragments, regions, filter=1L, type="any", restrict=NULL)
+connectCounts <- function(files, param, regions, filter=1L, type="any")
 # This counts the number of connections between specified regions in the genome (i.e. between regions
 # in 'anchor' and regions in 'target'). This is designed to make it easier to analyze results in terms
 # of genes. Note that everything is rounded up to the nearest outside restriction site (or to the
@@ -8,7 +8,12 @@ connectCounts <- function(files, fragments, regions, filter=1L, type="any", rest
 {
 	nlibs <- length(files)
 	if (nlibs==0L) { stop("number of libraries must be positive") } 
-	if (!is.integer(filter)) { filter<-as.integer(filter) }
+	filter<-as.integer(filter)
+	fragments <- param$fragments
+
+	# Setting up other local references.
+	restrict <- param$restrict
+	discard <- .splitDiscards(param$discard)
 
 	# Figuring out which regions are anchor or targets.
 	fdata <- .checkFragments(fragments)
@@ -31,9 +36,8 @@ connectCounts <- function(files, fragments, regions, filter=1L, type="any", rest
 
 	# Setting up output containers.
     full.sizes <- integer(nlibs)
-	out.counts <- list()
-	out.left <- list()
-	out.right <- list()
+	out.counts <- list(matrix(0L, 0, nlibs))
+	out.right <- out.left <- list(integer(0))
 	idex<-1L
 
 	chrs <- seqlevels(fragments)
@@ -42,14 +46,14 @@ connectCounts <- function(files, fragments, regions, filter=1L, type="any", rest
 
 	for (anchor in names(overall)) {
         stopifnot(anchor %in% chrs)
-		if (!is.null(restrict) && !(anchor %in% restrict)) { next }
+		if (length(restrict) && !(anchor %in% restrict)) { next }
 		current<-overall[[anchor]]
 		for (target in names(current)) {
 			stopifnot(target %in% chrs)
-            if (!is.null(restrict) && !(target %in% restrict)) { next }
+            if (length(restrict) && !(target %in% restrict)) { next }
 
-           	pairs <- .baseHiCParser(current[[target]], files, anchor, target)
-            full.sizes <- full.sizes+sapply(1:length(pairs), FUN=function(x) { sum(pairs[[x]]$count) })
+           	pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard)
+            full.sizes <- full.sizes + sapply(pairs, FUN=nrow)
 			if (! (target %in% my.chrs) || ! (anchor %in% my.chrs)) { next }	
 
 			# Extracting counts. Running through the fragments and figuring out what matches where.
