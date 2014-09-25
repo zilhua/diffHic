@@ -10,7 +10,6 @@ public:
 	fragment_finder(SEXP, SEXP); // Takes a list of vectors of positions and reference names for those vectors.
 	int find_fragment(const int&, const int&, const bool&, const int&) const;
 	const int nchrs() const;
-	std::pair<int, int> access(const int&, const int&) const;
 private:
 	struct chr_stats {
 		chr_stats(const int* s, const int* e, const int& l) : start_ptr(s), end_ptr(e), num(l) {}
@@ -53,8 +52,7 @@ int fragment_finder::find_fragment(const int& c, const int& p, const bool& r, co
 			--index;
 		}
 	} else {
-		/* For filled-in genomes, if the position accidentally slips 
- 		 * If forward strand, we search relative to the start position of each fragment. If the
+		/* If forward strand, we search relative to the start position of each fragment. If the
  		 * end of the identified fragment is less than the position, the read probably just 
  		 * slipped below the start position of the true fragment and is partially sitting 
  		 * in the spacer for filled-in genomes. We then simply kick up the index.
@@ -71,12 +69,6 @@ int fragment_finder::find_fragment(const int& c, const int& p, const bool& r, co
 
 const int fragment_finder::nchrs() const { return pos.size(); }
 	
-std::pair<int, int> fragment_finder::access(const int& cid, const int& fnum) const {
-	const chr_stats& current=pos[cid];
-	if (fnum < 0 || fnum >= current.num) { throw std::runtime_error("invalid index requested for fragment limits"); }
-	return std::make_pair(current.start_ptr[fnum], current.end_ptr[fnum]);
-}
-
 /***********************************************************************
  * Parses the CIGAR string to extract the alignment length, offset from 5' end of read.
  ***********************************************************************/
@@ -148,14 +140,8 @@ int get_status (const segment& left, const segment& right) {
 	return is_mate;
 }
 
-int get_fraglen(const fragment_finder& ff, const segment& seg) {
-	if (seg.reverse) { return seg.pos+seg.alen-ff.access(seg.chrid, seg.fragid).first; }
-	else { return ff.access(seg.chrid, seg.fragid).second-seg.pos+1; }
-}
-
-struct valid_pair {
-	valid_pair(const int& a=-1, const int& t=-1, const int& f=0) : anchor(a), target(t), flen(f) {};
-	int anchor, target, flen, orientation, gap;
+struct valid_pair { 
+	int anchor, target, apos, tpos, alen, tlen;
 };
 
 /************************
@@ -316,17 +302,15 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 		
 		curpair.anchor=anchor_seg.fragid;
 		curpair.target=target_seg.fragid;
-		curpair.flen=get_fraglen(ff, anchor_seg)+get_fraglen(ff, target_seg);
-		curpair.orientation=(anchor_seg.reverse ? 1 : 0) + (target_seg.reverse ? 2 : 0);
-		curpair.gap=(anchor_seg.chrid==target_seg.chrid ? anchor_seg.pos + anchor_seg.alen - target_seg.pos : NA_INTEGER);
-		collected[anchor_seg.chrid][target_seg.chrid].push_back(curpair);
+		curpair.apos=anchor_seg.pos;
+		curpair.alen=anchor_seg.alen; 
+		if (anchor_seg.reverse) { curpair.alen*=-1; } 
+		curpair.tpos=target_seg.pos;
+		curpair.tlen=target_seg.alen;
+		if (target_seg.reverse) { curpair.tlen*=-1; }
 
-//		const char* whee=CHAR(STRING_ELT(names, anchor_seg.chrid));
-//		const char* blah=CHAR(STRING_ELT(names, target_seg.chrid));
-//		if ((! std::strcmp(whee, "chr4") && !std::strcmp(blah, "chr13") && anchor_seg.fragid==48553 && target_seg.fragid==15054) 
-//				|| (! std::strcmp(blah, "chr4") && !std::strcmp(whee, "chr13") && target_seg.fragid==48553 && anchor_seg.fragid==15054)) {
-//			std::cout << last_name << "\t" << anchor_seg.pos << "\t" << anchor_seg.fraglen(ff) << "\t" << target_seg.pos << "\t" << target_seg.fraglen(ff) << std::endl;
-//		}
+		if (curpair.alen==0 || curpair.tlen==0) { throw std::runtime_error("alignment lengths of zero should not be present"); } 
+		collected[anchor_seg.chrid][target_seg.chrid].push_back(curpair);
 	}
 
 	// Checking if all pairs were used up.
@@ -355,18 +339,20 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 
 			// Filling up those non-empty pairs of chromosomes.
 			std::deque<valid_pair>& curpairs=collected[good[i].first][good[i].second];
-			SET_VECTOR_ELT(output, i, allocMatrix(INTSXP, curpairs.size(), 5)); 
+			SET_VECTOR_ELT(output, i, allocMatrix(INTSXP, curpairs.size(), 6)); 
 			int* axptr=INTEGER(VECTOR_ELT(output, i));
 			int* txptr=axptr+curpairs.size();
-			int* lxptr=txptr+curpairs.size();
-			int* oxptr=lxptr+curpairs.size();
-			int* gxptr=oxptr+curpairs.size();
+			int* apxptr=txptr+curpairs.size();
+			int* tpxptr=apxptr+curpairs.size();
+			int* afxptr=tpxptr+curpairs.size();
+			int* tfxptr=afxptr+curpairs.size();
 			for (int k=0; k<curpairs.size(); ++k) {
 				axptr[k]=curpairs[k].anchor+1;
 				txptr[k]=curpairs[k].target+1;
-				lxptr[k]=curpairs[k].flen;
-				oxptr[k]=curpairs[k].orientation;
-				gxptr[k]=curpairs[k].gap;
+				apxptr[k]=curpairs[k].apos;
+				tpxptr[k]=curpairs[k].tpos;
+				afxptr[k]=curpairs[k].alen;
+				tfxptr[k]=curpairs[k].tlen;
 			}
 
 			// Emptying out the container once we've processed it, to keep memory usage down.

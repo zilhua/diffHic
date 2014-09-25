@@ -1,4 +1,4 @@
-preparePairs<-function(bam, fragments, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq=NA)
+preparePairs<-function(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq=NA)
 # This function prepares Hi-C data by stripping out all valid pairs from the BAM file and 
 # returning a table describing the interacting fragments of that pair. Diagnnostic data is
 # also returned describing various bits and pieces of hiC quality.
@@ -11,6 +11,7 @@ preparePairs<-function(bam, fragments, file, dedup=TRUE, yield=1e7, ichim=TRUE, 
 	# are designated as targets when compared to later chromosomes.
 	scuts <- ecuts <- list()
 	boost.idx<- list()
+	fragments <- param$fragments
 	frag.data <- .checkFragments(fragments)
 	chrs <- frag.data$chr
 
@@ -111,7 +112,7 @@ preparePairs<-function(bam, fragments, file, dedup=TRUE, yield=1e7, ichim=TRUE, 
 		for (target in names(tfiles)) {
 			current.file <- tfiles[[target]]
 			out <- read.table(current.file, header=FALSE, colClasses="integer")
-			colnames(out) <- c("anchor.id", "target.id", "length", "orientation", "gap")
+			colnames(out) <- c("anchor.id", "target.id", "anchor.pos", "target.pos", "anchor.len", "target.len")
 			out$anchor.id <- out$anchor.id+boost.idx[[anchor]]
 			out$target.id <- out$target.id+boost.idx[[target]]
 			out <- out[order(out$anchor.id, out$target.id),,drop=FALSE]
@@ -128,41 +129,6 @@ preparePairs<-function(bam, fragments, file, dedup=TRUE, yield=1e7, ichim=TRUE, 
 				same.id=same.id,
 				singles=singletons,
 				chimeras=chimeras))
-}
-
-getPairData <- function(file, length=TRUE, orientation=TRUE, gap=TRUE)
-# This retrieves the fragment sizes, relative orientations and gaps from each directory produced by 
-# preparePairs. This is a convenience function which allows people to avoid loading the entire directory 
-# in (or manually parsing the said directory).
-#
-# written by Aaron Lun
-{
-	# Picking which elements to pull
-	if (!(length|orientation|gap)) { 
-		stop("must select at least one attribute") 
-	}
-	topull <- NULL
-	if (length) { topull <- c(topull, "length") }
-	if (orientation) { topull <- c(topull, "orientation") }
-	if (gap)  { topull <- c(topull, "gap") }
-	
-	# Pulling out data and merging it.
-	allfrags <- list()
-	ix <- 1L
-	allstuff <- .loadIndices(file)
-	for (ax in names(allstuff)) {
-		current <- allstuff[[ax]] 
-		for (tx in names(current)) { 
-			allfrags[[ix]] <- .getPairs(file, ax, tx)[,topull,drop=FALSE]
-			ix <- ix + 1L
-		}
-	}
-	allfrags <- do.call(rbind, allfrags)
-
-	# Dealing with some loose attributes.
-	for (x in 1:ncol(allfrags)) { attributes(allfrags[,x]) <- NULL }
-	rownames(allfrags) <- NULL
-	return(allfrags)
 }
 
 .checkFragments <- function(fragments) 
