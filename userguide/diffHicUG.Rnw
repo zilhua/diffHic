@@ -136,8 +136,7 @@ data <- data[keep,]
 \item normalizing counts between libraries
 <<>>=
 y <- asDGEList(data)
-require(csaw)
-y$offset <- normalizeCounts(counts(data), totals(data), type="loess")
+y$offset <- normalize(data, type="loess")
 @
 \item modelling biological variability
 <<>>=
@@ -1017,14 +1016,12 @@ adj.counts <- cpm(asDGEList(data), log=TRUE)
 
 Trended biases are problematic as they can inflate the variance estimates or fold-changes for some bin pairs. 
 Thus, they must be eliminated with non-linear normalization.
-Here, the \code{normalizeCounts} function in the \csaw{} package is used on the bin pair counts.
-This implements the NB-loess method, which is an adaptation of existing non-linear methods for discrete count data \citep{normpaper}.
+The code below implements the NB-loess method, which is an adaptation of existing non-linear methods for discrete count data \citep{normpaper}.
 The function computes an offset term for each bin pair in each library for use in a generalized linear model (GLM). 
 A large offset for an observation is equivalent to downscaling the corresponding count relative to the counts of the other libraries. 
 
 <<>>=
-require(csaw)
-nb.off <- normalizeCounts(counts(data), totals(data), type="loess")
+nb.off <- normalize(data, type="loess")
 head(nb.off)
 @
 
@@ -1450,7 +1447,7 @@ To demonstrate, a quick-and-dirty analysis of the previously loaded counts for t
 
 <<>>=
 y.small <- asDGEList(smaller.data)
-y.small$offset <- normalizeCounts(counts(smaller.data), totals(smaller.data), type="loess")
+y.small$offset <- normalize(smaller.data, type="loess")
 y.small <- estimateDisp(y.small, design)
 fit.small <- glmQLFit(y.small, design, robust=TRUE)
 result.small <- glmQLFTest(fit.small)
@@ -1477,7 +1474,7 @@ Identification of these clusters can be achieved with the \code{boxPairs} functi
 Note that the larger bin size must be a multiple of the \code{width} used for the smaller bins - in this case, 1 Mbp.
 
 <<>>=
-matched <- boxPairs(reference=bin.size, smaller=smaller.data, mm.param)
+matched <- boxPairs(reference=bin.size, smaller=smaller.data, param=mm.param)
 @
 
 The $p$-values for all of the smaller bin pairs can then be combined using Simes' method.
@@ -1486,6 +1483,7 @@ The BH method is applied to the combined $p$-values to control the FDR across al
 Rejection of the global null indicates that there is a change and that the larger bin pair is worth further investigation.
 
 <<>>=
+require(csaw)
 tabcom <- combineTests(matched$indices$smaller, result.small$table)
 head(tabcom)
 sum(tabcom$FDR <= 0.05)
@@ -1505,7 +1503,7 @@ All smaller bin pairs that are nested within each of the larger bin pairs are id
 This yields identifiers for each bin pair where \code{smaller} bin pairs are nested in \code{larger} bin pairs with the same ID.
 
 <<>>=
-matched <- boxPairs(bin.size, larger=data, smaller=smaller.data, mm.param)
+matched <- boxPairs(bin.size, larger=data, smaller=smaller.data, param=mm.param)
 ldex <- matched$indices$larger
 sdex <- matched$indices$smaller
 @
