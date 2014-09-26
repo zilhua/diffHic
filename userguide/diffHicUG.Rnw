@@ -136,6 +136,7 @@ data <- data[keep,]
 \item normalizing counts between libraries
 <<>>=
 y <- asDGEList(data)
+require(csaw)
 y$offset <- normalizeCounts(counts(data), totals(data), type="loess")
 @
 \item modelling biological variability
