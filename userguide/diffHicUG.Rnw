@@ -124,7 +124,8 @@ design <- model.matrix(~factor(c("flox", "flox", "ko", "ko")))
 \item counting read pairs into pairs of genomic bins
 <<>>=
 require(diffHic)
-data <- squareCounts(input, width=1e6, fragments=fragments)
+param <- pairParam(fragments=fragments)
+data <- squareCounts(input, width=1e6, param=param)
 @
 \item filtering out uninteresting bin pairs
 <<>>=
@@ -135,7 +136,7 @@ data <- data[keep,]
 \item normalizing counts between libraries
 <<>>=
 y <- asDGEList(data)
-y$offset <- normalize(data, type="loess")
+y$offset <- normalizeCounts(counts(data), totals(data), type="loess")
 @
 \item modelling biological variability
 <<>>=
@@ -198,6 +199,16 @@ hs.frag <- cutGenome(BSgenome.Hsapiens.UCSC.hg19, "AAGCTT", 4)
 hs.frag
 @
 
+These fragments should be stored in a \code{pairParam} object.
+The constructor below will automatically check the validity of the ordering of the fragments. 
+The object can also hold several other parameters for use in read pair counting, later.
+This simplifies coordination of the various steps in the \pkgname{} pipeline, as the same \code{pairParam} object can be easily passed between different functions. 
+
+<<>>=
+hs.param <- pairParam(hs.frag)
+hs.param
+@
+
 The \code{preparePairs} function can be used to match the mapping location of each read to a restriction fragment.
 Mapping results for each read in each pair are provided as a name-sorted BAM file.
 The function then converts the read position into the index of the corresponding entry in \code{hs.frag}.
@@ -206,7 +217,7 @@ The larger index is designated as the ``anchor'' whereas the smaller is the ``ta
 This is demonstrated using Hi-C data from GM06990 cells.
 
 <<>>=
-preparePairs("SRR027957.bam", fragments=hs.frag, file="SRR027957.h5", dedup=TRUE, minq=10)
+preparePairs("SRR027957.bam", hs.param, file="SRR027957.h5", dedup=TRUE, minq=10)
 @
 
 The function itself returns a list of diagnostics showing the number of read pairs that are lost for various reasons.
@@ -234,36 +245,32 @@ The invalid proportion can be used as an empirical measure of the mapping error 
 Invalid chimeric pairs can be discarded by setting \code{ichim=FALSE} in \code{preparePairs}.
 However, this is not recommended as mapping errors for short $3'$ ends may result in invalidity and loss of the otherwise correct $5'$ alignments.
 
-\section{Filtering and counting read pairs}
+\section{Filtering artifactual read pairs}
 
-\subsection{Reprocessing index files to store counts}
-Multiple read pairs may be assigned to a given pair of restriction fragments.
-It is more efficient to store the count associated with each pair of fragment indices, rather than storing the indices for each pair of reads.
-This can be done with the \code{countPairs} function, which overwrites the existing index file with the reformatted count data by default.
-Alternatively, it can be directed to an alternative file path if the original data is to be reused.
+\subsection{Reprocessing index files for quality control}
+The \code{prunePairs} function removes read pairs corresponding to artifacts in a specified index file.
+The returned vector contains the number of read pairs that were removed for each of the various reasons described below.
+The number of read pairs remaining is also recorded.
+All retained read pairs are then placed in an output index file for downstream use.
 
 <<>>=
-min.ingap <- 1000
-min.outgap <- 25000
-countPairs("SRR027957.h5", file.out="SRR027957_counted.h5", 
-    max.length=600, min.ingap=min.ingap, min.outgap=min.outgap)
+min.inward <- 1000
+min.outward <- 25000
+prunePairs("SRR027957.h5", hs.param, file.out="SRR027957_trimmed.h5", 
+    max.frag=600, min.inward=min.inward, min.outward=min.outward)
 @
 
-The \code{max.length} argument removes read pairs where the inferred length of the sequencing fragment (i.e., the ligation product) is greater than a specified value.
+The \code{max.frag} argument removes read pairs where the inferred length of the sequencing fragment (i.e., the ligation product) is greater than a specified value.
 The length of the sequencing fragment is inferred by summing the distance between the mapping location of the $5'$ end of each read and the nearest restriction site on the $3'$ end of that read.
 Excessively large lengths are indicative of offsite cleavage, i.e., where the restriction enzyme or some other agent cuts the DNA at a location other than the restriction site.
 While not completely uninformative, these are discarded as they are not expected from the Hi-C protocol.
 The threshold value can be chosen based on the size selection interval in library preparation.
 
-The gap distance is defined as the linear distance between two paired reads on the same chromosome.
-The \code{min.ingap} paramater removes inward-facing intra-chromosomal read pairs where the gap distance is less than the specified value.
-The \code{min.outgap} parameter does the same for outward-facing intra-chromosomal read pairs.
+The insert size is defined as the linear distance between two paired reads on the same chromosome.
+The \code{min.inward} paramater removes inward-facing intra-chromosomal read pairs where the insert size is less than the specified value.
+The \code{min.outward} parameter does the same for outward-facing intra-chromosomal read pairs.
 This is designed to remove dangling ends or self-circles involving DNA fragments that have not been completely digested \citep{jin2013highres}.
 Such read pairs are technical artifacts that are (incorrectly) missed by \code{preparePairs}, as the two reads involved are mapped to different restriction fragments.
-
-In all cases, filtering is performed on the read pairs in the input file prior to counting.
-The return value of \code{countPairs} simply contains the number of read pairs that were removed for the various reasons described above.
-The number of read pairs remaining is also recorded.
 
 \subsection{Setting parameter values with strand orientation plots}
 \label{sec:strorient}
@@ -274,27 +281,27 @@ This can be tested by examining the distribution of strand orientations for inte
 Each orientation is equally represented, which is expected as different chromosomes represent different pieces of DNA.
 
 <<>>=
-diags <- getPairData("SRR027957.h5")
-intra <- !is.na(diags$gap)
+diags <- getPairData("SRR027957.h5", hs.param)
+intra <- !is.na(diags$insert)
 table(diags$orientation[!intra])
 @
 
-This can be repeated for intra-chromosomal read pairs, by plotting the distribution of gap distances for each strand orientation \citep{jin2013highres}.
+This can be repeated for intra-chromosomal read pairs, by plotting the distribution of insert sizes for each strand orientation \citep{jin2013highres}.
 The two same-strand distributions are averaged for convenience.
-At high gap distances, the distributions will converge for all strand orientations.
+At high insert sizes, the distributions will converge for all strand orientations.
 This is consistent with random ligation between two separate restriction fragments.
-At lower gap distances, spikes are observed in the ouward- and inward-facing distributions due to self-circularization and dangling ends, respectively.
+At lower insert sizes, spikes are observed in the ouward- and inward-facing distributions due to self-circularization and dangling ends, respectively.
 These are not removed by \code{preparePairs} as the read pairs are not mapped to the same restriction fragment.
 Rather, the artifacts are formed from incompletely digested fragments.
-Thresholds should be chosen in \code{countPairs} to remove these spikes, as represented by the grey lines.
+Thresholds should be chosen in \code{prunePairs} to remove these spikes, as represented by the grey lines.
 
 <<eval=FALSE,label=strorient>>=
-llgap <- log2(diags$gap + 1L)
-intra <- !is.na(llgap)
-breaks <- seq(min(llgap[intra]), max(llgap[intra]), length.out=30)
-inward <- hist(llgap[diags$orientation==1L], plot=FALSE, breaks=breaks)
-outward <- hist(llgap[diags$orientation==2L] ,plot=FALSE, breaks=breaks)
-samestr <- hist(llgap[diags$orientation==0L | diags$orientation==3L], plot=FALSE, breaks=breaks)
+llinsert <- log2(diags$insert + 1L)
+intra <- !is.na(llinsert)
+breaks <- seq(min(llinsert[intra]), max(llinsert[intra]), length.out=30)
+inward <- hist(llinsert[diags$orientation==1L], plot=FALSE, breaks=breaks)
+outward <- hist(llinsert[diags$orientation==2L] ,plot=FALSE, breaks=breaks)
+samestr <- hist(llinsert[diags$orientation==0L | diags$orientation==3L], plot=FALSE, breaks=breaks)
 samestr$counts <- samestr$counts/2
 ymax <- max(inward$counts, outward$counts, samestr$counts)/1e6
 xmax <- max(inward$mids, outward$mids, samestr$mids)
@@ -303,9 +310,9 @@ xmin <- min(inward$mids, outward$mids, samestr$mids)
 plot(0,0,type="n", xlim=c(xmin, xmax), ylim=c(0, ymax),
     xlab=expression(log[2]~"[insert size (bp)]"), ylab="Frequency (millions)")
 lines(inward$mids, inward$counts/1e6, col="darkgreen", lwd=2)
-abline(v=log2(min.ingap), col="darkgrey")
+abline(v=log2(min.inward), col="darkgrey")
 lines(outward$mids, outward$counts/1e6, col="red", lwd=2)
-abline(v=log2(min.outgap), col="darkgrey", lty=2)
+abline(v=log2(min.outward), col="darkgrey", lty=2)
 lines(samestr$mids, samestr$counts/1e6, col="blue", lwd=2)
 legend("topright", c("inward", "outward", "same"), col=c("darkgreen", "red", "blue"), lwd=2)
 @
@@ -338,11 +345,11 @@ This is equivalent to summing the counts for each pair of restriction fragment i
 An example is provided below that merges several technical replicates for a GM06990 library in the \citeauthor{lieberman2009comprehensive} dataset.
 
 <<>>=
-prepped <- preparePairs("SRR027958.bam", hs.frag, file="SRR027958.h5", 
+prepped <- preparePairs("SRR027958.bam", hs.param, file="SRR027958.h5", 
     dedup=TRUE, minq=10)
-counted <- countPairs("SRR027958.h5", "SRR027958_counted.h5", max.length=600, 
-    min.ingap=min.ingap, min.outgap=min.outgap)
-mergePairs(files=c("SRR027957_counted.h5", "SRR027958_counted.h5"), "merged.h5")
+counted <- prunePairs("SRR027958.h5", hs.param, file.out="SRR027958_trimmed.h5", 
+    max.frag=600, min.inward=min.inward, min.outward=min.outward)
+mergePairs(files=c("SRR027957_trimmed.h5", "SRR027958_trimmed.h5"), "merged.h5")
 @
 
 In addition, any Hi-C dataset that is processed manually by the user can be stored in an index file using the \code{savePairs} function.
@@ -351,11 +358,16 @@ The idea is to allow entry into the \pkgname{} analysis from other pipelines.
 If the dataset is too large, one can save chunks at a time before merging them all together with \code{mergePairs}.
 
 <<>>=
-anchor.id <- as.integer(runif(100, 1, length(hs.frag)))
-target.id <- as.integer(runif(100, 1, length(hs.frag)))
+anchor.id <- as.integer(runif(100, 1, length(hs.param$fragments)))
+target.id <- as.integer(runif(100, 1, length(hs.param$fragments)))
 dummy <- data.frame(anchor.id, target.id, other.data=as.integer(runif(100, 1, 100)))
-savePairs(dummy, "example.h5", hs.frag)
+savePairs(dummy, "example.h5", hs.param)
 @
+
+For full compatability, users should include the alignment positions and lengths as \code{xxx.pos} and \code{xxx.len} (replacing \code{xxx} with \code{anchor} or \code{target}) in \code{dummy}.
+The alignment position refers to the 1-based coordinate of the left-most base of the alignment.
+The alignment length refers to the span of the alignment relative to the reference, and should be negative for alignments on the reverse strand.
+This is more useful for other \pkgname{} functions than some arbitrary \code{other.data}.
 
 \chapter{Counting read pairs into interactions}
 \label{chap:counting}
@@ -398,7 +410,8 @@ Counting of read pairs between bin pairs can be performed for multiple libraries
 
 <<>>=
 bin.size <- 1e6
-data <- squareCounts(input, mm.frag, width=bin.size, filter=1)
+mm.param <- pairParam(mm.frag)
+data <- squareCounts(input, mm.param, width=bin.size, filter=1)
 data
 @
 
@@ -425,7 +438,7 @@ This provides some robustness to the choice of bin size.
 Sharp interactions can be detected by pairs of smaller bins while diffuse interactions can be detected by larger bin pairs.
 See Section~\ref{sec:mergebins} for more information on consolidating results from multiple bin sizes.
 
-The boundary of each bin is also rounded to the closest restriction site in \code{squareCounts}.
+Also note that the boundary of each bin is rounded to the closest restriction site in \code{squareCounts}.
 This is due to the inherent limits on spatial resolution in a Hi-C experiment.
 The number of restriction fragments in each bin is recorded in the \code{nfrags} field of the metadata.
 
@@ -453,7 +466,7 @@ This can be easier to interpret than pairs of bins as the interacting regions ha
 The count matrix and the vector of totals are defined as previously described.
 
 <<>>=
-redata <- connectCounts(input, fragments=mm.frag, regions=gene.body)
+redata <- connectCounts(input, mm.param, regions=gene.body)
 redata
 @
 
@@ -481,7 +494,7 @@ One can use these ``marginal'' counts to determine whether there are systematic 
 This implies that copy number variations are present, which may confound the differential analysis.
 
 <<>>=
-margin.data <- marginCounts(input, fragments=mm.frag, width=bin.size)
+margin.data <- marginCounts(input, mm.param, width=bin.size)
 margin.data
 @
 
@@ -517,6 +530,48 @@ identical(regions(data), regions(margin.data))
 Note that the anchor/target notation is superfluous for \code{marginCounts}.
 This is because the marginal counts refer to individual bins rather than bin pairs.
 Nonetheless, a \code{DIList} is still returned for consistency, in which the anchor and target regions are identical.
+
+\section{Additional parameter options}
+Users can elect to restrict counting to particular chromosomes, by setting a value for the \code{restrict} slot in the \code{pairParam} object.
+This is useful to ensure that only interactions between relevant chromosomes are loaded.
+Sequences such as the mitochondrial genome, unassigned contigs or random chromosome segments can be ignored.
+
+<<>>=
+new.param <- reform(mm.param, restrict=c("chr1", "chr2"))
+new.param
+@
+
+Users can also choose to discard alignments that lie within blacklisted regions, using the \code{discard} slot.
+The aim is to eliminate reads within known repeat regions.
+Reads from several repeat units in a real genome may be collated into a single representative unit in the genome build.
+This results in a sharp spike in read intensity, incorrectly suggesting a sharp feature in the interaction space.
+The problem is exacerbated by different repeat copy numbers between conditions, resulting in spurious differential interactions due to changes in coverage.
+Removal of reads in these repeats may be necessary to obtain reliable results.
+
+<<>>=
+dummy.repeat <- GRanges("chr1", IRanges(10000, 1000000))
+new.param <- reform(new.param, discard=dummy.repeat)
+new.param
+@
+
+The coordinates of the repeat regions can be obtained from various sources.
+The simplest approach is to extract them from an appropriate \code{BSgenome} object. 
+For example, the code below takes the repeats called by the RepeatMasker program in the hg19 build of the human genome.
+
+<<>>=
+require(BSgenome.Hsapiens.UCSC.hg19.masked)
+bs <- BSgenome.Hsapiens.UCSC.hg19.masked
+all.masks <- list()
+for (i in 1:length(seqnames(bs))) { 
+    cur.chr <- seqnames(bs)[i]
+    all.masks[[i]] <- GRanges(cur.chr, masks(bs[[cur.chr]])$RM)
+}
+suppressWarnings(do.call(c, all.masks))
+@
+
+For simplicity, counting will be performed with the default settings, i.e., no values for \code{restrict} or \code{discard}.
+Generally, the same \code{pairParam} object should be used between the different counting functions described in this chapter.
+This ensures that the same read pairs are extracted from each index file.
 
 \section{Summary}
 Counting into bin pairs is the most general method for interaction quantification.
@@ -759,7 +814,7 @@ A non-unity value of \code{filter} is set in \code{squareCounts} to avoid using 
 
 <<>>=
 new.bin.size <- 1e5
-smaller.data <- squareCounts(input, fragments=mm.frag, width=new.bin.size, filter=20)
+smaller.data <- squareCounts(input, mm.param, width=new.bin.size, filter=20)
 @
 
 The threshold for the larger bin pairs are computed as previously described.
@@ -831,7 +886,7 @@ One must adjust the threshold for the differences in the read counting areas, as
 
 <<>>=
 re.ab <- aveLogCPM(asDGEList(redata))
-re.norm.ab <- re.ab - log2(getArea(redata, fragments=mm.frag))
+re.norm.ab <- re.ab - log2(getArea(redata, mm.param))
 summary(re.norm.ab)
 @
 
@@ -968,7 +1023,7 @@ A large offset for an observation is equivalent to downscaling the corresponding
 
 <<>>=
 require(csaw)
-nb.off <- normalize(data, type="loess")
+nb.off <- normalizeCounts(counts(data), totals(data), type="loess")
 head(nb.off)
 @
 
@@ -1126,8 +1181,8 @@ Some filtering is performed to eliminate low-abundance bin pairs, as previously 
 
 <<>>=
 count.files <- c("merged_erg.h5", "merged_gfp.h5")
-rick.data <- squareCounts(count.files, hs.frag, width=1e6)
-rick.marg <- marginCounts(count.files, hs.frag, width=1e6)
+rick.data <- squareCounts(count.files, hs.param, width=1e6)
+rick.marg <- marginCounts(count.files, hs.param, width=1e6)
 rick.data <- rick.data[aveLogCPM(asDGEList(rick.data)) > 0,]
 @
 
@@ -1394,7 +1449,7 @@ To demonstrate, a quick-and-dirty analysis of the previously loaded counts for t
 
 <<>>=
 y.small <- asDGEList(smaller.data)
-y.small$offset <- normalize(smaller.data, type="loess")
+y.small$offset <- normalizeCounts(counts(smaller.data), totals(smaller.data), type="loess")
 y.small <- estimateDisp(y.small, design)
 fit.small <- glmQLFit(y.small, design, robust=TRUE)
 result.small <- glmQLFTest(fit.small)
@@ -1421,7 +1476,7 @@ Identification of these clusters can be achieved with the \code{boxPairs} functi
 Note that the larger bin size must be a multiple of the \code{width} used for the smaller bins - in this case, 1 Mbp.
 
 <<>>=
-matched <- boxPairs(reference=bin.size, smaller=smaller.data, fragments=mm.frag)
+matched <- boxPairs(reference=bin.size, smaller=smaller.data, mm.param)
 @
 
 The $p$-values for all of the smaller bin pairs can then be combined using Simes' method.
@@ -1449,7 +1504,7 @@ All smaller bin pairs that are nested within each of the larger bin pairs are id
 This yields identifiers for each bin pair where \code{smaller} bin pairs are nested in \code{larger} bin pairs with the same ID.
 
 <<>>=
-matched <- boxPairs(bin.size, larger=data, smaller=smaller.data, fragments=mm.frag)
+matched <- boxPairs(bin.size, larger=data, smaller=smaller.data, mm.param)
 ldex <- matched$indices$larger
 sdex <- matched$indices$smaller
 @
@@ -1539,13 +1594,13 @@ The colour of the pixel is proportional to the number of read pairs mapped betwe
 
 <<label=plaid1,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[1], anchor=expanded.a, target=expanded.t, cap=cap1, 
-    width=5e4, col="red", fragments=mm.frag, main="Flox")
+    width=5e4, col="red", param=mm.param, main="Flox")
 rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
 @
 
 <<label=plaid3,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[3], anchor=expanded.a, target=expanded.t, cap=cap3, 
-    width=5e4, col="blue", fragments=mm.frag, main="KO")
+    width=5e4, col="blue", param=mm.param, main="KO")
 rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
 @
 
@@ -1602,13 +1657,13 @@ Of course, any sharp changes within each of these large bin pairs will be overlo
 
 <<label=plaid1b,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[1], anchor=expanded.a, target=expanded.t, cap=cap1, 
-    width=5e4, fragments=mm.frag, col="red", main="Flox")
+    width=5e4, param=mm.param, col="red", main="Flox")
 rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
 @
 
 <<label=plaid3b,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[3], anchor=expanded.a, target=expanded.t, cap=cap3, 
-    width=5e4, col="blue", fragments=mm.frag, main="KO")
+    width=5e4, col="blue", param=mm.param, main="KO")
 rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
 @
 
