@@ -1607,7 +1607,7 @@ rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chose
 chosen <- o2[1]
 expanded.a <- resize(ax.2[chosen], fix="center", width=bin.size*5)
 expanded.t <- resize(tx.2[chosen], fix="center", width=bin.size*5)
-cap1 <- 50
+cap1 <- 100
 cap3 <- cap1*totals(data)[3]/totals(data)[1]
 @
 
@@ -1703,12 +1703,12 @@ In the example below, each coloured box represents an interaction between two bi
 The coordinates of each interacting bin can be identified by extending lines from opposite sides of the box until they intersect the $x$-axis.
 
 <<eval=FALSE,echo=FALSE,label=rot1>>=
-rotPlaid(input[1], mm.frag, region=example, width=2e4, 
+rotPlaid(input[1], mm.param, region=example, width=2e4, 
     main="Flox", col="Red", cap=cap1)
 @
 
 <<eval=FALSE,echo=FALSE,label=rot2>>=
-rotPlaid(input[3], mm.frag, region=example, width=2e4,
+rotPlaid(input[3], mm.param, region=example, width=2e4,
     main="KO", col="blue", cap=cap3)
 @
 
