@@ -23,6 +23,8 @@
 
 \alias{asDGEList}
 \alias{asDGEList,DIList-method}
+\alias{normalize}
+\alias{normalize,DIList-method}
 
 \title{DIList class and methods}
 
@@ -104,6 +106,7 @@ In the code snippets below, \code{x} is a DIList object.
 }
 
 \section{Other methods}{
+In the code snippets below, \code{x} is a DIList object.
 \describe{
 	\item{}{\code{show(x)}:
 		By default the \code{show} method displays count and interval data for the top 5 interactions.
@@ -112,6 +115,10 @@ In the code snippets below, \code{x} is a DIList object.
 	\item{}{\code{asDGEList(x, ...)}:
 		Extracts count data and library sizes, and returns the same data as a \code{DGEList}.
 		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
+	}
+	\item{}{\code{normalize(x, ...)}:
+		Performs scaling or loess normalization using the count data and library sizes in \code{x}.
+		Arguments in \code{...} are passed to the \code{\link{normalizeCounts}} function.
 	}
 }
 }
@@ -139,8 +146,11 @@ totals(blah)
 regions(blah)
 
 asDGEList(blah)
+normalize(blah, logratioTrim=0)
+normalize(blah, type="loess")
 }
 
 \seealso{
-\code{\link{DGEList}}
+\code{\link{DGEList}},
+\code{\link{normalize}}
 }

@@ -143,9 +143,12 @@ DIList <- function(counts, totals=colSums(counts), anchors, targets, regions) {
 }
 
 # Setting some methods inspired by equivalents in csaw.
-setGeneric("asDGEList", function(object, ...) { standardGeneric("asDGEList") })
 setMethod("asDGEList", signature("DIList"), function(object, ...) {
 	DGEList(counts(object), lib.size=totals(object), ...)
+})
+
+setMethod("normalize", signature("DIList"), function(object, ...) {
+	normalizeCounts(counts(object), totals(object), ...)
 })
 
 ########################################################################################
