@@ -248,10 +248,10 @@ However, this is not recommended as mapping errors for short $3'$ ends may resul
 \section{Filtering artifactual read pairs}
 
 \subsection{Reprocessing index files for quality control}
-The \code{prunePairs} function removes read pairs corresponding to artifacts in a specified index file.
-The returned vector contains the number of read pairs that were removed for each of the various reasons described below.
-The number of read pairs remaining is also recorded.
-All retained read pairs are then placed in an output index file for downstream use.
+The \code{prunePairs} function removes read pairs that correspond to artifacts in the Hi-C procedure.
+The returned vector contains the number of read pairs removed for each artifact.
+Values of \code{length}, \code{inward} and \code{outward} correspond to removal by \code{max.frag}, \code{min.inward} and \code{min.outward}, respectively.
+Retained read pairs are stored in another index file for later use.
 
 <<>>=
 min.inward <- 1000
@@ -364,10 +364,11 @@ dummy <- data.frame(anchor.id, target.id, other.data=as.integer(runif(100, 1, 10
 savePairs(dummy, "example.h5", hs.param)
 @
 
-For full compatability, users should include the alignment positions and lengths as \code{xxx.pos} and \code{xxx.len} (replacing \code{xxx} with \code{anchor} or \code{target}) in \code{dummy}.
+For full compatability, users should include the alignment positions and lengths as \code{xxx.pos} and \code{xxx.len} (replacing \code{xxx} with \code{anchor} or \code{target}).
 The alignment position refers to the 1-based coordinate of the left-most base of the alignment.
 The alignment length refers to the span of the alignment relative to the reference, and should be negative for alignments on the reverse strand.
-This is more useful for other \pkgname{} functions than some arbitrary \code{other.data}.
+This information should be stored for both the anchor and target alignments.
+It is more useful for other \pkgname{} functions than some arbitrary \code{other.data}.
 
 \chapter{Counting read pairs into interactions}
 \label{chap:counting}
@@ -438,13 +439,13 @@ This provides some robustness to the choice of bin size.
 Sharp interactions can be detected by pairs of smaller bins while diffuse interactions can be detected by larger bin pairs.
 See Section~\ref{sec:mergebins} for more information on consolidating results from multiple bin sizes.
 
-Also note that the boundary of each bin is rounded to the closest restriction site in \code{squareCounts}.
-This is due to the inherent limits on spatial resolution in a Hi-C experiment.
-The number of restriction fragments in each bin is recorded in the \code{nfrags} field of the metadata.
-
 <<>>=
 head(regions(data))
 @
+
+The boundary of each bin is rounded to the closest restriction site in \code{squareCounts}.
+This is due to the inherent limits on spatial resolution in a Hi-C experiment.
+The number of restriction fragments in each bin is recorded in the \code{nfrags} field of the metadata.
 
 \section{Counting with pre-defined regions}
 For some studies, prior knowledge about the regions of interest may be available.
@@ -556,7 +557,7 @@ new.param
 
 The coordinates of the repeat regions can be obtained from various sources.
 The simplest approach is to extract them from an appropriate \code{BSgenome} object. 
-For example, the code below takes the repeats called by the RepeatMasker program in the hg19 build of the human genome.
+The example below takes the repeats called by the RepeatMasker program in the hg19 build of the human genome.
 
 <<>>=
 require(BSgenome.Hsapiens.UCSC.hg19.masked)
@@ -569,8 +570,9 @@ for (i in 1:length(seqnames(bs))) {
 suppressWarnings(do.call(c, all.masks))
 @
 
-For simplicity, counting will be performed with the default settings, i.e., no values for \code{restrict} or \code{discard}.
-Generally, the same \code{pairParam} object should be used between the different counting functions described in this chapter.
+For simplicity, counting will be performed with the default settings in this guide, i.e., no values for \code{restrict} or \code{discard}.
+Users are encouraged to experiment for their own analyses.
+However, the same \code{pairParam} object should be used between the different functions in the \pkgname{} pipeline.
 This ensures that the same read pairs are extracted from each index file.
 
 \section{Summary}
@@ -1016,8 +1018,8 @@ adj.counts <- cpm(asDGEList(data), log=TRUE)
 
 Trended biases are problematic as they can inflate the variance estimates or fold-changes for some bin pairs. 
 Thus, they must be eliminated with non-linear normalization.
-The code below implements the NB-loess method, which is an adaptation of existing non-linear methods for discrete count data \citep{normpaper}.
-The function computes an offset term for each bin pair in each library for use in a generalized linear model (GLM). 
+The code below uses the NB-loess method, which is an adaptation of existing non-linear methods for discrete count data \citep{normpaper}.
+An offset term is computed for each bin pair in each library, for use in a generalized linear model (GLM). 
 A large offset for an observation is equivalent to downscaling the corresponding count relative to the counts of the other libraries. 
 
 <<>>=
