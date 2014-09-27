@@ -214,9 +214,9 @@ setMethod("show", signature("pairParam"), function(object) {
 
 	ndisc <- length(object@discard)
 	if (!ndisc) { 
-		cat("No discard regions specified\n")
+		cat("No discard regions are specified\n")
 	} else {
-		cat(ndisc, "regions specified in which alignments are discarded\n")
+		cat(ndisc, ifelse(ndisc==1L, "region", "regions"), "specified in which alignments are discarded\n")
 	}
 
 	nr <- length(object@restrict)
