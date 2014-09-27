@@ -3,10 +3,10 @@ package/src/old/
 package/tests/old/
 userguide/SRR027957.bam
 userguide/SRR027957.h5
-userguide/SRR027957_counted.h5
+userguide/SRR027957_trimmed.h5
 userguide/SRR027958.bam
 userguide/SRR027958.h5
-userguide/SRR027958_counted.h5
+userguide/SRR027958_trimmed.h5
 userguide/diffHicUG.aux
 userguide/diffHicUG.bbl
 userguide/diffHicUG.blg
