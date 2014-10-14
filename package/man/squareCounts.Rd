@@ -68,7 +68,10 @@ squareCounts(fout, param)
 squareCounts(fout, param, filter=1)
 squareCounts(fout, param, width=50, filter=1)
 squareCounts(fout, param, width=100, filter=1)
+
+# Attempting with other parameters.
 squareCounts(fout, reform(param, restrict="chrA"), width=100, filter=1)
+squareCounts(fout, reform(param, cap=1), width=100, filter=1)
 
 \dontshow{
 unlink(fout, recursive=TRUE)

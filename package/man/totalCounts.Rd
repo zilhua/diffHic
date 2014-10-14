@@ -41,7 +41,7 @@ new.param <- reform(param, restrict="chrA")
 totalCounts(fout, new.param)
 totals(squareCounts(fout, new.param, width=10))
 
-new.param <- reform(param, restrict="chrB")
+new.param <- reform(param, restrict="chrB", cap=1)
 totalCounts(fout, new.param)
 totals(squareCounts(fout, new.param, width=10))
 

@@ -49,8 +49,11 @@ invisible(preparePairs(hic.file, param, fout))
 # Collating to count combinations.
 marginCounts(fout, param, width=10)
 marginCounts(fout, param, width=50)
-marginCounts(fout, reform(param, restrict="chrA"), width=50)
 marginCounts(fout, param, width=100)
+
+# Attempting with other parameters.
+marginCounts(fout, reform(param, restrict="chrA"), width=50)
+marginCounts(fout, reform(param, restrict="chrA", cap=1), width=50)
 
 \dontshow{
 unlink(fout, recursive=TRUE)

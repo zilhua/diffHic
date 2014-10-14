@@ -18,6 +18,7 @@ Slots are defined as:
 	\item{\code{fragments}:}{a \code{GRanges} object containing the coordinates of the restriction fragments}
 	\item{\code{restrict}:}{a character vector containing the names of allowable chromosomes from which reads will be extracted}
 	\item{\code{discard}:}{a \code{GRanges} object containing intervals in which any alignments will be discarded}
+	\item{\code{cap}:}{an integer scalar, specifying the maximum number of read pairs per pair of restriction fragments}
 }
 
 The \code{fragments} object defines the genomic interval spanned by each restriction fragment.
@@ -28,12 +29,16 @@ If \code{restrict} is supplied, reads will only be extracted for the specified c
 This is useful to restrict the analysis to interesting chromosomes, e.g., no contigs/scaffolds or mitochondria. 
 
 If \code{discard} is set, a read will be removed if the corresponding alignment is wholly contained within the supplied ranges. 
-This is useful for removing reads in repeat regions. 
+This is useful for removing reads in repeat regions.
+
+If \code{cap} is set to a non-\code{NA} value, an upper bound will be placed on the number of read pairs that are extracted from each read pair.
+This protects against spikes in the read pair density throughout the interaction space.
+Such spikes may be caused by technical artifacts like PCR duplication or repeats, which were not successfully removed in prior processing steps.
 }
 
 \section{Constructor}{
 \describe{
-	\item{}{\code{pairParam(fragments, discard=GRanges(), restrict=NULL)}:
+	\item{}{\code{pairParam(fragments, discard=GRanges(), restrict=NULL, cap=NA)}:
 		Creates a pairParam object. 
 		Each argument is placed in the corresponding slot, with coercion into the appropriate type.
 	}
@@ -79,11 +84,13 @@ blah <- pairParam(cuts, discard=GRanges("chrA", IRanges(1, 10)))
 blah <- pairParam(cuts, restrict='chr2')
 blah$fragments
 blah$restrict
+blah$cap
 
 # Use 'reform' if only some arguments need to be changed.
 blah
 reform(blah, restrict='chr3')
 reform(blah, discard=GRanges())
+reform(blah, cap=10)
 }
 
 \keyword{counting}
