@@ -18,6 +18,8 @@ extern "C" {
 
 SEXP check_input(SEXP, SEXP);
 
+SEXP cap_input(SEXP, SEXP, SEXP);
+
 SEXP cluster_2d (SEXP, SEXP, SEXP, SEXP, SEXP); 
 
 SEXP split_clusters (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);

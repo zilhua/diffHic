@@ -8,6 +8,7 @@ extern "C" {
 
 static const R_CallMethodDef all_call_entries[] = {
 	CALLDEF(check_input, 2),
+	CALLDEF(cap_input, 3),
 	CALLDEF(cluster_2d, 5),
 	CALLDEF(split_clusters, 6),
 	CALLDEF(collect_background, 4),
