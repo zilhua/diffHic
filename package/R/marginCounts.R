@@ -12,6 +12,7 @@ marginCounts <- function(files, param, width=500000)
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
+	cap <- param$cap
 
     if (width < 0) { stop("width must be a non-negative integer") }
     new.pts <- .getBinID(fragments, width)
@@ -33,7 +34,7 @@ marginCounts <- function(files, param, width=500000)
 			stopifnot(target %in% chrs)
 			if (length(restrict) && !(target %in% restrict)) { next }
     
-      		pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard)
+      		pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
            	full.sizes <- full.sizes + sapply(pairs, FUN=nrow)
 
 			# Aggregating them in C++ to get the count combinations and location of each bin.

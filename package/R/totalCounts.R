@@ -17,6 +17,7 @@ totalCounts <- function(files, param)
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
+	cap <- param$cap
 
 	# Running through each pair of chromosomes.
 	overall <- .loadIndices(files)
@@ -30,7 +31,7 @@ totalCounts <- function(files, param)
 	        if (length(restrict) && !(target %in% restrict)) { next }
 
 			# Getting totals.
-			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard)
+			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
 			for (lib in 1:length(pairs)) { full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]]) }
 		}
 	}

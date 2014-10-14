@@ -14,6 +14,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
+	cap <- param$cap
 
 	# Figuring out which regions are anchor or targets.
 	fdata <- .delimitFragments(fragments)
@@ -52,7 +53,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 			stopifnot(target %in% chrs)
             if (length(restrict) && !(target %in% restrict)) { next }
 
-           	pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard)
+           	pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
             full.sizes <- full.sizes + sapply(pairs, FUN=nrow)
 			if (! (target %in% my.chrs) || ! (anchor %in% my.chrs)) { next }	
 

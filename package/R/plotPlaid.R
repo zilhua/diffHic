@@ -24,6 +24,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	fragments <- param$fragments
 	if (!(achr %in% seqlevels(fragments)) || !(tchr %in% seqlevels(fragments))) { stop("anchor/target chromosome names not in cut site list") }
 	discard <- .splitDiscards(param$discard)
+	cap <- param$cap
 
 	# Setting up the boundaries.
 	a.min <- max(1L, astart)
@@ -46,9 +47,9 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	all.dex <- .loadIndices(file)
 	flipped <- FALSE
 	if (!is.null(all.dex[[achr]][[tchr]])) {
-		current <- .baseHiCParser(TRUE, file, achr, tchr, discard=discard)[[1]]
+		current <- .baseHiCParser(TRUE, file, achr, tchr, discard=discard, cap=cap)[[1]]
 	} else if (!is.null(all.dex[[tchr]][[achr]])) { 
-		current <- .baseHiCParser(TRUE, file, tchr, achr, discard=discard)[[1]]
+		current <- .baseHiCParser(TRUE, file, tchr, achr, discard=discard, cap=cap)[[1]]
 		flipped <- TRUE
 	} else { current<-data.frame(anchor.id=integer(0), target.id=integer(0)) }
 
@@ -130,7 +131,7 @@ rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=N
 	# Pulling out the read pair indices from each file.
 	all.dex <- .loadIndices(file)
 	if (!is.null(all.dex[[xchr]][[xchr]])) {
-		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard)[[1]]
+		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard, cap=cap)[[1]]
 	} else { 
 		current<-data.frame(anchor.id=integer(0), target.id=integer(0))
 	}
