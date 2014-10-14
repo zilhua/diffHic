@@ -233,7 +233,7 @@ setMethod("show", signature("pairParam"), function(object) {
 	if (is.na(object@cap)) {
  	    cat("No cap on the read pairs per pair of restriction fragments\n")
 	} else {
-		cat("Cap of", cap, "on the read pairs per pair of restriction fragments\n")
+		cat("Cap of", object@cap, "on the read pairs per pair of restriction fragments\n")
 	}
 })
 
@@ -270,7 +270,7 @@ setMethod("reform", signature("pairParam"), function(x, ...) {
 #			min.inward=as.integer(val),
 #			min.outward=as.integer(val),
 			restrict=as.character(val),
-			cap=as.integer(cap),
+			cap=as.integer(val),
 			val)
 	}
 	do.call(initialize, c(x, incoming))
