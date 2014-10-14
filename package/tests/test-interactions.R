@@ -15,11 +15,12 @@ refnames<-c("count1", "count2", "anchor", "target")
 
 # We set up the comparison function to check our results. 
 
-finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL) {
+finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL, cap=NA) {
 	overall<-list()
 	odex<-1L
 	totals<-c(0L, 0L)
 	collected<-c(0, cumsum(chromos))
+	cap <- as.integer(cap)
 
 	# We need to determine who's who.
 	x1 <- h5ls(dir1)
@@ -60,19 +61,23 @@ finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL) {
 			anti.a<-collected[k]
 			max.target<-chromos[[l]]
 			anti.t<-collected[l]
-			mat1<-mat2<-matrix(0L, nrow=max.anchor, ncol=max.target);
+			
 			for (g in 1:length(x)) {
+				mat <- matrix(0L, nrow=max.anchor, ncol=max.target)
 				for (i in 1:nrow(x[[g]])) {
 					a<-x[[g]][i,1]-anti.a
 					t<-x[[g]][i,2]-anti.t
-					if (g==1) { 
-						mat1[a,t]<-mat1[a,t]+1L
-						totals[1]<-totals[1]+1L
-					} else { 
-						mat2[a,t]<-mat2[a,t]+1L 
-						totals[2]<-totals[2]+1L
-					}
+					mat[a,t] <- mat[a,t] + 1L
 				}
+
+				if (!is.na(cap)) { 
+					mat[mat > cap] <- cap 
+					totes <- sum(mat)
+				} else {
+					totes <- nrow(x[[g]])
+				}
+				assign(paste0("mat", g), mat)
+				totals[g] <- totals[g] + totes
 			}
 
 			# Computing the region for each set of bins (assuming cuts are sorted).
@@ -141,10 +146,10 @@ dir.create("temp-inter")
 dir1<-"temp-inter/1.h5"
 dir2<-"temp-inter/2.h5"
 
-comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL) {
+comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL, cap=NA) {
 	simgen(dir1, npairs1, chromos)
 	simgen(dir2, npairs2, chromos)
-	param <- pairParam(fragments=cuts, restrict=restrict)
+	param <- pairParam(fragments=cuts, restrict=restrict, cap=cap)
 	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=filter)
 
 	ar <- anchors(y)
@@ -160,7 +165,7 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL) {
 	overall<-overall[do.call(order, overall),]
 	rownames(overall)<-NULL
 
-	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict)
+	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict, cap=cap)
 	if (!identical(totals(y), ref$total) || 
 			!identical(totals(y), totalCounts(c(dir1, dir2), param=param))) {
 		stop("mismatches in library sizes") 
@@ -289,6 +294,7 @@ comp(500, 200, dist=1000, cuts=simcuts(chromos), filter=5)
 
 ###################################################################################################
 # Testing some restriction.
+
 comp(500, 200, dist=10000, cuts=simcuts(chromos), restrict="chrB")
 comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=4), restrict="chrA")
 comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=2), restrict="chrA")
@@ -301,6 +307,15 @@ comp(500, 200, dist=5000, cuts=simcuts(chromos), filter=5, restrict="chrA")
 comp(500, 200, dist=1000, cuts=simcuts(chromos), restrict="chrA")
 comp(500, 200, dist=1000, cuts=simcuts(chromos), filter=2, restrict="chrB")
 comp(500, 200, dist=1000, cuts=simcuts(chromos), filter=5, restrict="chrA")
+
+# And the cap.
+
+comp(500, 200, dist=10000, cuts=simcuts(chromos), cap=1)
+comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=4), cap=1)
+comp(500, 200, dist=5000, cuts=simcuts(chromos, overlap=2), cap=2)
+comp(500, 200, dist=5000, cuts=simcuts(chromos), cap=1)
+comp(500, 200, dist=1000, cuts=simcuts(chromos, overlap=4), cap=2)
+comp(500, 200, dist=1000, cuts=simcuts(chromos, overlap=2), cap=1)
 
 ##################################################################################################
 # Cleaning up.

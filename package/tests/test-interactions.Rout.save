@@ -35,11 +35,12 @@ Type 'q()' to quit R.
 > 
 > # We set up the comparison function to check our results. 
 > 
-> finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL) {
+> finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL, cap=NA) {
 + 	overall<-list()
 + 	odex<-1L
 + 	totals<-c(0L, 0L)
 + 	collected<-c(0, cumsum(chromos))
++ 	cap <- as.integer(cap)
 + 
 + 	# We need to determine who's who.
 + 	x1 <- h5ls(dir1)
@@ -80,19 +81,23 @@ Type 'q()' to quit R.
 + 			anti.a<-collected[k]
 + 			max.target<-chromos[[l]]
 + 			anti.t<-collected[l]
-+ 			mat1<-mat2<-matrix(0L, nrow=max.anchor, ncol=max.target);
++ 			
 + 			for (g in 1:length(x)) {
++ 				mat <- matrix(0L, nrow=max.anchor, ncol=max.target)
 + 				for (i in 1:nrow(x[[g]])) {
 + 					a<-x[[g]][i,1]-anti.a
 + 					t<-x[[g]][i,2]-anti.t
-+ 					if (g==1) { 
-+ 						mat1[a,t]<-mat1[a,t]+1L
-+ 						totals[1]<-totals[1]+1L
-+ 					} else { 
-+ 						mat2[a,t]<-mat2[a,t]+1L 
-+ 						totals[2]<-totals[2]+1L
-+ 					}
++ 					mat[a,t] <- mat[a,t] + 1L
 + 				}
++ 
++ 				if (!is.na(cap)) { 
++ 					mat[mat > cap] <- cap 
++ 					totes <- sum(mat)
++ 				} else {
++ 					totes <- nrow(x[[g]])
++ 				}
++ 				assign(paste0("mat", g), mat)
++ 				totals[g] <- totals[g] + totes
 + 			}
 + 
 + 			# Computing the region for each set of bins (assuming cuts are sorted).
@@ -161,10 +166,10 @@ Type 'q()' to quit R.
 > dir1<-"temp-inter/1.h5"
 > dir2<-"temp-inter/2.h5"
 > 
-> comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL) {
+> comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL, cap=NA) {
 + 	simgen(dir1, npairs1, chromos)
 + 	simgen(dir2, npairs2, chromos)
-+ 	param <- pairParam(fragments=cuts, restrict=restrict)
++ 	param <- pairParam(fragments=cuts, restrict=restrict, cap=cap)
 + 	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=filter)
 + 
 + 	ar <- anchors(y)
@@ -180,7 +185,7 @@ Type 'q()' to quit R.
 + 	overall<-overall[do.call(order, overall),]
 + 	rownames(overall)<-NULL
 + 
-+ 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict)
++ 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict, cap=cap)
 + 	if (!identical(totals(y), ref$total) || 
 + 			!identical(totals(y), totalCounts(c(dir1, dir2), param=param))) {
 + 		stop("mismatches in library sizes") 
@@ -931,6 +936,7 @@ Type 'q()' to quit R.
 > 
 > ###################################################################################################
 > # Testing some restriction.
+> 
 > comp(500, 200, dist=10000, cuts=simcuts(chromos), restrict="chrB")
   count1 count2           anchor           target
 1     19      8 chrB:20107-30247 chrB:20107-30247
@@ -1023,6 +1029,57 @@ Type 'q()' to quit R.
 [1] count1 count2 anchor target <NA>  
 <0 rows> (or 0-length row.names)
 > 
+> # And the cap.
+> 
+> comp(500, 200, dist=10000, cuts=simcuts(chromos), cap=1)
+  count1 count2           anchor           target
+1      6      2 chrA:39879-49455 chrA:39879-49455
+2      7      3      chrB:1-9534 chrA:39879-49455
+3      9      5 chrA:30021-39878 chrA:30021-39878
+4      9      7 chrB:29689-40233 chrA:39879-49455
+5     11      8 chrB:19354-29688 chrA:39879-49455
+6     12      4 chrA:20285-30020 chrA:20285-30020
+> comp(500, 200, dist=10000, cuts=simcuts(chromos, overlap=4), cap=1)
+  count1 count2           anchor           target
+1      5      1      chrA:1-9415      chrA:1-9415
+2      7      5 chrA:49816-59891 chrA:49816-59891
+3      8      3 chrA:39859-49819 chrA:39859-49819
+4      8      3      chrB:1-9732 chrA:59888-69788
+5      8      4      chrB:1-9732      chrA:1-9415
+6      8      7  chrB:9729-20449      chrA:1-9415
+> comp(500, 200, dist=5000, cuts=simcuts(chromos, overlap=2), cap=2)
+  count1 count2           anchor           target
+1      0      1 chrA:65578-67790 chrA:25092-29555
+2      0      1 chrA:65578-67790 chrA:65578-67790
+3      0      1 chrB:24862-29717 chrA:65578-67790
+4      0      1 chrB:34993-38683      chrA:1-4748
+5      0      1 chrB:34993-38683 chrA:44792-49367
+6      0      1 chrB:34993-38683 chrA:49366-54789
+> comp(500, 200, dist=5000, cuts=simcuts(chromos), cap=1)
+  count1 count2           anchor           target
+1      0      1      chrB:1-5442 chrA:55282-58936
+2      1      0 chrA:55282-58936 chrA:55282-58936
+3      1      0   chrB:5443-9280 chrA:14833-19956
+4      1      1 chrB:20603-25476 chrA:30134-34904
+5      1      1   chrB:5443-9280 chrA:55282-58936
+6      1      1   chrB:5443-9280   chrB:5443-9280
+> comp(500, 200, dist=1000, cuts=simcuts(chromos, overlap=4), cap=2)
+  count1 count2           anchor           target
+1      0      1 chrA:10156-11634      chrA:1-1716
+2      0      1 chrA:14751-15411 chrA:10156-11634
+3      0      1 chrA:15408-16603 chrA:13324-14754
+4      0      1 chrA:16600-17792 chrA:13324-14754
+5      0      1 chrA:16600-17792   chrA:5123-6395
+6      0      1 chrA:19376-20241 chrA:10156-11634
+> comp(500, 200, dist=1000, cuts=simcuts(chromos, overlap=2), cap=1)
+  count1 count2           anchor           target
+1      0      1 chrA:11471-13254   chrA:3612-4213
+2      0      1 chrA:13253-15182       chrA:1-936
+3      0      1 chrA:13253-15182 chrA:13253-15182
+4      0      1 chrA:13253-15182   chrA:6650-7321
+5      0      1 chrA:15181-16962   chrA:5102-6651
+6      0      1 chrA:15181-16962   chrA:7952-9772
+> 
 > ##################################################################################################
 > # Cleaning up.
 > 
@@ -1033,4 +1090,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 79.996   0.856  81.135 
+ 81.710   0.900  82.831 
