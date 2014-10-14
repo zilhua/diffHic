@@ -20,6 +20,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
+	cap <- param$cap
 
 	# Output vectors.
 	full.sizes <- integer(nlibs)
@@ -39,7 +40,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	        if (length(restrict) && !(target %in% restrict)) { next }
 
 			# Extracting counts and aggregating them in C++ to obtain count combinations for each bin pair.
-			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard)
+			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
 			for (lib in 1:length(pairs)) { full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]]) }
             out <- .Call(cxx_count_patch, pairs, new.pts$id, filter)
 			if (is.character(out)) { stop(out) }
@@ -124,12 +125,13 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 
 ####################################################################################################
 
-.baseHiCParser <- function(ok, files, anchor, target, discard)
+.baseHiCParser <- function(ok, files, anchor, target, discard, cap)
 # A courtesy function, to assist with loading counts in this function and others.
 {
 	overall<-list()
 	adisc <- discard[[anchor]]
 	tdisc <- discard[[target]]
+	do.cap <- !is.na(cap)
 
 	for (x in 1:length(ok)) {
 		if (!ok[x]) { 
@@ -152,7 +154,14 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 				}
 				out <- out[!a.hits & !t.hits,,drop=FALSE]
 			}
-	
+
+			# Removing read pairs above the cap for each restriction fragment pair.
+			if (do.cap) { 
+				capped <- .Call(cxx_cap_input, out$anchor.id, out$target.id, cap)
+				if (is.character(capped)) { stop(capped) }
+				out <- out[capped,]
+			}
+
 			overall[[x]] <- out[,c("anchor.id", "target.id")]
 		}
 	}
