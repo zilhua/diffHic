@@ -31,12 +31,13 @@ Type 'q()' to quit R.
 > dir1x<-"temp-filt/1b.h5"
 > dir2x<-"temp-filt/2b.h5"
 > 
-> filtsim <- function(npairs1, npairs2, chromos, overlap=4, min.ingap=NA, min.outgap=NA, max.frag=NA, discard.param=NULL) {
+> filtsim <- function(npairs1, npairs2, chromos, overlap=4, min.ingap=NA, min.outgap=NA, max.frag=NA, discard.param=NULL, cap=NA) {
 + 	simgen(dir1, npairs1, chromos)
 + 	simgen(dir2, npairs2, chromos)
 + 	cuts <- simcuts(chromos, overlap=overlap)
 + 	augmentsim(dir1, cuts)
 + 	augmentsim(dir2, cuts)
++ 	cap <- as.integer(cap)
 + 
 + 	# Pruning.
 + 	totes1 <- prunePairs(dir1, pairParam(fragments=cuts), file.out=dir1x, min.inward=min.ingap, min.outward=min.outgap, max.frag=max.frag)
@@ -111,11 +112,26 @@ Type 'q()' to quit R.
 + 					lost.disc <- lost.disc + sum(!nokill)
 + 					disc.keep <- nokill 
 + 				}
-+ 				everything[[d]] <- collected[disc.keep,1:2]
++ 				collected <- collected[disc.keep,1:2]
++ 
++ 				# Comparing it to the cap.
++ 				if (!is.na(cap)) { 
++ 					is.diff <- c(TRUE, diff(collected$anchor.id)!=0L | diff(collected$target.id)!=0L)
++ 					uniq.ids <- cumsum(is.diff)
++ 					by.ids <- split(1:nrow(collected), uniq.ids)
++ 					to.keep <- logical(nrow(collected))
++ 					for (x in by.ids) {
++ 						if (length(x)>cap) { x <- x[1:cap] } 
++ 						to.keep[x] <- TRUE
++ 					}
++ 					collected <- collected[to.keep,]
++ 				} 
++ 
++ 				everything[[d]] <- collected
 + 			}
 + 									
 + 			# Running through them with every possible check.
-+ 			comparator <- diffHic:::.baseHiCParser(current[[tx]][1:2], combo[1:2], ax, tx, discard=xdiscard)
++ 			comparator <- diffHic:::.baseHiCParser(current[[tx]][1:2], combo[1:2], ax, tx, discard=xdiscard, cap=cap)
 + 			for (d in 1:2) {
 + 				stopifnot(identical(everything[[d]], comparator[[d]]))
 + 			}
@@ -199,6 +215,31 @@ by.frag   by.in  by.out by.disc
 by.frag   by.in  by.out by.disc 
    1436       0       0      38 
 > 
+> filtsim(200, 200, chromos, 2, cap=1, min.ingap=200)
+by.frag   by.in  by.out by.disc 
+      0       6       0       0 
+> filtsim(200, 200, chromos, 2, cap=1, discard.param=c(10, 100))
+by.frag   by.in  by.out by.disc 
+      0       0       0      31 
+> filtsim(200, 200, chromos, 2, min.ingap=100, min.outgap=1000, cap=2)
+by.frag   by.in  by.out by.disc 
+      0       1      23       0 
+> filtsim(200, 200, chromos, 2, cap=2, max.frag=100)
+by.frag   by.in  by.out by.disc 
+   2390       0       0       0 
+> filtsim(200, 200, chromos, 2, cap=5, max.frag=1000, min.ingap=1000)
+by.frag   by.in  by.out by.disc 
+   1520      18       0       0 
+> filtsim(200, 200, chromos, 2, cap=5, min.outgap=100)
+by.frag   by.in  by.out by.disc 
+      0       0       4       0 
+> filtsim(200, 200, chromos, 2, ca=10, min.ingap=100, discard.param=c(10, 100))
+by.frag   by.in  by.out by.disc 
+      0       1       0      34 
+> filtsim(200, 200, chromos, 2, ca=10, discard.param=c(10, 100))
+by.frag   by.in  by.out by.disc 
+      0       0       0      44 
+> 
 > #########################################################################
 > 
 > unlink("temp-filt", recursive=TRUE)
@@ -207,4 +248,4 @@ by.frag   by.in  by.out by.disc
 > 
 > proc.time()
    user  system elapsed 
- 27.439   0.746  28.240 
+ 36.375   0.949  37.396 
