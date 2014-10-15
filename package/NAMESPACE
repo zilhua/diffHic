@@ -24,7 +24,9 @@ exportMethods(
 )
 
 # Requires several imports.
-import(Rsamtools,GenomicRanges,Biostrings,BSgenome,edgeR,rhdf5,locfit,methods,csaw)
+import(Rsamtools,GenomicRanges,Biostrings,BSgenome,rhdf5,
+	IRanges,S4Vectors,GenomeInfoDb, 
+	edgeR,locfit,methods,csaw)
 
 
 
