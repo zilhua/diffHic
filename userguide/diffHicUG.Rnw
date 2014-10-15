@@ -533,6 +533,8 @@ This is because the marginal counts refer to individual bins rather than bin pai
 Nonetheless, a \code{DIList} is still returned for consistency, in which the anchor and target regions are identical.
 
 \section{Additional parameter options}
+
+\subsection{Restricting the input chromosomes}
 Users can elect to restrict counting to particular chromosomes, by setting a value for the \code{restrict} slot in the \code{pairParam} object.
 This is useful to ensure that only interactions between relevant chromosomes are loaded.
 Sequences such as the mitochondrial genome, unassigned contigs or random chromosome segments can be ignored.
@@ -542,6 +544,7 @@ new.param <- reform(mm.param, restrict=c("chr1", "chr2"))
 new.param
 @
 
+\subsection{Specifying regions to ignore}
 Users can also choose to discard alignments that lie within blacklisted regions, using the \code{discard} slot.
 The aim is to eliminate reads within known repeat regions.
 Reads from several repeat units in a real genome may be collated into a single representative unit in the genome build.
@@ -558,6 +561,7 @@ new.param
 The coordinates of the repeat regions can be obtained from various sources.
 The simplest approach is to extract them from an appropriate \code{BSgenome} object. 
 The example below takes the repeats called by the RepeatMasker program in the hg19 build of the human genome.
+Alternatively, blacklisted regions can be used from the ENCODE project \citep{landt2012chipseq}.
 
 <<>>=
 require(BSgenome.Hsapiens.UCSC.hg19.masked)
@@ -570,10 +574,17 @@ for (i in 1:length(seqnames(bs))) {
 suppressWarnings(do.call(c, all.masks))
 @
 
-For simplicity, counting will be performed with the default settings in this guide, i.e., no values for \code{restrict} or \code{discard}.
-Users are encouraged to experiment for their own analyses.
-However, the same \code{pairParam} object should be used between the different functions in the \pkgname{} pipeline.
-This ensures that the same read pairs are extracted from each index file.
+\subsection{Capping the read pairs per restriction fragment pair}
+Incomplete removal of PCR duplicates or read pairs repeat regions may result in spikes of read pairs within the interaction space.
+The effect of these artifacts can be mitigated by capping the number of read pairs associated with each pair of restriction fragments.
+This is done by specifying a value for the \code{cap} slot.
+Diffuse interactions should not be affected, as the associated read pairs will be distributed sparsely across many fragment pairs.
+More caution is required if sharp interactions are present, i.e., interactions between 5 - 10 kbp regions.
+
+<<>>=
+new.param <- reform(mm.param, cap=5)
+new.param
+@
 
 \section{Summary}
 Counting into bin pairs is the most general method for interaction quantification.
@@ -581,6 +592,11 @@ It does not require any prior knowledge regarding the regions of interest.
 The bin size can be easily adjusted to obtain the desired spatial resolution.
 It is also easier/safer to compare between bin pairs (e.g., during filtering) when each bin is roughly of the same size.
 Thus, bin-based counting will be the method of choice for the rest of this guide.
+
+For simplicity, counting will be performed with the default settings in this guide, i.e., no values for \code{restrict}, \code{discard} or \code{cap}.
+However, users are encouraged to change the values if necessary, to improve the outcome of their analyses.
+Non-default values should be recorded in a single \code{pairParam} object for consistent use across all functions in the \pkgname{} pipeline.
+This ensures that the same read pairs are extracted from each index file.
 
 % On a side note, it's worth checking that the total library sizes are the same for each method if multiple counting functions are used.
 % This means that the same read pairs are being used for count extraction.
@@ -936,7 +952,7 @@ Obviously, this will also remove short-range interactions that might be of inter
 Users are advised to use a smaller bin size to recover these interactions.
 Artifacts will still be restricted to diagonal bin pairs, so long as the bins are larger than $\sim$25 kbp (see Section~\ref{sec:strorient}).
 Short-range interactions will then be represented by the remaining off-diagonal bin pairs, due to the improved spatial resolution of smaller bins.
-While count sizes will also decrease, this is not a major problem as counts should be large at low interaction distances. 
+While count sizes will also decrease, this should not be a major problem as counts should be larger at low interaction distances. 
 
 \section{Summary of the filtering strategies}
 Each filtering strategy is arbitrarily tunable, as one can simply increase or decrease the minimum fold change required for retention.
