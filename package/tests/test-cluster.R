@@ -1,7 +1,7 @@
 ####################################################################################################
 # This tests the clusterPairs function.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 
 ####################################################################################################
 

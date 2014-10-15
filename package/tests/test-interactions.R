@@ -139,7 +139,7 @@ finder <- function(dir1, dir2, dist, cuts, filter=10L, restrict=NULL, cap=NA) {
 	return(list(table=overall, total=totals))
 }
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 suppressPackageStartupMessages(require(rhdf5))
 
 dir.create("temp-inter")

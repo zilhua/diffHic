@@ -1,13 +1,11 @@
 
-R version 3.1.0 (2014-04-10) -- "Spring Dance"
+R version 3.1.1 (2014-07-10) -- "Sock it to Me"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
 Type 'license()' or 'licence()' for distribution details.
-
-  Natural language support but running in an English locale
 
 R is a collaborative project with many contributors.
 Type 'contributors()' for more information and
@@ -21,7 +19,7 @@ Type 'q()' to quit R.
 > # This script is designed to test the restriction site finder. We use the E.coli genome to do so 
 > # because it's short and we won't be spending ages putting it together.	
 > 
-> suppressPackageStartupMessages(require("diffHic"))
+> suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 > 
 > findRestrictionSites <- function(bs, pattern, ref=NULL) {
 + 	require(Biostrings)
@@ -48,6 +46,7 @@ Loading required package: BSgenome.Ecoli.NCBI.20080805
 Loading required package: BSgenome
 Loading required package: Biostrings
 Loading required package: XVector
+Loading required package: rtracklayer
 > 
 > comp<-function(target, overhang=4L) {
 + 	current<-cutGenome(Ecoli, target, overhang=overhang)
@@ -73,7 +72,7 @@ Loading required package: XVector
 > # Restriction site must have a 5' overhang.
 > 
 > comp("GGATCC", 4L) # BamHI
-GRanges with 6 ranges and 0 metadata columns:
+GRanges object with 6 ranges and 0 metadata columns:
        seqnames         ranges strand
           <Rle>      <IRanges>  <Rle>
   [1] NC_008253 [    1,  9001]      *
@@ -82,13 +81,11 @@ GRanges with 6 ranges and 0 metadata columns:
   [4] NC_008253 [25262, 39070]      *
   [5] NC_008253 [39067, 42394]      *
   [6] NC_008253 [42391, 46109]      *
-  ---
-  seqlengths:
-   NC_008253 NC_008563 NC_010468 NC_004431 ... NC_010473 NC_000913 AC_000091
-     4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
+  -------
+  seqinfo: 13 sequences from an unspecified genome
 > 
 > comp("GAATTC", 4L) # EcoRI
-GRanges with 6 ranges and 0 metadata columns:
+GRanges object with 6 ranges and 0 metadata columns:
        seqnames         ranges strand
           <Rle>      <IRanges>  <Rle>
   [1] NC_008253 [    1,  3845]      *
@@ -97,13 +94,11 @@ GRanges with 6 ranges and 0 metadata columns:
   [4] NC_008253 [ 8063, 12957]      *
   [5] NC_008253 [12954, 13293]      *
   [6] NC_008253 [13290, 15895]      *
-  ---
-  seqlengths:
-   NC_008253 NC_008563 NC_010468 NC_004431 ... NC_010473 NC_000913 AC_000091
-     4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
+  -------
+  seqinfo: 13 sequences from an unspecified genome
 > 
 > comp("AACGTT", 2L) # AclI
-GRanges with 6 ranges and 0 metadata columns:
+GRanges object with 6 ranges and 0 metadata columns:
        seqnames       ranges strand
           <Rle>    <IRanges>  <Rle>
   [1] NC_008253 [   1,  382]      *
@@ -112,13 +107,11 @@ GRanges with 6 ranges and 0 metadata columns:
   [4] NC_008253 [2159, 4535]      *
   [5] NC_008253 [4534, 4911]      *
   [6] NC_008253 [4910, 5585]      *
-  ---
-  seqlengths:
-   NC_008253 NC_008563 NC_010468 NC_004431 ... NC_010473 NC_000913 AC_000091
-     4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
+  -------
+  seqinfo: 13 sequences from an unspecified genome
 > 
 > comp("GCGC", 2L) # HinP1I
-GRanges with 6 ranges and 0 metadata columns:
+GRanges object with 6 ranges and 0 metadata columns:
        seqnames       ranges strand
           <Rle>    <IRanges>  <Rle>
   [1] NC_008253 [   1,  153]      *
@@ -127,13 +120,11 @@ GRanges with 6 ranges and 0 metadata columns:
   [4] NC_008253 [ 754,  993]      *
   [5] NC_008253 [ 992, 1119]      *
   [6] NC_008253 [1118, 1334]      *
-  ---
-  seqlengths:
-   NC_008253 NC_008563 NC_010468 NC_004431 ... NC_010473 NC_000913 AC_000091
-     4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
+  -------
+  seqinfo: 13 sequences from an unspecified genome
 > 
 > comp("GATC", 4L) # MboI
-GRanges with 6 ranges and 0 metadata columns:
+GRanges object with 6 ranges and 0 metadata columns:
        seqnames       ranges strand
           <Rle>    <IRanges>  <Rle>
   [1] NC_008253 [   1,  728]      *
@@ -142,13 +133,11 @@ GRanges with 6 ranges and 0 metadata columns:
   [4] NC_008253 [1007, 1044]      *
   [5] NC_008253 [1041, 1169]      *
   [6] NC_008253 [1166, 1571]      *
-  ---
-  seqlengths:
-   NC_008253 NC_008563 NC_010468 NC_004431 ... NC_010473 NC_000913 AC_000091
-     4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
+  -------
+  seqinfo: 13 sequences from an unspecified genome
 > 
 > comp("GCGGCCGC", 4L) # NotI
-GRanges with 6 ranges and 0 metadata columns:
+GRanges object with 6 ranges and 0 metadata columns:
        seqnames            ranges strand
           <Rle>         <IRanges>  <Rle>
   [1] NC_008253 [     1,    8039]      *
@@ -157,13 +146,11 @@ GRanges with 6 ranges and 0 metadata columns:
   [4] NC_008253 [366770,  702391]      *
   [5] NC_008253 [702388,  947072]      *
   [6] NC_008253 [947069, 1138399]      *
-  ---
-  seqlengths:
-   NC_008253 NC_008563 NC_010468 NC_004431 ... NC_010473 NC_000913 AC_000091
-     4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
+  -------
+  seqinfo: 13 sequences from an unspecified genome
 > 
 > comp("GGCGCGCC", 4L) # AscI
-GRanges with 6 ranges and 0 metadata columns:
+GRanges object with 6 ranges and 0 metadata columns:
        seqnames           ranges strand
           <Rle>        <IRanges>  <Rle>
   [1] NC_008253 [     1,  95601]      *
@@ -172,14 +159,12 @@ GRanges with 6 ranges and 0 metadata columns:
   [4] NC_008253 [154800, 167408]      *
   [5] NC_008253 [167405, 178752]      *
   [6] NC_008253 [178749, 181386]      *
-  ---
-  seqlengths:
-   NC_008253 NC_008563 NC_010468 NC_004431 ... NC_010473 NC_000913 AC_000091
-     4938920   5082025   4746218   5231428 ...   4686137   4639675   4646332
+  -------
+  seqinfo: 13 sequences from an unspecified genome
 > 
 > ###################################################################################################
 > # End.
 > 
 > proc.time()
    user  system elapsed 
- 22.244   0.177  22.470 
+ 25.536   0.254  25.827 

@@ -1,7 +1,7 @@
 ####################################################################################################
 # Tests the iterative correction script.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 suppressPackageStartupMessages(require(edgeR))
 	
 comp<- function(npairs, nfrags, nlibs, lambda=5, dispersion=0.05, winsorize=0.02, discard=0.02, locality=1) {

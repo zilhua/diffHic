@@ -2,7 +2,7 @@
 # This script is designed to test the pair-identifying capabilities of the hiC machinery i.e.
 # preparePairs. It also checks countPairs and getPairData as well.
 
-suppressPackageStartupMessages(require("diffHic"))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 suppressPackageStartupMessages(require("rhdf5"))
 source("simsam.R")
 

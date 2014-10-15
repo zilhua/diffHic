@@ -2,7 +2,7 @@
 # This script is designed to test the restriction site finder. We use the E.coli genome to do so 
 # because it's short and we won't be spending ages putting it together.	
 
-suppressPackageStartupMessages(require("diffHic"))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 
 findRestrictionSites <- function(bs, pattern, ref=NULL) {
 	require(Biostrings)

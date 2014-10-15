@@ -1,7 +1,7 @@
 ###################################################################################################
 # This tests the bin square summarization method in diffHic.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 source("simcounts.R")
 
 chromos<-c(chrA=50, chrB=100, chrC=80)

@@ -6,7 +6,7 @@ source("simcounts.R")
 
 # We set up the comparison function to check our results. 
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 dir.create("temp-marg")
 dir1<-"temp-marg/1.h5"
 dir2<-"temp-marg/2.h5"

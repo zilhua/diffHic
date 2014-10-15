@@ -1,7 +1,7 @@
 ######################################################################################
 # This tests the functionality of connectCounts.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 suppressPackageStartupMessages(require(rhdf5))
 chromos <- c(chrA=100, chrB=80)
 source("simcounts.R")

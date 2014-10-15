@@ -159,7 +159,7 @@ Type 'q()' to quit R.
 + 	return(list(table=overall, total=totals))
 + }
 > 
-> suppressPackageStartupMessages(require(diffHic))
+> suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 > suppressPackageStartupMessages(require(rhdf5))
 > 
 > dir.create("temp-inter")

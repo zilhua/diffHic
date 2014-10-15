@@ -1,7 +1,7 @@
 ####################################################################################################
 # This script tests the pair manipulation functions of savePairs and mergePairs.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 suppressPackageStartupMessages(require(rhdf5))
 
 tmp<-"temp-pairs"

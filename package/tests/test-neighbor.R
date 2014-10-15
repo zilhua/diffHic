@@ -1,7 +1,7 @@
 ###################################################################################################
 # This tests the neighbor-counting code.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 
 comp <- function(npairs, chromos, flanking) {
 	flanking <- as.integer(flanking)

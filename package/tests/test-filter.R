@@ -2,7 +2,7 @@
 # of read pairs during count loading, e.g. based on gap distances. We only
 # check the .baseHiCParser function here, as the interface is common.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 suppressPackageStartupMessages(require(rhdf5))
 source("simcounts.R")
 
