@@ -11,9 +11,8 @@ To install this package, make sure that the latest version of R is installed. Th
 ```R
 source("http://bioconductor.org/biocLite.R")
 useDevel()
-biocLite(c('edgeR', 'Rsamtools', 'GenomicRanges', 'rhdf5', 'Biostrings', 'BSgenome'))
+biocLite(c('csaw', 'rhdf5', 'Biostrings', 'BSgenome'))
+install.packages('locfit')
 devtools::install_github("LTLA/diffHic/package")
 ```
 
-Oh, and you'll also need the `csaw` package to run the entire pipeline.
-This is not yet publicly available, so you'll have to email me if you want to get it.
