@@ -624,13 +624,11 @@ The aim is to enrich for false nulls without affecting type I error for the true
 
 Assume that the counts for each bin pair are sampled from the negative binomial (NB) distribution.
 Here, the overall NB mean across all libraries is (probably) an independent filter statistic.
-This is also called the average abundance and can be computed using the \code{aveLogCPM} function in \edgeR{} \citep{mccarthy2012glm}.
-The calculation is demonstrated below, after adding a prior count to stabilize the estimates at low counts.
+This is also called the average abundance and can be computed using the \code{aveLogCPM} function in \edgeR{} \citep{mccarthy2012glm}, as shown below.
 
 <<eval=FALSE,label=avehistplot>>=
 require(edgeR)
-prior.count <- 3
-ave.ab <- aveLogCPM(asDGEList(data), prior.count=prior.count)
+ave.ab <- aveLogCPM(asDGEList(data))
 hist(ave.ab, xlab="Average abundance")
 @
 
@@ -649,7 +647,7 @@ Low counts will also interfere with the asymptotic approximations that will be u
 The example below removes those bin pairs with an overall NB mean below 5 across all libraries.
 
 <<>>=
-count.keep <- ave.ab >= aveLogCPM(5, mean(totals(data)), prior.count=prior.count)
+count.keep <- ave.ab >= aveLogCPM(5, mean(totals(data)))
 summary(count.keep)
 dummy <- data[count.keep,]
 @
