@@ -882,43 +882,56 @@ As the total number of bin pairs increases when the bin size decreases, increasi
 % This is obviously nonsensical, as bin pairs must be either 0 or not zero.
 % In short, just using the expected value doesn't account for the distribution of observed values.
 
-The same strategy can be used in trended filtering by replacing \code{direct.threshold} with \code{trended.threshold}.
-However, some additional effort is required to match the threshold at each covariate.
+The same approach can be used for trended filtering of small bin pairs.
+However, some extra effort is required to match the threshold at each covariate.
 This is done by performing interpolation (and, if necessary, extrapolation) of the fitted distance-abundance trend for the distances of the smaller bin pairs.
-The computed \code{new.threshold2} can then be used to replace \code{new.threshold} in the code snippets above.
+The computed \code{new.threshold2} can then be used to filter on the abundances of the smaller bin pairs, as described above.
 
 <<>>=
-new.log.dist <- log10(getDistance(smaller.data) + new.bin.size/2)
-new.trended <- approx(x=log.dist, y=ave.ab, xout=new.log.dist, rule=2)$y
-new.trended[is.na(new.log.dist)] <- new.trended[which.max(new.log.dist)]
-new.threshold2 <- new.trended + log2(deflation)
+new.log.dist <- log10(getDistance(small.original) + new.bin.size/2)
+new.threshold2 <- approx(x=log.dist, y=larger.ab, xout=new.log.dist, rule=2)$y
+new.threshold2[is.na(new.log.dist)] <- larger.ab[which.max(log.dist)]
+summary(smaller.ab > new.threshold2)
 @
 
 \section{Filtering for pre-specified regions}
-The methods described above for calculation of filter thresholds rely on bin pair counts.
-Filtering for pairs of arbitrary regions is slightly more difficult as the width of the regions is not guaranteed to be reasonably constant.
-One must adjust the threshold for the differences in the read counting areas, as shown below with the \code{getArea} function.
+Filtering for pairs of arbitrary regions is complicated by the potential irregularity of the regions.
+In particular, there is no guarantee that the supplied regions will cover the entirety of the interaction space.
+This means that the filter thresholds may be overestimated, e.g., if the regions were specified such that only high-abundance areas are counted.
+Similarly, threshold estimation may be imprecise if not enough areas are non-empty.
+
+Another consideration is that different regions will have different widths.
+The resulting areas used for read pair counting will probably be different between region pairs, such that some will have systematically higher counts than others.
+Whether or not this is a problem depends on the user's perspective.
+The position of this guide is that it would be inappropriate to penalize larger areas for having larger counts. 
+As long as there are sufficient counts for an analysis, the size of the area involved should be irrelevant.
+Thus, use of \code{aveLogCPM} alone is recommended for calculation of the average abundance when filtering region pairs.
+
+% Same argument for bin pairs.
 
 <<>>=
-re.ab <- aveLogCPM(asDGEList(redata))
-re.norm.ab <- re.ab - log2(getArea(redata, mm.param))
-summary(re.norm.ab)
+summary(aveLogCPM(asDGEList(redata)))
 @
 
-Filtering can then be performed with \code{re.norm.ab}, in the same manner as described for the bin pairs.
-However, users should keep in mind that only a subset of the interaction space is considered here.
-Calculation of the filter thresholds may be inaccurate, e.g., if the regions were specified such that only high-abundance areas are counted.
-Similarly, threshold estimation may be imprecise if not enough areas are non-empty.
-%Finally, local filtering is also impossible as \code{countNeighbors} depends on regularly spaced bins.
+Nonetheless, other users may wish to adjust for the differences in areas.
+In such cases, \code{aveMb2} can be used to compute the filter statistic.
+Note that this differs from the previous application of \code{aveMb2} in Section~\ref{sec:filtersmall}.
+There, the adjustment by area is only performed between bin pairs of different sizes.
+Relative abundances within each set of bin pairs (i.e., of the same size) are not altered as \code{areas} is set to a constant scalar in each \code{aveMb2} call.
+Here, the area is computed separately and will probably be different for each region pair.
 
-Technically, filtering with bin pairs should also be performed after adjusting for the area of each bin pair.
-This is because some bins may match up to fewer restriction fragments, despite all bins having similar base pair widths.
-In practice, this is unnecessary for large bins as the vast majority will contain similar numbers of restriction fragments.
-Indeed, area-based adjustment prior to filtering is not recommended for routine analyses.
-This is because it tends to select for bins with very few fragments, e.g., telomeres, centromeres.
+<<>>=
+summary(aveMb2(redata))
+@
+
+On a similar note, another approach defines the area for each region/bin pair based on the number of restriction fragment pairs.
+This may be more relevant as it accounts for the limits of spatial resolution in a Hi-C experiment. 
+For example, bins of similar size may have different counts if they contain different numbers of fragments.
+In practice, fragment-based area adjustment prior to filtering is not recommended.
+This is because it tends to select for uninteresting bins with very few fragments, e.g., telomeres, centromeres.
 
 <<label=nfragplot,eval=FALSE>>=
-hist(getArea(data), breaks=100, xlab="Restriction fragments per bin")
+hist(getArea(data, bp=FALSE), breaks=100, xlab="Restriction fragment pairs per bin pair")
 @
 
 \setkeys{Gin}{width=0.5\textwidth}
@@ -929,8 +942,8 @@ hist(getArea(data), breaks=100, xlab="Restriction fragments per bin")
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
 
-Note that area-based adjustment adjustment fails to account for other differences between bins, e.g., in mappability or sequenceability.
-Full consideration of these bin-specific biases requires methods such as iterative correction (see Section~\ref{sec:itercor}).
+In all cases, adjustment of abundances by area fails to account for other differences between bins, e.g., in mappability or sequenceability.
+Full consideration of these bin-specific biases requires more complex methods such as iterative correction (see Section~\ref{sec:itercor}).
 
 \section{Filtering out diagonal elements}
 Incomplete removal of artifacts (e.g., dangling ends, self-circles) will generally manifest as increased counts for diagonal bin pairs, i.e., pairs of the same bin.
