@@ -19,16 +19,17 @@ An integer vector of length containing a cluster ID for each anchor/index combin
 }
 
 \details{
-The input \code{data} object can be taken from the output of \code{\link{squareCounts}}. 
-It would be prudent to filter the former based on he average abundances, to reduce the density of bin pairs in the interaction space. 
-Otherwise, clusters may be too large to be easily interpreted.
-
 Clustering is performed by putting a bin pair in a cluster if the smallest Chebyshev distance to any bin pair already inside the cluster is less than \code{tol}. 
 This is a cross between single-linkage approaches and density-based methods, especially after filtering removes low-density regions.
+In this manner, adjacent bin pairs in the interaction space can be clustered together.
 
-If many bin pairs are present, excessively large clusters may be formed. 
-This function can split the clusters such that the maximum value of any dimension of the cluster is less than \code{upper}. 
-This improves the spatial interpretability of the resulting clusters.
+The input \code{data} object can be taken from the output of \code{\link{squareCounts}}. 
+It would be prudent to filter the former based on the average abundances, to reduce the density of bin pairs in the interaction space. 
+Otherwise, clusters may be too large to be easily interpreted.
+
+Alternatively, to avoid excessively large clusters, this function can also split each cluster into roughly-equally sized subclusters.
+The maximum value of any dimension of the subclusters is generally less than \code{upper}. 
+This aims to improve the spatial interpretability of the clustering result.
 }
 
 \seealso{

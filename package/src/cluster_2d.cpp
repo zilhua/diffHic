@@ -286,7 +286,7 @@ SEXP split_clusters (SEXP id, SEXP start_a, SEXP start_t, SEXP end_a, SEXP end_t
 		}
 	}
 
-	// Going through each guy and filling in the subinterval width.
+	// Going through each cluster and filling in the subinterval width.
 	double* newsuba=(double*)R_alloc(maxid, sizeof(double));
 	double* newsubt=(double*)R_alloc(maxid, sizeof(double));
 	int * newnumt =(int*)R_alloc(maxid, sizeof(int));
