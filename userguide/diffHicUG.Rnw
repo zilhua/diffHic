@@ -835,23 +835,20 @@ new.bin.size <- 1e5
 smaller.data <- squareCounts(input, mm.param, width=new.bin.size, filter=20)
 @
 
-The threshold for the larger bin pairs are computed as previously described.
-However, this must be adjusted to account for the differences in the read counting area of the interaction space.
-A quick and dirty adjustment can be obtained by squaring the ratio of the bin sizes.
-An example is shown below, using the threshold from direct filtering.
+The \code{aveMb2} function can then be applied to compute the average abundance-per-megabase squared for each bin pair. 
+This adjusts for the area of the interaction space used for read pair counting, and is necessary for a valid comparison between small and large bin pairs.
+For consistency, the average abundances of the larger bin pairs are also recomputed with \code{aveMb2}.
+The resulting values are used to obtain a direct filter threshold, as previously described.
+
+% Technically, we should do it in terms of restriction fragment pairs.
+% However, this makes it difficult to choose an appropriate prior count, as a value of 2 is way to big for a single restriction fragment.
+% Adjustment by the area in terms of restriction fragments will also tend to select for the wrong things, e.g., bin pairs involving low-complexity sequences like telomeres and centromeres.
 
 <<>>=
-deflation <- (new.bin.size/bin.size)^2
-new.threshold <- direct.threshold + log2(deflation)
-@
-
-The average abundance of the smaller bin pairs must also be computed with some consideration of the differences in bin size.
-Specifically, the prior count must be scaled down before addition.
-This avoids spurious differences in the abundances of small and large bin pairs after downscaling of the latter.
-If the same prior is used, downscaling of the abundances for large bin pairs will reduce the size of the effective prior added to those counts.
-
-<<>>=
-small.ab <- aveLogCPM(asDGEList(smaller.data), prior.count=prior.count*deflation) 
+smaller.ab <- aveMb2(smaller.data, areas=new.bin.size^2)
+summary(smaller.ab)
+larger.ab <- aveMb2(data, areas=bin.size^2)
+new.threshold <- median(larger.ab[is.na(dist)], na.rm=TRUE)
 @
 
 Finally, filtering is performed by mandating a minimum fold change for the abundances of the smaller bin pairs over the adjusted threshold (in this case, 100-fold).
@@ -860,7 +857,8 @@ Also recall that a large \code{filter} is used in \code{squareCounts} to generat
 This means that no additional filtering is necessary to enforce a minimum count size.
 
 <<>>=
-small.keep <- small.ab > new.threshold + log2(100)
+small.keep <- smaller.ab > new.threshold + log2(100)
+small.original <- smaller.data
 smaller.data <- smaller.data[small.keep,]
 summary(small.keep)
 @
@@ -868,8 +866,7 @@ summary(small.keep)
 The minimum fold change used here is higher than that for the larger bin pairs in Section~\ref{sec:direct}.
 This is justified by intepreting the threshold as a significance measure.
 Bin pairs are only retained if their abundances are significantly greater than that expected from non-specific ligation.
-However, the total number of bin pairs increases when the bin size decreases.
-Increasing the stringency of the threshold effectively serves as a multiplicity correction.
+As the total number of bin pairs increases when the bin size decreases, increasing the stringency of the threshold effectively serves as a multiplicity correction.
 
 % This is a fairly oblique piece of code which uses the interchromosomals as a background distribution.
 % Increasing the threshold results in a 100-fold decrease in the number of retained bin pairs from this distribution.
