@@ -727,6 +727,7 @@ The threshold is defined by requiring a minimum fold change of 10 above this est
 
 <<>>=
 direct.threshold <- median(ave.ab[is.na(dist)], na.rm=TRUE)
+direct.threshold
 direct.keep <- count.keep & ave.ab > log2(10) + direct.threshold
 dummy <- data[direct.keep,]
 summary(direct.keep)
@@ -810,6 +811,7 @@ summary(trend.keep)
 %This is equivalent to calling peaks of high interaction intensity in the interaction space.
 
 \section{Computing filter thresholds with limited memory}
+\label{sec:filtersmall}
 These filtering procedures assume that no filtering has been performed during count loading with \code{squareCounts}, i.e., \code{filter} is set to unity.
 Any pre-filtering that removes low-abundance bin pairs will lead to overestimation of the filter thresholds. 
 However, it may not be practical to load counts without pre-filtering, e.g., for small bin sizes where too many non-empty bin pairs are present.
