@@ -1,7 +1,6 @@
 #include "diffhic.h"
 //#define DEBUG 0
 
-#include <set>
 #ifdef DEBUG
 #include <iostream>
 #endif
@@ -298,7 +297,7 @@ SEXP split_clusters (SEXP id, SEXP start_a, SEXP start_t, SEXP end_a, SEXP end_t
 		if (newas[i]==-1) { continue; }
 		diff=newae[i]-newas[i];
 		if (diff > width) { 
-			mult=std::ceil(diff/width);
+			mult=int(diff/width+0.5);
 			prod=mult;
 			newsuba[i]=diff/mult;
 		} else { 
@@ -308,7 +307,7 @@ SEXP split_clusters (SEXP id, SEXP start_a, SEXP start_t, SEXP end_a, SEXP end_t
 
 		diff=newte[i]-newts[i];
 		if (diff > width) { 
-			newnumt[i]=std::ceil(diff/width);
+			newnumt[i]=int(diff/width+0.5);
 			prod*=newnumt[i];
 			newsubt[i]=diff/newnumt[i];
 		} else {
@@ -332,10 +331,10 @@ SEXP split_clusters (SEXP id, SEXP start_a, SEXP start_t, SEXP end_a, SEXP end_t
 			if (newas[curid]==-1) { continue; }
 			int& extra=(optr[i]=newidstart[curid]);
 			if (newsuba[curid]>0) {
-				extra+=std::floor( (0.5*double(aeptr[i]+asptr[i])-newas[curid])/newsuba[curid] ) * newnumt[curid];
+				extra+=int( (0.5*double(aeptr[i]+asptr[i])-newas[curid])/newsuba[curid] ) * newnumt[curid];
 			}
 			if (newsubt[curid]>0) {
-				extra+=std::floor( (0.5*double(teptr[i]+tsptr[i])-newts[curid])/newsubt[curid] );
+				extra+=int( (0.5*double(teptr[i]+tsptr[i])-newts[curid])/newsubt[curid] );
 			} 
 		}
 	} catch (std::exception& e){

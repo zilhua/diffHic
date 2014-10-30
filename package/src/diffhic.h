@@ -4,15 +4,14 @@
 #include <deque>
 #include <queue>
 #include <map>
+#include <set>
 #include <stdexcept>
 #include <sstream>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 
 #include "R.h"
 #include "Rinternals.h"
-
-const double very_low_value=std::pow(10.0, -8.0);
 
 extern "C" {
 

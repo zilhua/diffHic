@@ -104,11 +104,11 @@ clustercomp <- function(data, tol, maxw, debug=FALSE) {
 		cluster.te <- max(all.ends[active.t])
 
 		diff.a <- cluster.ae - cluster.as 
-		mult.a <- ceiling(diff.a / maxw)
+		mult.a <- max(1, round(diff.a / maxw))
 		jump.a <- diff.a/mult.a
 
 		diff.t <- cluster.te - cluster.ts 
-		mult.t <- ceiling(diff.t / maxw)
+		mult.t <- max(1, round(diff.t / maxw))
 		jump.t <- diff.t/mult.t
 
 		mid.a <- (all.starts[active.a]+all.ends[active.a]) * 0.5

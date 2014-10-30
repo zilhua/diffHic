@@ -28,8 +28,11 @@ It would be prudent to filter the former based on the average abundances, to red
 Otherwise, clusters may be too large to be easily interpreted.
 
 Alternatively, to avoid excessively large clusters, this function can also split each cluster into roughly-equally sized subclusters.
-The maximum value of any dimension of the subclusters is generally less than \code{upper}. 
+The maximum value of any dimension of the subclusters is approxiamtely equal to \code{upper}. 
 This aims to improve the spatial interpretability of the clustering result.
+
+% Having evenly sized clusters provides best spatial resolution and interpretability, e.g., much like binary searching.
+% However, it's not clear how you can provide an even size while enforcing a strict upper bound of `upper`.
 }
 
 \seealso{
