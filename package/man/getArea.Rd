@@ -53,13 +53,14 @@ invisible(preparePairs(hic.file, param, fout))
 
 # Collating to count combinations.
 y <- squareCounts(fout, param, width=10)
-getArea(y, param)
-getArea(y, bp=TRUE, param)
+getArea(y, param=param)
+getArea(y, bp=FALSE, param)
 
 y <- squareCounts(fout, param, width=50)
-getArea(y, bp=TRUE)
-getArea(y, param)
-getArea(y, param, bp=TRUE)
+getArea(y)
+getArea(y, param=param)
+getArea(y, bp=FALSE)
+getArea(y, param=param, bp=FALSE)
 
 \dontshow{
 unlink(fout, recursive=TRUE)
