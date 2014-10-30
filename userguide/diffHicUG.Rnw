@@ -889,8 +889,9 @@ The computed \code{new.threshold2} can then be used to filter on the abundances 
 
 <<>>=
 new.log.dist <- log10(getDistance(small.original) + new.bin.size/2)
-new.threshold2 <- approx(x=log.dist, y=larger.ab, xout=new.log.dist, rule=2)$y
-new.threshold2[is.na(new.log.dist)] <- larger.ab[which.max(log.dist)]
+larger.fit <- loessFit(x=log.dist, y=larger.ab)$fitted
+new.threshold2 <- approx(x=log.dist, y=larger.fit, xout=new.log.dist, rule=2)$y
+new.threshold2[is.na(new.log.dist)] <- larger.fit[which.max(log.dist)]
 summary(smaller.ab > new.threshold2)
 @
 
