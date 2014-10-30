@@ -593,7 +593,7 @@ The bin size can be easily adjusted to obtain the desired spatial resolution.
 It is also easier/safer to compare between bin pairs (e.g., during filtering) when each bin is roughly of the same size.
 Thus, bin-based counting will be the method of choice for the rest of this guide.
 
-For simplicity, counting will be performed with the default settings in this guide, i.e., no values for \code{restrict}, \code{discard} or \code{cap}.
+For simplicity, all counting steps will be performed here with the default settings, i.e., no values for \code{restrict}, \code{discard} or \code{cap}.
 However, users are encouraged to change the values if necessary, to improve the outcome of their analyses.
 Non-default values should be recorded in a single \code{pairParam} object for consistent use across all functions in the \pkgname{} pipeline.
 This ensures that the same read pairs are extracted from each index file.
