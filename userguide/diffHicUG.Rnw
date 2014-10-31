@@ -822,7 +822,6 @@ This is simple but the chosen threshold has no obvious interpretation.
 \item Load counts for larger bin sizes without pre-filtering.
 This reduces memory usage as the interaction space is partitioned into fewer bin pairs.
 Then, perform filtering and convert the computed filter thresholds into values for the original (smaller) bin sizes.
-Estimation of the threshold is also more precise when the counts are larger.
 \end{itemize}
 
 An example of the second option is shown here.
@@ -894,6 +893,11 @@ new.threshold2 <- approx(x=log.dist, y=larger.fit, xout=new.log.dist, rule=2)$y
 new.threshold2[is.na(new.log.dist)] <- larger.fit[which.max(log.dist)]
 summary(smaller.ab > new.threshold2)
 @
+
+Another advantage is that estimation of the threshold is also more precise when the counts are larger.
+For example, calculation of the median or fitting of the trend will be complicated by discreteness in the abundances.
+This is avoided with larger bin sizes.
+Thus, even if there is sufficient memory for loading smaller bin pairs with \code{filter=1}, use of larger bin sizes may still be desirable when computing the filter threshold.
 
 \section{Filtering for pre-specified regions}
 Filtering for pairs of arbitrary regions is complicated by the potential irregularity of the regions.
