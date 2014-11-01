@@ -94,13 +94,20 @@ In the code snippets below, \code{x} is a DIList object.
 }
 }
 
-\section{Subsetting}{
+\section{Subsetting and combining}{
 In the code snippets below, \code{x} is a DIList object.
 
 \describe{
     \item{}{\code{x[i, j]}:
   	Get data for all interactions \code{i} in libraries \code{j}.
 	Either \code{i} or \code{j} can be missing, in which case all interactions or libraries are returned, respectively.
+	}
+
+	\item{}{\code{c(x, ..., add.totals=TRUE)}:
+	Merge \code{x} with other \code{DIList} objects in \code{...}, by concatenating the count matrices along with the anchor and target indices.
+	By default, the totals will be added across all objects to be merged. 
+	This can be turned off by setting \code{add.totals=FALSE}, whereby only the totals of \code{x} are used (a warning will be generated if totals are not identical between objects).
+	In all cases, objects to be merged should have the same value in the \code{regions} slot.
 	}
 }
 }
@@ -148,6 +155,9 @@ regions(blah)
 asDGEList(blah)
 normalize(blah, logratioTrim=0)
 normalize(blah, type="loess")
+
+c(blah, blah)
+c(blah[1:2,], blah[3:4,], add.totals=FALSE)
 }
 
 \seealso{

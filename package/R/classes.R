@@ -142,6 +142,40 @@ DIList <- function(counts, totals=colSums(counts), anchors, targets, regions) {
 	new("DIList", counts=counts, totals=totals, anchor.id=anchors, target.id=targets, region=regions)
 }
 
+setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive=FALSE) {
+	if (!identical(recursive, FALSE)) { 
+		stop("recursive argument not supported")
+	}
+	output <- list(counts(x))
+	out.a <- list(anchors(x, id=TRUE))
+	out.t <- list(targets(x, id=TRUE))
+	totality <- totals(x)
+
+	ix <- 2L
+	for (i in list(...)) {
+		if (!is(i, "DIList")) { 
+			stop("elements to be concatenated must be DIList objects")
+		}
+		if (!identical(regions(x), regions(i))) {
+			stop("regions should be identical between DIList objects")
+		}
+
+		out.a[[ix]] <- anchors(i, id=TRUE)
+		out.t[[ix]] <- targets(i, id=TRUE)
+		output[[ix]] <- counts(i)
+
+		if (add.totals) { 
+			totality <- totality + totals(i) 
+		} else if (!identical(totals(i), totality)) { 
+			warning("totals are not identical between DIList objects")
+		}
+		ix <- ix + 1L
+	}
+	
+	new("DIList", counts=do.call(rbind, output), totals=totality,
+		anchor.id=unlist(out.a), target.id=unlist(out.t), region=regions(x))
+})
+
 # Setting some methods inspired by equivalents in csaw.
 setMethod("asDGEList", signature("DIList"), function(object, ...) {
 	DGEList(counts(object), lib.size=totals(object), ...)
