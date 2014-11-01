@@ -1,4 +1,4 @@
-.loadIndices <- function(y)
+.loadIndices <- function(y, frag.chrs, restrict=NULL)
 # A quick and dirty function for index loading with multiple libraries. This
 # produces a list which describes the necessary HDF5 object corresponding to
 # each chromosome combination for each library. 
@@ -6,6 +6,10 @@
 	y <- path.expand(y)
 	overall <- list()
 	ni<-length(y)
+	do.restrict <- length(restrict)!=0L
+	check.chrs <- !missing(frag.chrs)
+	if (!check.chrs) { warning("no protection against nonsensical chromosomes in the data") }
+
 	for (ix in 1:ni) {
 		current <- h5ls(y[ix])
 		keep <- current$otype=="H5I_DATASET"
@@ -14,9 +18,20 @@
 
 		current <- split(assorted.info, all.anchors)
 		for (ac in names(current)) {
+			if (check.chrs && !ac %in% frag.chrs) { 
+				warning("'", ac, "' in data is not present in fragment chromosomes") 
+				next
+			}
+			if (do.restrict && !ac %in% restrict) { next }
 			if (is.null(overall[[ac]])) { overall[[ac]]<-list() }
 			subcurrent <- current[[ac]]
+				
 			for (tc in subcurrent) {
+				if (check.chrs && !tc %in% frag.chrs) { 
+					warning("'", tc, "' in data is not present in fragment chromosomes") 
+					next
+				}
+				if (do.restrict && !tc %in% restrict) { next } 
 				if (is.null(overall[[ac]][[tc]])) { overall[[ac]][[tc]] <- logical(ni) }
 				overall[[ac]][[tc]][ix] <- TRUE
 			}

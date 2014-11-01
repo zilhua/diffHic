@@ -25,14 +25,10 @@ marginCounts <- function(files, param, width=500000)
 	chrs <- seqlevels(fragments)
 
     # Running through each pair of chromosomes.
-    overall <- .loadIndices(files)
+    overall <- .loadIndices(files, chrs, restrict)
     for (anchor in names(overall)) {
-        stopifnot(anchor %in% chrs)
-		if (length(restrict) && !(anchor %in% restrict)) { next }
 		current <- overall[[anchor]]
 		for (target in names(current)) {
-			stopifnot(target %in% chrs)
-			if (length(restrict) && !(target %in% restrict)) { next }
     
       		pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
            	full.sizes <- full.sizes + sapply(pairs, FUN=nrow)

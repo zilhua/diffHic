@@ -20,7 +20,7 @@ totalCounts <- function(files, param)
 	cap <- param$cap
 
 	# Running through each pair of chromosomes.
-	overall <- .loadIndices(files)
+	overall <- .loadIndices(files, chrs, restrict)
     for (anchor in names(overall)) {
 		stopifnot(anchor %in% chrs)
 	    if (length(restrict) && !(anchor %in% restrict)) { next }

@@ -10,7 +10,7 @@ getPairData <- function(file, param)
 	ix <- 1L
 
 	# Running through all pairs.	
-	allstuff <- .loadIndices(file)
+	allstuff <- .loadIndices(file, seqlevels(param$fragments))
 	for (ax in names(allstuff)) {
 		current <- allstuff[[ax]] 
 		for (tx in names(current)) { 

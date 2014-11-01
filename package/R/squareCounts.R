@@ -29,15 +29,10 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	idex <- 1L
 
 	# Running through each pair of chromosomes.
-	overall <- .loadIndices(files)
+	overall <- .loadIndices(files, chrs, restrict)
     for (anchor in names(overall)) {
-		stopifnot(anchor %in% chrs)
-	    if (length(restrict) && !(anchor %in% restrict)) { next }
         current <- overall[[anchor]]
-
 		for (target in names(current)) {
-			stopifnot(target %in% chrs)
-	        if (length(restrict) && !(target %in% restrict)) { next }
 
 			# Extracting counts and aggregating them in C++ to obtain count combinations for each bin pair.
 			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
@@ -188,3 +183,4 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 
 	return(output)
 }
+

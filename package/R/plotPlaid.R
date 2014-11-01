@@ -44,7 +44,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	out.id[keep] <- new.pts$id
 
 	# Pulling out the read pair indices from each file.
-	all.dex <- .loadIndices(file)
+	all.dex <- .loadIndices(file, seqlevels(param$fragments))
 	flipped <- FALSE
 	if (!is.null(all.dex[[achr]][[tchr]])) {
 		current <- .baseHiCParser(TRUE, file, achr, tchr, discard=discard, cap=recap)[[1]]
@@ -130,7 +130,7 @@ rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=N
 	out.id[keep] <- new.pts$id
 	
 	# Pulling out the read pair indices from each file.
-	all.dex <- .loadIndices(file)
+	all.dex <- .loadIndices(file, seqlevels(param$fragments))
 	if (!is.null(all.dex[[xchr]][[xchr]])) {
 		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard, cap=recap)[[1]]
 	} else { 

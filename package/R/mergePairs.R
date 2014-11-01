@@ -7,7 +7,7 @@ mergePairs <- function(files, file.out)
 # written by Aaron Lun
 {
     # Use a temporary file as a placeholder just in case 'dir' is in 'y'.
-    overall <- .loadIndices(files)
+    overall <- suppressWarnings(.loadIndices(files))
     tmpf <- tempfile(tmpdir=".")
 	.initializeH5(tmpf) 
 	on.exit({ if (file.exists(tmpf)) { unlink(tmpf, recursive=TRUE) } })
