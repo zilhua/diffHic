@@ -87,7 +87,7 @@ mergecomp<-function(nl, n, nfrags, nchrs) {
 
 	# Comparing internal objects.
 	combodirs<-c(mdir, rdir)
-	out<-diffHic:::.loadIndices(combodirs)
+	out <- diffHic:::.loadIndices(combodirs, seqlevels(blah))
 	for (x in names(out)) {
 		for (y in names(out[[x]])) {
 			current<-out[[x]][[y]]

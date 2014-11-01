@@ -37,7 +37,7 @@ filtsim <- function(npairs1, npairs2, chromos, overlap=4, min.ingap=NA, min.outg
 	lost.frag <- lost.in <- lost.out <- lost.disc <- 0L
 
 	combo <- c(dir1, dir2, dir1x, dir2x)
-	stuff <- diffHic:::.loadIndices(combo)
+	stuff <- diffHic:::.loadIndices(combo, seqlevels(cuts))
 	for (ax in names(stuff)) { 
 		current <- stuff[[ax]]
 		for (tx in names(current)) { 

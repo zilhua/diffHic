@@ -1,5 +1,5 @@
 
-R version 3.1.0 (2014-04-10) -- "Spring Dance"
+R version 3.1.1 (2014-07-10) -- "Sock it to Me"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -196,7 +196,7 @@ Type 'q()' to quit R.
 + 	# Anchor/target synchronisation is determined by order in 'fragments' (and thusly, in max.cuts).
 + 	offset<-c(0L, cumsum(max.cuts))
 + 	names(offset)<-NULL
-+ 	indices<-diffHic:::.loadIndices(tmpdir)
++ 	indices<-diffHic:::.loadIndices(tmpdir, seqlevels(outfrags))
 + 	used<-indices
 + 	fchrs<-as.character(seqnames(outfrags))
 + 
@@ -595,7 +595,7 @@ $chimeras
 > printfun<-function(dir, named=NULL) {
 + 	output<-list()
 + 	ix <- 1L
-+ 	indices<-diffHic:::.loadIndices(tmpdir)
++ 	indices <- suppressWarnings(diffHic:::.loadIndices(tmpdir))
 + 	for (ax in names(indices)) {
 + 		if (is.null(output[[ax]])) { output[[ax]]<-list() }
 + 		for (tx in names(indices[[ax]])) {
@@ -837,4 +837,4 @@ other.2                 7         7     30           2     13
 > 
 > proc.time()
    user  system elapsed 
- 14.086   0.253  14.405 
+ 17.231   0.310  17.642 

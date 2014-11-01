@@ -1,5 +1,5 @@
 
-R version 3.1.0 (2014-04-10) -- "Spring Dance"
+R version 3.1.1 (2014-07-10) -- "Sock it to Me"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -169,7 +169,7 @@ Type 'q()' to quit R.
 + 
 + 	# Comparing internal objects.
 + 	combodirs<-c(mdir, rdir)
-+ 	out<-diffHic:::.loadIndices(combodirs)
++ 	out <- diffHic:::.loadIndices(combodirs, seqlevels(blah))
 + 	for (x in names(out)) {
 + 		for (y in names(out[[x]])) {
 + 			current<-out[[x]][[y]]
@@ -247,4 +247,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 17.767   0.377  18.175 
+ 18.028   0.520  18.584 

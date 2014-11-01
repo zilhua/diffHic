@@ -177,7 +177,7 @@ comp<-function (fname, npairs, max.cuts, sizes=c(100, 500), singles=0, rlen=10, 
 	# Anchor/target synchronisation is determined by order in 'fragments' (and thusly, in max.cuts).
 	offset<-c(0L, cumsum(max.cuts))
 	names(offset)<-NULL
-	indices<-diffHic:::.loadIndices(tmpdir)
+	indices<-diffHic:::.loadIndices(tmpdir, seqlevels(outfrags))
 	used<-indices
 	fchrs<-as.character(seqnames(outfrags))
 
@@ -348,7 +348,7 @@ preparePairs(hic.file, param, tmpdir, dedup=FALSE)
 printfun<-function(dir, named=NULL) {
 	output<-list()
 	ix <- 1L
-	indices<-diffHic:::.loadIndices(tmpdir)
+	indices <- suppressWarnings(diffHic:::.loadIndices(tmpdir))
 	for (ax in names(indices)) {
 		if (is.null(output[[ax]])) { output[[ax]]<-list() }
 		for (tx in names(indices[[ax]])) {
