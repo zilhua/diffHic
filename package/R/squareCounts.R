@@ -33,6 +33,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
     for (anchor in names(overall)) {
         current <- overall[[anchor]]
 		for (target in names(current)) {
+			if (!.checkIfPairOK(restrict, anchor, target)) { next }
 
 			# Extracting counts and aggregating them in C++ to obtain count combinations for each bin pair.
 			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
@@ -182,5 +183,19 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	}
 
 	return(output)
+}
+
+.checkIfPairOK <- function(restrict, anchor, target) 
+# This just checks if we're going for only one pair. If so, it checks
+# for whether we're talking about the pair of the same chromosome, in 
+# which case the pair must be okay (as the restrict should have thrown
+# out everything else). If we're talking about the pair of different
+# chromosomes, then we must have differences between anchor and target
+# in order to be getting the right pair.
+{
+	if (attributes(restrict)$only.pair) { 
+		if (restrict[1]!=restrict[2]) { return(anchor!=target) } 
+	}
+	return(TRUE)
 }
 
