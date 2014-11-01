@@ -212,7 +212,7 @@ setValidity("pairParam", function(object) {
 		return('restriction fragment ranges should be unstranded')
 	}
 
-	if (!is.na(object@cap) && object@cap <= 0L) { 
+	if (length(object@cap)!=1L || (!is.na(object@cap) && object@cap <= 0L)) { 
 		return('any specified cap should be a positive integer')
 	}
 	return(TRUE)
@@ -261,7 +261,12 @@ setMethod("show", signature("pairParam"), function(object) {
 	if (!nr) { 
 		cat("No limits on chromosomes for read extraction\n")
 	} else {
-		cat("Read extraction is limited to", nr, ifelse(nr==1L, "chromosome\n", "chromosomes\n"))
+		if (!attributes(object@restrict)$only.pair) {
+			cat("Read extraction is limited to", nr, ifelse(nr==1L, "chromosome\n", "chromosomes\n"))
+		} else {
+			cat("Read extraction is limited to pairs between", 
+				paste0("'", object@restrict[1], "'"), "and", paste0("'", object@restrict[2], "'\n"))
+		}
 	}
 
 	if (is.na(object@cap)) {
@@ -285,11 +290,24 @@ pairParam <- function(fragments,
 #	max.frag <- as.integer(max.frag)
 #	min.inward <- as.integer(min.inward)
 #	min.outward <- as.integer(min.outward)
-	restrict <- as.character(restrict) 
+	restrict <- .editRestrict(restrict) 
 	cap <- as.integer(cap)
 	new("pairParam", 
 #			max.frag=max.frag, min.inward=min.inward, min.outward=min.outward,
 		restrict=restrict, discard=discard, fragments=fragments, cap=cap)
+}
+
+.editRestrict <- function(restrict) {
+	only.pair <- FALSE
+	if (!is.null(dim(restrict))) { 
+		if (nrow(restrict)!=1L || ncol(restrict)!=2L) {
+			stop("restrict matrix can only have a single row with two values")
+		}
+		only.pair <- TRUE
+	}
+	restrict <- as.character(restrict)
+	attr(restrict, "only.pair") <- only.pair
+	restrict
 }
 
 setGeneric("reform", function(x, ...) { standardGeneric("reform") })
@@ -303,9 +321,10 @@ setMethod("reform", signature("pairParam"), function(x, ...) {
 #			max.frag=as.integer(val),
 #			min.inward=as.integer(val),
 #			min.outward=as.integer(val),
-			restrict=as.character(val),
+			restrict=.editRestrict(val),
 			cap=as.integer(val),
 			val)
 	}
 	do.call(initialize, c(x, incoming))
 }) 
+
