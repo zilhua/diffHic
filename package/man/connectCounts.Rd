@@ -42,6 +42,7 @@ Similarly, the number of restriction fragments assigned to each interval is stor
 
 Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
 Similarly, any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
+See the documentation for \code{\link{pairParam}} for more details about these parameters.
 }
 
 \seealso{
@@ -67,5 +68,15 @@ regions2 <- suppressWarnings(c(regions, GRanges("chrB", IRanges(50, 100))))
 connectCounts(fout, param, regions=regions, filter=1L)
 connectCounts(fout, param, regions=regions2, filter=1L)
 connectCounts(fout, param, regions=regions2, filter=1L, type="within")
+
+# Still works with restriction.
+connectCounts(fout, param=reform(param, restrict="chrA"), 
+    regions=regions2, filter=1L)
+connectCounts(fout, param=reform(param, restrict=cbind("chrA", "chrB")), 
+    regions=regions2, filter=1L)
+
+\dontshow{
+unlink(fout)
+}
 }
 

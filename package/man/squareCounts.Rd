@@ -52,6 +52,7 @@ Another option is to increase \code{width} to reduce the total number of bins in
 
 Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
 Similarly, any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
+See the documentation for \code{\link{pairParam}} for more details about these parameters.
 }
 
 \examples{
@@ -72,6 +73,7 @@ squareCounts(fout, param, width=100, filter=1)
 # Attempting with other parameters.
 squareCounts(fout, reform(param, restrict="chrA"), width=100, filter=1)
 squareCounts(fout, reform(param, cap=1), width=100, filter=1)
+squareCounts(fout, reform(param, restrict=cbind("chrA", "chrB")), filter=1)
 
 \dontshow{
 unlink(fout, recursive=TRUE)
