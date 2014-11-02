@@ -1,4 +1,4 @@
-countNeighbors <- function(data, flank, type=c("both", "anchor", "target")) 
+countNeighbors <- function(data, flank=2) 
 # This function computes the count sum for the bin pairs that are neighbouring 
 # each specified bin pair in 'data'. It does so by computing the sum of all
 # neighbors within 'width' on the anchor or target, and adding them. This means
@@ -26,58 +26,45 @@ countNeighbors <- function(data, flank, type=c("both", "anchor", "target"))
 	for (anchor in names(by.chr)) {
 		next.chr <- by.chr[[anchor]]
 		next.chr <- split(next.chr, as.character(seqnames(targets(data[next.chr,]))))
-		if (!anchor %in% names(last.id)) { stop("chromosome missing in the fragment list") }
+		a.len <- last.id[[anchor]] - first.id[[anchor]] + 1L
 
 		for (target in names(next.chr)) {
-			cur.chr <- next.chr[[target]]
-			all.a <- data@anchor.id[cur.chr]
-			all.t <- data@target.id[cur.chr]
+			current.pair <- next.chr[[target]]
+			all.a <- data@anchor.id[current.pair]
+			all.t <- data@target.id[current.pair]
+			t.len <- last.id[[target]] - first.id[[target]] + 1L
+			rel.counts <- data@counts[current.pair,,drop=FALSE]
 
-			# We need to double it, to account for reflection around the diagonal. 
-			# We obviously don't need to add the diagonal points twice.
-			on.diag <- all.a==all.t
-			reflected <- !on.diag & (all.t + flank >= all.a)
-			combined.anchor <- c(all.a, all.t[reflected])
-			combined.target <- c(all.t, all.a[reflected])
-			keep <- 1:length(cur.chr)
-			rel.counts <- counts(data)[cur.chr,,drop=FALSE]
-			combined.counts <- rbind(rel.counts, rel.counts[reflected,,drop=FALSE])
-
-			# Computing the local background, for fixed anchor or target.
-			all.counts <- all.n <- 0L
-			if (type!="anchor") { 
-				o <- order(combined.anchor, combined.target)
-				collected <- .Call(cxx_collect_background, combined.anchor[o], combined.target[o], combined.counts[o,], flank)
+			if (target==anchor) {
+				# Doing diagonal-based background estimation.
+				all.counts <- all.n <- 0L
+			} else {
+				# Computing neighbourhood for same anchor, different target.
+				o <- order(all.a, all.t)
+				collected <- .Call(cxx_collect_background, all.a[o], all.t[o], rel.counts[o,], flank, t.len)
 				if (is.character(collected)) { stop(collected) }
 				collected[o,] <- collected
-				all.counts <- collected[keep,] - rel.counts
-
-				upper <- pmin(all.t+flank, last.id[[target]]) 
-				lower <- pmax(all.t-flank, first.id[[target]]) 
-				all.n <- upper - lower
-			}
-			if (type!="target") { 
-				o <- order(combined.target, combined.anchor)
-				collected <- .Call(cxx_collect_background, combined.target[o], combined.anchor[o], combined.counts[o,], flank)
+				all.counts <- collected - rel.counts
+		
+				# Computing neighbourhood for same target, different anchor.
+				o <- order(all.t, all.a)
+				collected <- .Call(cxx_collect_background, all.t[o], all.a[o], rel.counts[o,], flank, a.len)
 				if (is.character(collected)) { stop(collected) }
 				collected[o,] <- collected
-				all.counts <- all.counts + collected[keep,] - rel.counts
+				all.counts <- all.counts + collected - rel.counts
 				
-				upper <- pmin(all.a+flank, last.id[[anchor]]) 
-				lower <- pmax(all.a-flank, first.id[[anchor]]) 
-				all.n <- all.n + upper - lower
+				# Computing number of squares in the neighbourhood.
+				# Code automatically adjusts on the edges to preserve the number used, so it'll
+				# only change if the anchor or target chromosomes are too small.
+				all.n <- min(t.len-1L, flank*2L) + min(a.len-1L, flank*2L)
 			}
 
-			# Points right on the diagonal count the neighborhood twice upon reflection, so division is necessary.
-			if (type=="both") { 
-				all.counts[on.diag,] <- all.counts[on.diag,]/2L
-				all.n[on.diag] <- all.n[on.diag]/2L
-			}
-			output[cur.chr,] <- all.counts
-			out.n[cur.chr] <- all.n
+			output[current.pair,] <- all.counts
+			out.n[current.pair] <- all.n
 		}
 	}
 
 	# Returning the collected counts.
-	return(list(counts=output, n=out.n))
+	if (any(out.n==0L)) { warning("no neighbourhoods available for some bin pairs") }
+	return(list(y=DGEList(counts=output, lib.size=totals(data)), n=out.n))
 }
