@@ -5,8 +5,13 @@ aveMb2 <- function(data, areas=NULL, prior.count=2, ...)
 #
 # written by Aaron Lun
 # 30 October, 2014
-{ 
-	if (is.null(areas)) { areas <- getArea(data, bp=TRUE) }
+{
+   	if (is(data, "DGEList")) { 
+		if (is.null(areas)) { stop("areas must be specified if data is a DGEList") }
+	} else {
+		if (is.null(areas)) { areas <- getArea(data, bp=TRUE) }
+		data <- asDGEList(data)
+	}
 	scaled <- areas/1e12
-	aveLogCPM(asDGEList(data), prior.count=prior.count*scaled, ...) - log2(scaled)
+	aveLogCPM(data, prior.count=prior.count*scaled, ...) - log2(scaled)
 }

@@ -9,7 +9,7 @@ aveMb2(data, areas=NULL, prior.count=2, ...)
 }
 
 \arguments{
-\item{data}{a \code{DIList} object produced by \code{\link{squareCounts}}}
+\item{data}{a \code{DGEList} object, or a \code{DIList} object produced by \code{\link{squareCounts}}}
 \item{areas}{a numeric scalar or vector, indicating the area (in base pairs-squared) covered by each bin pair}
 \item{prior.count}{an integer scalar, specifying the prior count to be used}
 \item{...}{other arguments to be passed to \code{\link{aveLogCPM}}}
@@ -20,7 +20,8 @@ This computes the area-adjusted average abundance for each bin pair, i.e., the a
 The idea is to allow comparisons between sets of bin pairs of differing widths.
 For example, abundances for larger bin pairs are scaled down, while those for smaller bin pairs are scaled up.
 
-The area for each bin pair can be specified using the \code{areas} argument.
+The area for each bin pair can be specified using the \code{areas} parameter.
+This must be set if \code{data} is a \code{DGEList}.
 Otherwise, it is defined using the \code{\link{getArea}} function.
 Areas should be specified in terms of base pairs-squared, such that proper scaling can be performed.
 
@@ -56,4 +57,11 @@ areas <- getArea(y) * 1e10
 aveMb2(y, areas=areas)
 aveMb2(y, areas=areas, prior.count=5)
 aveMb2(y, areas=areas, prior.count=0.1)
+
+try(aveMb2(asDGEList(y)))
+aveMb2(asDGEList(y), areas=areas)
+
+\dontshow{
+unlink(fout)
+}
 }
