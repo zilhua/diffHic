@@ -499,6 +499,10 @@ margin.data <- marginCounts(input, mm.param, width=bin.size)
 margin.data
 @
 
+Note that the anchor/target notation is superfluous for \code{marginCounts}.
+This is because the marginal counts refer to individual bins rather than bin pairs.
+Nonetheless, a \code{DIList} is still returned for consistency, in which the anchor and target regions are identical.
+
 For this dataset, there are no major changes in coverage for the vast majority of bins.
 The most extreme events occur at low abundances and are unlikely to be reliable.
 This suggests that a direct comparison of interaction intensities will be valid.
@@ -527,10 +531,6 @@ One can check that this is the case by ensuring that the regions are the same.
 <<>>=
 identical(regions(data), regions(margin.data))
 @
-
-Note that the anchor/target notation is superfluous for \code{marginCounts}.
-This is because the marginal counts refer to individual bins rather than bin pairs.
-Nonetheless, a \code{DIList} is still returned for consistency, in which the anchor and target regions are identical.
 
 \section{Additional parameter options}
 
