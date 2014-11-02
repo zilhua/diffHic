@@ -4,7 +4,8 @@ cutGenome <- function(bs, pattern, overhang=4L)
 # Otherwise, there may be some problems as you'd need to search the reverse
 # strand as well.
 #
-# written by Aaron Lun	
+# written by Aaron Lun
+# a long time ago. Modified 2 Nov 2014.	
 {
 	if (nchar(pattern)%%2L!=0) { stop("recognition site must be even in size") }
 	ps <- DNAString(pattern)
@@ -14,18 +15,25 @@ cutGenome <- function(bs, pattern, overhang=4L)
 	remainder <- (nchar(pattern)-overhang)/2L
 
 	original <- list()
-	maxed <- list()
-	for (chr in seqnames(bs)) {
-        x <- matchPattern(pattern, bs[[chr]]);
-        starts <- c(1L, start(x)+remainder);
-        ends <- c(start(x)+remainder-1L+overhang, length(bs[[chr]]));
+	if (is(bs, "BSgenome")) {
+		ref.names <- seqnames(bs)
+		gen <- genome(bs)
+	} else {
+		bs <- readDNAStringSet(bs)
+		ref.names <- names(bs)
+		gen <- NA
+	}	
+	for (chr in ref.names) {
+       	x <- matchPattern(pattern, bs[[chr]])
+       	starts <- c(1L, start(x)+remainder)
+       	ends <- c(start(x)+remainder-1L+overhang, length(bs[[chr]]))
 		original[[chr]] <- GRanges(chr, IRanges(starts, ends))
 	}
 		
 	names(original) <- NULL
 	suppressWarnings(original <- do.call(c, original))
-    seqlevels(original) <- seqnames(bs)
-    suppressWarnings(seqinfo(original) <- Seqinfo(seqnames(bs), seqlengths(bs)))
+    seqlevels(original) <- ref.names
+    suppressWarnings(seqinfo(original) <- Seqinfo(ref.names, seqlengths=seqlengths(bs), genome=gen))
 	return(original)
 }
 
