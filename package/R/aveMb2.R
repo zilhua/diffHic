@@ -1,4 +1,4 @@
-aveMb2 <- function(data, areas=NULL, prior.count=2, ...) 
+aveMb2 <- function(data, areas=NULL, prior.count=2, relative=FALSE, ...) 
 # This computes abundances of `ref`, standardized to an average bin width of 1
 # Mbp. Some care is required regarding the treatment of the prior, here, such
 # that the effect of the prior is the same for different observed widths.	
@@ -6,12 +6,21 @@ aveMb2 <- function(data, areas=NULL, prior.count=2, ...)
 # written by Aaron Lun
 # 30 October, 2014
 {
+	unit <- 1e12
    	if (is(data, "DGEList")) { 
 		if (is.null(areas)) { stop("areas must be specified if data is a DGEList") }
 	} else {
-		if (is.null(areas)) { areas <- getArea(data, bp=TRUE) }
+		if (is.null(areas)) { 
+			relative <- FALSE
+			areas <- getArea(data, bp=TRUE) 
+		}
 		data <- asDGEList(data)
 	}
-	scaled <- areas/1e12
+
+	if (relative) { 
+		scaled <- areas
+	} else {
+		scaled <- areas/unit
+	}
 	aveLogCPM(data, prior.count=prior.count*scaled, ...) - log2(scaled)
 }

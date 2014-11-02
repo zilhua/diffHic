@@ -5,13 +5,14 @@
 \description{Calculate the average abundance-per-megabase squared for each bin pair.}
 
 \usage{
-aveMb2(data, areas=NULL, prior.count=2, ...) 
+aveMb2(data, areas=NULL, prior.count=2, relative=FALSE, ...) 
 }
 
 \arguments{
 \item{data}{a \code{DGEList} object, or a \code{DIList} object produced by \code{\link{squareCounts}}}
 \item{areas}{a numeric scalar or vector, indicating the area (in base pairs-squared) covered by each bin pair}
 \item{prior.count}{an integer scalar, specifying the prior count to be used}
+\item{relative}{a logical scalar, indicating whether the area specified is a relative area}
 \item{...}{other arguments to be passed to \code{\link{aveLogCPM}}}
 }
 
@@ -23,12 +24,17 @@ For example, abundances for larger bin pairs are scaled down, while those for sm
 The area for each bin pair can be specified using the \code{areas} parameter.
 This must be set if \code{data} is a \code{DGEList}.
 Otherwise, it is defined using the \code{\link{getArea}} function.
-Areas should be specified in terms of base pairs-squared, such that proper scaling can be performed.
+Areas should be specified in terms of base pairs-squared when \code{relative=FALSE}, such that proper scaling can be performed.
 
 Some finesse is involved in dealing with the prior count.
 If the same \code{prior.count} is used for both small and large areas, downscaling of the latter will result in a smaller effective prior value being added.
 This can lead to spurious differences in the final abundances.
 To avoid this, the prior count is scaled up for larger areas prior to computing the average.
+
+If \code{relative=TRUE}, the specified areas are treated as relative areas.
+This can be used to exploit the prior rescaling without adjusting each area to a 1 Mbp-squared reference.
+For example, if comparing abundances obtained with small bin sizes, interpretation may be easiest when the larger bin size is used as a relative reference.
+This option will be ignored when \code{areas} is not specified.
 }
 
 \seealso{
@@ -60,6 +66,8 @@ aveMb2(y, areas=areas, prior.count=0.1)
 
 try(aveMb2(asDGEList(y)))
 aveMb2(asDGEList(y), areas=areas)
+aveMb2(asDGEList(y), areas=2, relative=TRUE)
+aveMb2(asDGEList(y), areas=1, relative=TRUE)
 
 \dontshow{
 unlink(fout)
