@@ -535,12 +535,23 @@ Nonetheless, a \code{DIList} is still returned for consistency, in which the anc
 \section{Additional parameter options}
 
 \subsection{Restricting the input chromosomes}
+\label{sec:restrictchr}
+
 Users can elect to restrict counting to particular chromosomes, by setting a value for the \code{restrict} slot in the \code{pairParam} object.
 This is useful to ensure that only interactions between relevant chromosomes are loaded.
 Sequences such as the mitochondrial genome, unassigned contigs or random chromosome segments can be ignored.
 
 <<>>=
 new.param <- reform(mm.param, restrict=c("chr1", "chr2"))
+new.param
+@
+
+In addition, if \code{restrict} is a 1-by-2 matrix, count loading will be limited to the read pairs that are mapped between the specified pair of chromosomes.
+The example below considers all read pairs mapped between chromosomes 2 and 19.
+This feature is useful when memory is limited, as each pair of chromosomes can be loaded and analyzed separately.
+
+<<>>=
+new.param <- reform(mm.param, restrict=rbind("chr2", "chr19"))
 new.param
 @
 
@@ -819,6 +830,9 @@ In such cases, two options are available:
 \begin{itemize}
 \item Pick an arbitrary threshold and use it to directly filter on the average abundances.
 This is simple but the chosen threshold has no obvious interpretation.
+\item Load counts for each pair of chromosomes separately, using the \code{restrict} argument as described in Section~\ref{sec:restrictchr}.
+Filtering can be performed separately for each chromosome pair.
+This is effective for local filtering, but less so for direct or trended filtering where information from multiple pairs is required for threshold calculation.
 \item Load counts for larger bin sizes without pre-filtering.
 This reduces memory usage as the interaction space is partitioned into fewer bin pairs.
 Then, perform filtering and convert the computed filter thresholds into values for the original (smaller) bin sizes.
