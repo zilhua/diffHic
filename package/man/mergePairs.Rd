@@ -16,7 +16,7 @@ mergePairs(files, file.out)
 
 \value{
 A merged index file is produced at the specified location.
-A \code{NULL} object is invisibly returned
+A \code{NULL} object is invisibly returned.
 }
 
 \details{

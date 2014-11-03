@@ -16,8 +16,8 @@ savePairs(x, file, param)
 }
 
 \value{
-Multiple Gzipped files are produced within the specified \code{dir}, as described for \code{\link{preparePairs}}.
-A character string containing the path to the index file in the directory is invisibly returned.
+An index file is produced at the specified \code{file} location, containing the interaction data.
+A \code{NULL} value is invisibly returned.
 }
 
 \details{
