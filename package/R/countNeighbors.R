@@ -1,15 +1,15 @@
 countNeighbors <- function(data, flank=2) 
-# This function computes the count sum for the bin pairs that are neighbouring 
-# each specified bin pair in 'data'. It does so by computing the sum of all
-# neighbors within 'width' on the anchor or target, and adding them. This means
-# that we get a count for a 'cross' shape in the interaction space. Note that 
-# for this to work, you need 'filter=1L' during count loading. It's a bit of
-# a kludge but it's the simplest way to do it.
+# This function computes the count sum for the bin pairs that are neighbouring
+# each specified bin pair in 'data'. For inter-chromosomal bin pairs, it does
+# so by considering a cross-like shape, centered on the current bin pair.  For
+# intra-chromosomal bin pairs, it does so by considering adjacent bin pairs on
+# the same diagonal. Note that for this to work, you need 'filter=1L' during
+# count loading. It's a bit of a kludge but it's the simplest way to do it.
 #
 # written by Aaron Lun
-# 23 April 2014
+# Created 23 April 2014
+# Modified 3 November 2014
 {
-	type <- match.arg(type)
 	flank <- as.integer(flank)
 	if (flank <= 0L) { stop("flank width must be a positive integer") }
 	rdata <- .delimitFragments(regions(data))
@@ -30,14 +30,23 @@ countNeighbors <- function(data, flank=2)
 
 		for (target in names(next.chr)) {
 			current.pair <- next.chr[[target]]
-			all.a <- data@anchor.id[current.pair]
-			all.t <- data@target.id[current.pair]
+			all.a <- data@anchor.id[current.pair] - 1L # Get to zero-based for easier interpration in C++.
+			all.t <- data@target.id[current.pair] - 1L
 			t.len <- last.id[[target]] - first.id[[target]] + 1L
 			rel.counts <- data@counts[current.pair,,drop=FALSE]
 
 			if (target==anchor) {
 				# Doing diagonal-based background estimation.
-				all.counts <- all.n <- 0L
+				diagonal <- all.a - all.t
+				position <- all.t
+				o <- order(diagonal, position)
+				collected <-.Call(cxx_collect_diagonal, diagonal[o], position[o], rel.counts[o,], flank, a.len)
+				if (is.character(collected)) { stop(collected) }
+
+				collected[[1]][o,] <- collected[[1]]
+				collected[[2]][o] <- collected[[2]]
+				all.counts <- collected[[1]] - rel.counts
+				all.n <- collected[[2]] - 1L
 			} else {
 				# Computing neighbourhood for same anchor, different target.
 				o <- order(all.a, all.t)
