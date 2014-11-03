@@ -20,7 +20,7 @@ countNeighbors <- function(data, flank=2)
 	np <- nrow(data)
 	by.chr <- split(1:np, as.character(seqnames(anchors(data))))
 	output <- matrix(0L, ncol=ncol(data), nrow=np)
-   	out.n <- numeric(np)
+   	out.n <- integer(np)
 
 	# Running through each pair of chromosomes.
 	for (anchor in names(by.chr)) {
@@ -30,9 +30,8 @@ countNeighbors <- function(data, flank=2)
 
 		for (target in names(next.chr)) {
 			current.pair <- next.chr[[target]]
-			all.a <- data@anchor.id[current.pair] - 1L # Get to zero-based for easier interpration in C++.
-			all.t <- data@target.id[current.pair] - 1L
-			t.len <- last.id[[target]] - first.id[[target]] + 1L
+			all.a <- data@anchor.id[current.pair] - first.id[[anchor]] 
+			all.t <- data@target.id[current.pair] - first.id[[target]]
 			rel.counts <- data@counts[current.pair,,drop=FALSE]
 
 			if (target==anchor) {
@@ -48,6 +47,8 @@ countNeighbors <- function(data, flank=2)
 				all.counts <- collected[[1]] - rel.counts
 				all.n <- collected[[2]] - 1L
 			} else {
+				t.len <- last.id[[target]] - first.id[[target]] + 1L
+
 				# Computing neighbourhood for same anchor, different target.
 				o <- order(all.a, all.t)
 				collected <- .Call(cxx_collect_background, all.a[o], all.t[o], rel.counts[o,], flank, t.len)

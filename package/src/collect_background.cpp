@@ -109,7 +109,7 @@ try {
 
 	int left_index=0, right_index=0;
     int left_edge, right_edge, over_len, lib, eff_chromo_len;
-   	int	remedial_diff, remedial_left, remedial_right, remedial_i, remedial_temp;
+   	int	remedial_diff, remedial_i=npair;
 
 	for (int i=0; i<npair; ++i) {
 		const int& curdiag=dptr[i];
@@ -142,65 +142,75 @@ try {
 			++right_index;
 		}
 
-		/* Remedial action is required here. If the background area does not fit within the single 
-		 * diagonal, it is rerouted to the edges of the map, i.e., for a diagonal starting at (x, 1)
- 		 * and ending at (n, 1+n-x), we start to count elements at (x-1, 1), (x-2, 1), ... along with 
-		 * (n, n-x), (n, n-x-1), ... where n is the total number of locks in the chromosome.
-		 */
+		// Storing some data, to use in remedial activities.
 		remedial_diff = eff_full_flank - eff_chromo_len;
-		if (remedial_diff > 0) {
-
-			/* Some finessing is done here to ensure that the number of extra
- 			 * counts added are evenly distributed on both left and right
- 			 * edges.  Note that eff_chromo_len must be even if remedial_diff
- 			 * is odd, as eff_full_flank is always odd; integer solutions guaranteed.
-			 */
-			remedial_left = remedial_right = remedial_diff/2;
-			if (remedial_diff % 2 == 1) {
-				if (curpos <= eff_chromo_len/2) {
-					++remedial_left;
-				} else {
-					++remedial_right;
-				}
-			}
-			
-			// Checking that it doesn't go out of bounds.
-			remedial_temp = remedial_left - curdiag;
-			if (remedial_temp > 0) {
-				nptr[i] -= remedial_temp;
-				remedial_left = curdiag;
-			}
-			remedial_temp = remedial_right - curdiag;
-			if (remedial_temp > 0) {
-				nptr[i] -= remedial_temp;
-				remedial_right = curdiag;
-			}
-
-			// Adding the additional counts.
-			for (remedial_i=0; remedial_i < remedial_left; ++remedial_i) {
-				const int& remix = remedial_start[curdiag - remedial_i - 1];
-				if (remix < 0) { continue; }
-				for (lib=0; lib<nlibs; ++lib) { optrs[lib][i] += cptrs[lib][remix]; }
-			} 
-			for (remedial_i=0; remedial_i < remedial_right; ++remedial_i) {
-				const int& remix = remedial_end[curdiag - remedial_i - 1];
-				if (remix < 0) { continue; }
-				for (lib=0; lib<nlibs; ++lib) { optrs[lib][i] += cptrs[lib][remix]; }
-			} 
-		}
-
-		// Storing the indices for the additional counts to be added, for future reference.
 		if (remedial_diff >= 0) {
 			if (curpos==0) {
 				remedial_start[remedial_diff]=i;
  			} else if (curpos==eff_chromo_len-1) { 
 				remedial_end[remedial_diff]=i;
 			}
+			if (remedial_i==npair && remedial_diff > 0) { remedial_i=i; }
 		}
 	}
 
+	/* Remedial action is required for some pairs. If the background area does
+ 	 * not fit within the single diagonal, it is rerouted to the edges of the
+ 	 * map, i.e., for a diagonal starting at (x, 1) and ending at (n, 1+n-x),
+ 	 * we start to count elements at (x-1, 1), (x-2, 1), ... along with (n,
+ 	 * n-x), (n, n-x-1), ... where n is the total number of locks in the
+ 	 * chromosome.
+	 */
+	int remedial_left, remedial_right, remedial_temp;
+	for (int i=remedial_i; i<npair; ++i) {
+		const int& curdiag=dptr[i];
+		const int& curpos=pptr[i];
+		eff_chromo_len = chromo_len - curdiag;
+		remedial_diff = eff_full_flank - eff_chromo_len;
+
+		/* Some finessing is done here to ensure that the number of extra
+ 		 * counts added are evenly distributed on both left and right
+ 		 * edges.  Note that eff_chromo_len must be even if remedial_diff
+ 		 * is odd, as eff_full_flank is always odd; integer solutions guaranteed.
+		 */
+		remedial_left = remedial_right = remedial_diff/2;
+		if (remedial_diff % 2 == 1) {
+			if (curpos <= eff_chromo_len/2) {
+				++remedial_left;
+			} else {
+				++remedial_right;
+			}
+		}
+//		Rprintf("%i %i %i %i\n", curdiag, curpos, remedial_left, remedial_right);
+		
+		// Checking that it doesn't try to get stuff past the diagonal.
+		remedial_temp = remedial_left - curdiag;
+		if (remedial_temp > 0) {
+			nptr[i] -= remedial_temp;
+			remedial_left = curdiag;
+		}
+		remedial_temp = remedial_right - curdiag;
+		if (remedial_temp > 0) {
+			nptr[i] -= remedial_temp;
+			remedial_right = curdiag;
+		}
+
+		// Adding the additional counts.
+		for (remedial_i=0; remedial_i < remedial_left; ++remedial_i) {
+			const int& remix = remedial_start[remedial_diff - remedial_i - 1];
+			if (remix < 0) { continue; }
+//			Rprintf("\tLeft adding %i %i\n", dptr[remix], pptr[remix]);
+			for (lib=0; lib<nlibs; ++lib) { optrs[lib][i] += cptrs[lib][remix]; }
+		} 
+		for (remedial_i=0; remedial_i < remedial_right; ++remedial_i) {
+			const int& remix = remedial_end[remedial_diff - remedial_i - 1];
+			if (remix < 0) { continue; }
+//			Rprintf("\tRight adding %i %i\n", dptr[remix], pptr[remix]);
+			for (lib=0; lib<nlibs; ++lib) { optrs[lib][i] += cptrs[lib][remix]; }
+		} 
+	}
 } catch (std::exception& e) {
-	UNPROTECT(1);
+UNPROTECT(1);
 	throw;
 }
 	UNPROTECT(1);
