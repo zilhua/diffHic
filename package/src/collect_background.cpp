@@ -142,7 +142,7 @@ try {
 			++right_index;
 		}
 
-		// Storing some data, to use in remedial activities.
+		// Storing some data, to use in remediation at the corner of the map.
 		remedial_diff = eff_full_flank - eff_chromo_len;
 		if (remedial_diff >= 0) {
 			if (curpos==0) {
@@ -161,7 +161,9 @@ try {
  	 * n-x), (n, n-x-1), ... where n is the total number of locks in the
  	 * chromosome.
 	 */
-	int remedial_left, remedial_right, remedial_temp;
+	int remedial_left, remedial_right, remedial_temp,
+		last_left=-1, last_right=-1;
+	std::deque<int> to_add(nlibs);
 	for (int i=remedial_i; i<npair; ++i) {
 		const int& curdiag=dptr[i];
 		const int& curpos=pptr[i];
@@ -196,21 +198,27 @@ try {
 		}
 
 		// Adding the additional counts.
-		for (remedial_i=0; remedial_i < remedial_left; ++remedial_i) {
-			const int& remix = remedial_start[remedial_diff - remedial_i - 1];
-			if (remix < 0) { continue; }
-//			Rprintf("\tLeft adding %i %i\n", dptr[remix], pptr[remix]);
-			for (lib=0; lib<nlibs; ++lib) { optrs[lib][i] += cptrs[lib][remix]; }
-		} 
-		for (remedial_i=0; remedial_i < remedial_right; ++remedial_i) {
-			const int& remix = remedial_end[remedial_diff - remedial_i - 1];
-			if (remix < 0) { continue; }
-//			Rprintf("\tRight adding %i %i\n", dptr[remix], pptr[remix]);
-			for (lib=0; lib<nlibs; ++lib) { optrs[lib][i] += cptrs[lib][remix]; }
-		} 
+		if (last_left!=remedial_left || last_right!=remedial_right) { 
+			for (lib =0; lib<nlibs; ++lib) { to_add[lib] = 0; }
+			for (remedial_i=0; remedial_i < remedial_left; ++remedial_i) {
+				const int& remix = remedial_start[remedial_diff - remedial_i - 1];
+				if (remix < 0) { continue; }
+//				Rprintf("\tLeft adding %i %i\n", dptr[remix], pptr[remix]);
+				for (lib=0; lib<nlibs; ++lib) { to_add[lib] += cptrs[lib][remix]; }
+			} 
+			for (remedial_i=0; remedial_i < remedial_right; ++remedial_i) {
+				const int& remix = remedial_end[remedial_diff - remedial_i - 1];
+				if (remix < 0) { continue; }
+//				Rprintf("\tRight adding %i %i\n", dptr[remix], pptr[remix]);
+				for (lib=0; lib<nlibs; ++lib) { to_add[lib] += cptrs[lib][remix]; }
+			}
+			last_left=remedial_left;
+			last_right=remedial_right;
+		}
+ 	   	for (lib=0; lib < nlibs; ++lib) { optrs[lib][i] += to_add[lib]; }	
 	}
 } catch (std::exception& e) {
-UNPROTECT(1);
+	UNPROTECT(1);
 	throw;
 }
 	UNPROTECT(1);
