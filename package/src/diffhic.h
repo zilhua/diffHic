@@ -25,6 +25,8 @@ SEXP split_clusters (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP collect_background (SEXP, SEXP, SEXP, SEXP, SEXP);
 
+SEXP collect_diagonal (SEXP, SEXP, SEXP, SEXP, SEXP);
+
 SEXP count_connect(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP count_marginals (SEXP, SEXP, SEXP);
