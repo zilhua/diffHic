@@ -63,5 +63,5 @@ countNeighbors(data, flank=5)
 }
 
 \references{
-Mizuguchi T et al. (2014). Cohesin-dependent globules and heterochromatin shape 3D genome architecture in S. pombe. \emph{Nature}.
+Mizuguchi T et al. (2014). Cohesin-dependent globules and heterochromatin shape 3D genome architecture in S. pombe. \emph{Nature}. % For the diagonal stuff.
 }
