@@ -7,6 +7,8 @@ R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
 Type 'license()' or 'licence()' for distribution details.
 
+  Natural language support but running in an English locale
+
 R is a collaborative project with many contributors.
 Type 'contributors()' for more information and
 'citation()' on how to cite R or R packages in publications.
@@ -31,7 +33,6 @@ Type 'q()' to quit R.
 + 	require(BSgenome)
 + 	out<-list();
 + 	for (chr in seqnames(bs)) {
-+ 		# Constructing the effective ranges for extraction.
 + 		x<-matchPattern(pattern, bs[[chr]]);
 + 		cuts<-start(x)+remainder-1L;
 + 		out[[chr]]<-c(cuts, length(bs[[chr]]));
@@ -82,7 +83,7 @@ GRanges object with 6 ranges and 0 metadata columns:
   [5] NC_008253 [39067, 42394]      *
   [6] NC_008253 [42391, 46109]      *
   -------
-  seqinfo: 13 sequences from an unspecified genome
+  seqinfo: 13 sequences from 2008/08/05 genome
 > 
 > comp("GAATTC", 4L) # EcoRI
 GRanges object with 6 ranges and 0 metadata columns:
@@ -95,7 +96,7 @@ GRanges object with 6 ranges and 0 metadata columns:
   [5] NC_008253 [12954, 13293]      *
   [6] NC_008253 [13290, 15895]      *
   -------
-  seqinfo: 13 sequences from an unspecified genome
+  seqinfo: 13 sequences from 2008/08/05 genome
 > 
 > comp("AACGTT", 2L) # AclI
 GRanges object with 6 ranges and 0 metadata columns:
@@ -108,7 +109,7 @@ GRanges object with 6 ranges and 0 metadata columns:
   [5] NC_008253 [4534, 4911]      *
   [6] NC_008253 [4910, 5585]      *
   -------
-  seqinfo: 13 sequences from an unspecified genome
+  seqinfo: 13 sequences from 2008/08/05 genome
 > 
 > comp("GCGC", 2L) # HinP1I
 GRanges object with 6 ranges and 0 metadata columns:
@@ -121,7 +122,7 @@ GRanges object with 6 ranges and 0 metadata columns:
   [5] NC_008253 [ 992, 1119]      *
   [6] NC_008253 [1118, 1334]      *
   -------
-  seqinfo: 13 sequences from an unspecified genome
+  seqinfo: 13 sequences from 2008/08/05 genome
 > 
 > comp("GATC", 4L) # MboI
 GRanges object with 6 ranges and 0 metadata columns:
@@ -134,7 +135,7 @@ GRanges object with 6 ranges and 0 metadata columns:
   [5] NC_008253 [1041, 1169]      *
   [6] NC_008253 [1166, 1571]      *
   -------
-  seqinfo: 13 sequences from an unspecified genome
+  seqinfo: 13 sequences from 2008/08/05 genome
 > 
 > comp("GCGGCCGC", 4L) # NotI
 GRanges object with 6 ranges and 0 metadata columns:
@@ -147,7 +148,7 @@ GRanges object with 6 ranges and 0 metadata columns:
   [5] NC_008253 [702388,  947072]      *
   [6] NC_008253 [947069, 1138399]      *
   -------
-  seqinfo: 13 sequences from an unspecified genome
+  seqinfo: 13 sequences from 2008/08/05 genome
 > 
 > comp("GGCGCGCC", 4L) # AscI
 GRanges object with 6 ranges and 0 metadata columns:
@@ -160,11 +161,11 @@ GRanges object with 6 ranges and 0 metadata columns:
   [5] NC_008253 [167405, 178752]      *
   [6] NC_008253 [178749, 181386]      *
   -------
-  seqinfo: 13 sequences from an unspecified genome
+  seqinfo: 13 sequences from 2008/08/05 genome
 > 
 > ###################################################################################################
 > # End.
 > 
 > proc.time()
    user  system elapsed 
- 25.536   0.254  25.827 
+ 27.516   0.237  27.823 

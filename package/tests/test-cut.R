@@ -14,7 +14,6 @@ findRestrictionSites <- function(bs, pattern, ref=NULL) {
 	require(BSgenome)
 	out<-list();
 	for (chr in seqnames(bs)) {
-		# Constructing the effective ranges for extraction.
 		x<-matchPattern(pattern, bs[[chr]]);
 		cuts<-start(x)+remainder-1L;
 		out[[chr]]<-c(cuts, length(bs[[chr]]));
