@@ -23,9 +23,12 @@ A list containing:
 For intra-chromosomal bin pairs, the neighbouring bin pairs are defined as those on the same diagonal in the interacion space.
 For a bin pair with anchor-target indices \code{(x, y)}, neighbours are defined as all \code{(x+i, y+i)} for \code{i} in \code{[-flank, flank]}.
 Some finesse is involved at the edges of the interaction space, whereby this definition is adjusted slightly to maintain the size of the neighbourhood.
+In all cases, the neighbourhood is comprised of bin pairs from the same diagonal.
+This avoids any differences due to the dependency of the abundance on the interaction distance.
 
 For inter-chromosomal bin pairs, the neighbouhood is defined using a cross-like shape in the interaction space.
 A bin pair is considered to be a neighbor if it has the same \code{x} and a target index in \code{[y-flank, y+flank]}, or the same \code{y} and an anchor index in \code{[x-flank, x+flank]}.
+Preservation of interaction distance is not performed as distance-dependent biases are generally absent in the inter-chromosomal interaction space.
 Again, some finesse is involved at the edge of the interaction space to maintain the neighbourhood size.
 
 For each central bin pair, read pair counts are summed over all the neighboring bin pairs (with the exception of the central bin pair itself, of course). 
@@ -57,4 +60,8 @@ data <- squareCounts(fout, param, width=50, filter=1L)
 countNeighbors(data, flank=1)
 countNeighbors(data, flank=2)
 countNeighbors(data, flank=5)
+}
+
+\references{
+Mizuguchi T et al. (2014). Cohesin-dependent globules and heterochromatin shape 3D genome architecture in S. pombe. \emph{Nature}.
 }
