@@ -11,12 +11,9 @@
 	if (!check.chrs) { warning("no protection against nonsensical chromosomes in the data") }
 
 	for (ix in 1:ni) {
-		current <- h5ls(y[ix])
-		keep <- current$otype=="H5I_DATASET"
-		all.anchors <- basename(current$group[keep])
-		assorted.info <- current$name[keep]
+		all.data <- loadChromos(y[ix])
+		current <- split(all.data$targets, all.data$anchors)
 
-		current <- split(assorted.info, all.anchors)
 		for (ac in names(current)) {
 			if (check.chrs && !ac %in% frag.chrs) { 
 				warning("'", ac, "' in data is not present in fragment chromosomes") 
@@ -64,3 +61,33 @@
 	if (h5write(pairs, y, file.path(anchor, target))) { stop("failed to add tag pair data to '%s'", y) }
 	return(invisible(NULL))
 }
+
+loadChromos <- function(file) 
+# A user-accessible function, to see what chromosomes are available in the
+# file. This is designed to allow users to pull out one chromosome or another.
+#
+# written by Aaron Lun
+# 3 November 2014.
+{
+	current <- h5ls(file)
+	keep <- current$otype=="H5I_DATASET"
+	return(data.frame(anchors=basename(current$group[keep]),
+		targets=current$name[keep]))
+}
+
+loadData <- function(file, anchor, target) 
+# Friendly user-exposed handling of read pair extraction, when the user
+# isn't sure of the order of the anchor/target chromosomes.
+#
+# written by Aaron Lun
+# 3 November 2014
+{
+	stopifnot(is.character(anchor) & is.character(target) & is.character(file))
+	tryCatch(.getPairs(file, anchor, target), error=function(e) {
+		out <- tryCatch(.getPairs(file, target, anchor), error=function(e) {
+			stop("no dataset corresponding to this anchor/target combination")
+		})
+		warning("anchor and target definitions are reversed")
+		out
+	})
+}	

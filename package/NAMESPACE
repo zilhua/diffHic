@@ -5,6 +5,7 @@ useDynLib(diffHic, .registration=TRUE, .fixes="cxx_")
 export(cutGenome, 
     preparePairs, mergePairs, savePairs, 
 	getPairData, prunePairs, 
+	loadChromos, loadData,
 	DIList, pairParam,
     squareCounts, connectCounts, marginCounts, totalCounts, 
     countNeighbors, aveMb2, #filterCounts, 
