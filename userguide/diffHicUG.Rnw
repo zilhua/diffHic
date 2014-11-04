@@ -797,29 +797,35 @@ summary(trend.keep)
 % for significant differences from the expected value.
 
 %\section{Filtering by local abundance}
-%Finally, one can consider interesting events as spikes in read pair density in the interaction space \citep{jin2013high}. 
-%This defines the filter threshold for each bin pair based on the average count across all the neighbouring bin pairs in the interaction space. 
+%Finally, one can consider interesting events as peaks in read pair density in the two-dimensional interaction space.
+%Diffuse contacts between two broad regions are deemed to be uninteresting and are removed in favour of sharp interactions.
+%The filter threshold for each bin pair is defined from the average count across all the neighbouring bin pairs in the interaction space. 
 %Neighbour counts can be computed with the \code{countNeighbors} function, as shown below.
 %The \code{flank} argument specifies the maximum distance (in terms of bins) to which other bin pairs are considered neighbours.
 %
 %<<>>=
-%surrounds <- countNeighbors(data, flank=1)
-%neighbor.ab <- aveLogCPM(surrounds$counts, lib.size=data$total)
+%surrounds <- countNeighbors(data, flank=2)
+%surrounds$y
+%@
+%
+%The abundance for each bin pair is calculated and compared to the abundance of its neighbourhood.
+%This is done using the \code{aveMb2} function, which accounts for the relative differences in read counting area.
+%Values of \code{n} indicate the number of bin pairs constituting each neighbourhood.
+%
+%<<>>=
+%neighbor.ab <- aveMb2(surrounds$y, areas=surrounds$n, relative=TRUE)
+%enrichment <- aveMb2(data, areas=1, relative=TRUE) - neighbor.ab
+%summary(enrichment)
 %@
 %
 %Each bin pair will only be retained if its average count is greater than that of most of its neighbours.
 %In this case, a 2-fold increase in each bin pair over its neighbours is required for retention. 
-%However, some adjustment is required to account for the difference in the areas between each bin pair and its neighbours.
-%This can be achieved by simply dividing the neighbourhood abundance by the neighbourhood area.
+%Some care is required in dealing with bin pairs that have no neighbourhood, i.e., \code{n=0}, as these will have \code{NA} values for the enrichment.
 %
 %<<>>=
-%local.threshold <- neighbor.ab - log2(surrounds$n)
-%local.keep <- count.keep & norm.ab > local.threshold + log2(2)
+%local.keep <- count.keep & enrichment > log2(2) & !is.na(enrichment)
 %summary(local.keep)
 %@
-%
-%Diffuse contacts between two broad regions are deemed to be uninteresting and are removed in favour of sharp interactions.
-%This is equivalent to calling peaks of high interaction intensity in the interaction space.
 
 \section{Computing filter thresholds with limited memory}
 \label{sec:filtersmall}
@@ -831,8 +837,9 @@ In such cases, two options are available:
 \item Pick an arbitrary threshold and use it to directly filter on the average abundances.
 This is simple but the chosen threshold has no obvious interpretation.
 \item Load counts for each pair of chromosomes separately, using the \code{restrict} argument as described in Section~\ref{sec:restrictchr}.
-Filtering can be performed separately for each chromosome pair.
-This is effective for local filtering, but less so for direct or trended filtering where information from multiple pairs is required for threshold calculation.
+Abundances (and distances) can be computed for each pair and collected, to define the filter threshold without loading all counts into memory.
+Counts for each chromosome pair can then be reloaded for filtering, and the remaining pairs aggregated for further analysis.
+This strategy is effective but slow.
 \item Load counts for larger bin sizes without pre-filtering.
 This reduces memory usage as the interaction space is partitioned into fewer bin pairs.
 Then, perform filtering and convert the computed filter thresholds into values for the original (smaller) bin sizes.
