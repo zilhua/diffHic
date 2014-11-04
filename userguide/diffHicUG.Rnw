@@ -551,7 +551,7 @@ The example below considers all read pairs mapped between chromosomes 2 and 19.
 This feature is useful when memory is limited, as each pair of chromosomes can be loaded and analyzed separately.
 
 <<>>=
-new.param <- reform(mm.param, restrict=rbind("chr2", "chr19"))
+new.param <- reform(mm.param, restrict=cbind("chr2", "chr19"))
 new.param
 @
 
