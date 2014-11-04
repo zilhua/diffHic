@@ -833,7 +833,8 @@ summary(trend.keep)
 %% It also picks up junctions between compartments and edges of large domains, which are hardly the punctate peaks that we're looking for.
 %% So, the diagonal shape computes background for the wrong things, but I can't think of any cleaner way to define the local background for intra-chromosomals.
 %% Indeed, any other background shape would fall victim to these things as well, because inclusion of the low-density area would dilute the neighbourhood counts.
-%% You could look around the site and take the maximum abundance of the neighbouring bin pairs, but I'd suspect that would be too conservative.
+%% You could look around the site and take the maximum abundance of the neighbouring bin pairs.
+%% However, I'd suspect that would be too conservative due to edge effects, e.g., if your central site doesn't capture all of the peak.
 %% So, I think that this entire strategy is a bust; there's too much uncertainty about what we should be looking for.
 %% Inter-chromosomals aren't so bad, but that's hardly the problem.
 
