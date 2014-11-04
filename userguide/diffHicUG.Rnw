@@ -826,6 +826,16 @@ summary(trend.keep)
 %local.keep <- count.keep & enrichment > log2(2) & !is.na(enrichment)
 %summary(local.keep)
 %@
+%
+%% I've refrained from adding this to the UG, because the results are, at best, mixed.
+%% It seems to be difficult to call peaks in 2D space because of the variability in peak shapes, which makes it hard to define an appropriate background region.
+%% The diagonal background works well in theory, but in practice, it tends to pick up vertical striations in the interaction space.
+%% It also picks up junctions between compartments and edges of large domains, which are hardly the punctate peaks that we're looking for.
+%% So, the diagonal shape computes background for the wrong things, but I can't think of any cleaner way to define the local background for intra-chromosomals.
+%% Indeed, any other background shape would fall victim to these things as well, because inclusion of the low-density area would dilute the neighbourhood counts.
+%% You could look around the site and take the maximum abundance of the neighbouring bin pairs, but I'd suspect that would be too conservative.
+%% So, I think that this entire strategy is a bust; there's too much uncertainty about what we should be looking for.
+%% Inter-chromosomals aren't so bad, but that's hardly the problem.
 
 \section{Computing filter thresholds with limited memory}
 \label{sec:filtersmall}
@@ -838,8 +848,8 @@ In such cases, two options are available:
 This is simple but the chosen threshold has no obvious interpretation.
 \item Load counts for each pair of chromosomes separately, using the \code{restrict} argument as described in Section~\ref{sec:restrictchr}.
 Abundances (and distances) can be computed for each pair and collected, to define the filter threshold without loading all counts into memory.
-Counts for each chromosome pair can then be reloaded for filtering, and the remaining pairs aggregated for further analysis.
-This strategy is effective but slow.
+Counts for each chromosome pair can be reloaded for separate filtering, and the remaining bin pairs can be aggregated for downstream analysis.
+This is quite slow.
 \item Load counts for larger bin sizes without pre-filtering.
 This reduces memory usage as the interaction space is partitioned into fewer bin pairs.
 Then, perform filtering and convert the computed filter thresholds into values for the original (smaller) bin sizes.
