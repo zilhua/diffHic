@@ -866,9 +866,9 @@ new.bin.size <- 1e5
 smaller.data <- squareCounts(input, mm.param, width=new.bin.size, filter=20)
 @
 
-The \code{aveMb2} function can then be applied to compute the average abundance-per-megabase squared for each bin pair. 
+The \code{scaledAverage} function is applied to compute the average abundance for each of the small bin pairs. 
 This adjusts for the area of the interaction space used for read pair counting, and is necessary for a valid comparison between small and large bin pairs.
-For consistency, the average abundances of the larger bin pairs are also recomputed with \code{aveMb2}.
+For consistency, the abundances of the larger bin pairs are also recomputed.
 The resulting values are used to obtain a direct filter threshold, as previously described.
 
 % Technically, we should do it in terms of restriction fragment pairs.
@@ -876,9 +876,11 @@ The resulting values are used to obtain a direct filter threshold, as previously
 % Adjustment by the area in terms of restriction fragments will also tend to select for the wrong things, e.g., bin pairs involving low-complexity sequences like telomeres and centromeres.
 
 <<>>=
-smaller.ab <- aveMb2(smaller.data, areas=new.bin.size^2)
+require(csaw)
+smaller.ab <- scaledAverage(asDGEList(smaller.data), 
+    scale=(new.bin.size/bin.size)^2)
 summary(smaller.ab)
-larger.ab <- aveMb2(data, areas=bin.size^2)
+larger.ab <- scaledAverage(asDGEList(data))
 new.threshold <- median(larger.ab[is.na(dist)], na.rm=TRUE)
 @
 
@@ -889,8 +891,7 @@ This means that no additional filtering is necessary to enforce a minimum count 
 
 <<>>=
 small.keep <- smaller.ab > new.threshold + log2(100)
-small.original <- smaller.data
-smaller.data <- smaller.data[small.keep,]
+smaller.filtered <- smaller.data[small.keep,]
 summary(small.keep)
 @
 
@@ -919,7 +920,7 @@ This is done by performing interpolation (and, if necessary, extrapolation) of t
 The computed \code{new.threshold2} can then be used to filter on the abundances of the smaller bin pairs, as described above.
 
 <<>>=
-new.log.dist <- log10(getDistance(small.original) + new.bin.size/2)
+new.log.dist <- log10(getDistance(smaller.data) + new.bin.size/2)
 larger.fit <- loessFit(x=log.dist, y=larger.ab)$fitted
 new.threshold2 <- approx(x=log.dist, y=larger.fit, xout=new.log.dist, rule=2)$y
 new.threshold2[is.na(new.log.dist)] <- larger.fit[which.max(log.dist)]
@@ -951,14 +952,16 @@ summary(aveLogCPM(asDGEList(redata)))
 @
 
 Nonetheless, other users may wish to adjust for the differences in areas.
-In such cases, \code{aveMb2} can be used to compute the filter statistic.
-Note that this differs from the previous application of \code{aveMb2} in Section~\ref{sec:filtersmall}.
-There, the adjustment by area is only performed between bin pairs of different sizes.
-Relative abundances within each set of bin pairs (i.e., of the same size) are not altered as \code{areas} is set to a constant scalar in each \code{aveMb2} call.
-Here, the area is computed separately and will probably be different for each region pair.
+In such cases, \code{scaledAverage} can be used to compute the filter statistic in conjunction with \code{getAreas}.
+Computed areas are mean-adjusted and used to scale the average abundances for each region pair.
+Note that this differs from the application of \code{scaledAverage} in Section~\ref{sec:filtersmall}.
+There, the scaling factor is constant and does not alter the relative abundances within each set of bin pairs (i.e., of the same size).
+Here, each region pair has a different area such that its abundance will be subject to different scaling.
 
 <<>>=
-summary(aveMb2(redata))
+area <- getArea(redata, bp=TRUE)
+area <- area/mean(area)
+summary(scaledAverage(redata, scale=area))
 @
 
 On a similar note, another approach defines the area for each region/bin pair based on the number of restriction fragment pairs.
@@ -1036,11 +1039,13 @@ On a practical level, the simplicity of the direct approach is attractive and wi
 <<>>=
 original <- data
 data <- data[direct.keep,]
+smaller.data <- smaller.filtered
 @
 
 As promised, the filtered results are assigned back into \code{data}.
 This is mostly for consistency, so that all operations are performed on \code{data} in the rest of this guide.
 The original unfiltered data is retained for later use in Section~\ref{sec:itercor}, but can otherwise be ignored.
+Direct filtering is also performed for the smaller bin pairs, and the results stored in \code{smaller.data}.
 
 \chapter{Normalization strategies for Hi-C data}
 
@@ -1548,7 +1553,6 @@ The BH method is applied to the combined $p$-values to control the FDR across al
 Rejection of the global null indicates that there is a change and that the larger bin pair is worth further investigation.
 
 <<>>=
-require(csaw)
 tabcom <- combineTests(matched$indices$smaller, result.small$table)
 head(tabcom)
 sum(tabcom$FDR <= 0.05)
