@@ -180,7 +180,7 @@ plotDI <- function(data, fc, anchor, target=anchor, col.up="red", col.down="blue
 		all.cols <- character(length(FC))
 		pos.FC <- FC > 0				
 		if (any(pos.FC)) { all.cols[pos.FC] <- .get.new.col(up.col, pmin(1, FC[pos.FC]/zlim)) }
-		if (!all(pos.FC)) { all.cols[!pos.FC] <- .get.new.col(down.col, pmax(1, FC[!pos.FC]/zlim)) }
+		if (!all(pos.FC)) { all.cols[!pos.FC] <- .get.new.col(down.col, pmin(1, -FC[!pos.FC]/zlim)) }
 		return(all.cols)
 	}
 }
