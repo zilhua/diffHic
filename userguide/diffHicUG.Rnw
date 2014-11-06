@@ -877,10 +877,9 @@ The resulting values are used to obtain a direct filter threshold, as previously
 
 <<>>=
 require(csaw)
-smaller.ab <- scaledAverage(asDGEList(smaller.data), 
-    scale=(new.bin.size/bin.size)^2)
+smaller.ab <- aveLogCPM(asDGEList(smaller.data))
 summary(smaller.ab)
-larger.ab <- scaledAverage(asDGEList(data))
+larger.ab <- scaledAverage(asDGEList(data), scale=(bin.size/new.bin.size)^2)
 new.threshold <- median(larger.ab[is.na(dist)], na.rm=TRUE)
 @
 
@@ -890,15 +889,15 @@ Also recall that a large \code{filter} is used in \code{squareCounts} to generat
 This means that no additional filtering is necessary to enforce a minimum count size.
 
 <<>>=
-small.keep <- smaller.ab > new.threshold + log2(100)
+small.keep <- smaller.ab > new.threshold + log2(10)
 smaller.filtered <- smaller.data[small.keep,]
 summary(small.keep)
 @
 
-The minimum fold change used here is higher than that for the larger bin pairs in Section~\ref{sec:direct}.
-This is justified by intepreting the threshold as a significance measure.
-Bin pairs are only retained if their abundances are significantly greater than that expected from non-specific ligation.
-As the total number of bin pairs increases when the bin size decreases, increasing the stringency of the threshold effectively serves as a multiplicity correction.
+%The minimum fold change used here is higher than that for the larger bin pairs in Section~\ref{sec:direct}.
+%This is justified by intepreting the threshold as a significance measure.
+%Bin pairs are only retained if their abundances are significantly greater than that expected from non-specific ligation.
+%As the total number of bin pairs increases when the bin size decreases, increasing the stringency of the threshold effectively serves as a multiplicity correction.
 
 % This is a fairly oblique piece of code which uses the interchromosomals as a background distribution.
 % Increasing the threshold results in a 100-fold decrease in the number of retained bin pairs from this distribution.
@@ -961,7 +960,7 @@ Here, each region pair has a different area such that its abundance will be subj
 <<>>=
 area <- getArea(redata, bp=TRUE)
 area <- area/mean(area)
-summary(scaledAverage(redata, scale=area))
+summary(scaledAverage(asDGEList(redata), scale=area))
 @
 
 On a similar note, another approach defines the area for each region/bin pair based on the number of restriction fragment pairs.
