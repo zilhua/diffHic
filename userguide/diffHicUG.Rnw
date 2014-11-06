@@ -1654,6 +1654,8 @@ An alternative approach is to store the entirety of the \code{smaller.data} in a
 Any interesting nested changes can then be interactively identified for a given parent.
 
 \section{Visualization with plaid plots}
+
+\subsection{Using conventional plaid plots}
 Plaid plots can be used to visualize the distribution of read pairs in the interaction space \citep{lieberman2009comprehensive}. 
 Briefly, each axis is a chromosome segment. 
 Each ``pixel'' represents an interaction between the corresponding intervals on each axis. 
@@ -1686,8 +1688,11 @@ cap3 <- cap1*totals(data)[3]/totals(data)[1]
 @
 
 <<results=hide,echo=FALSE>>=
-chosen <- 1
 <<setup>>
+if (as.character(seqnames(ax.2[chosen]))!="chr11" || start(ax.2[chosen])!=30001298 || end(ax.2[chosen])!=31000010 ||
+    as.character(seqnames(tx.2[chosen]))!="chr11" || start(tx.2[chosen])!=29000942 || end(tx.2[chosen])!=30001301) {
+	warning("first plaid plot hits the wrong spot")
+}
 @
 
 Expansion of the plot boundaries ensures that the context of the interaction can be determined by examining the features in the surrounding space. 
@@ -1750,6 +1755,10 @@ cap3 <- cap1*totals(data)[3]/totals(data)[1]
 
 <<results=hide,echo=FALSE>>=
 <<setup2>>
+if (as.character(seqnames(ax[chosen]))!="chr3" || start(ax[chosen])!=151001261 || end(ax[chosen])!=152002835 ||
+    as.character(seqnames(tx[chosen]))!="chr3" || start(tx[chosen])!=145998892 || end(tx[chosen])!=147005847) {
+	warning("second plaid plot hits the wrong spot")
+}
 @
 
 \setkeys{Gin}{width=0.48\textwidth}
@@ -1763,6 +1772,7 @@ cap3 <- cap1*totals(data)[3]/totals(data)[1]
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
 
+\subsection{Using rotated plaid plots}
 Alternatively, users may prefer to use \code{rotPlaid} to generate rotated plaid plots.
 These are more space-efficient and are easier to stack onto other genomic tracks, e.g., for ChIP-seq data.
 However, rotated plots are only effective for local interactions within a specified region.
@@ -1781,13 +1791,20 @@ rotPlaid(input[3], mm.param, region=example, width=2e4,
 @
 
 <<eval=TRUE,echo=FALSE,label=rotset>>=
-chosen <- o2[2]
+chosen <- o2[5]
 example <- tx.2[chosen]
 end(example) <- end(ax.2[chosen])
 nest.mid.a <- (ax.3$start[chosen]+ax.3$end[chosen])/2
 nest.mid.t <- (tx.3$start[chosen]+tx.3$end[chosen])/2
 nest.mid <- (nest.mid.a + nest.mid.t)/2
 nest.gap <- nest.mid.a - nest.mid.t
+@
+
+<<echo=FALSE,results=hide>>=
+if (as.character(seqnames(ax.2[chosen]))!="chr2" || start(ax.2[chosen])!=136998216 || end(ax.2[chosen])!=138001392 ||
+    as.character(seqnames(tx.2[chosen]))!="chr2" || start(tx.2[chosen])!=136001779 || end(tx.2[chosen])!=136998219) {
+	warning("third plaid plot hits the wrong spot")
+}
 @
 
 <<eval=FALSE,echo=FALSE,label=enbox>>=
