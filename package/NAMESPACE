@@ -12,7 +12,7 @@ export(cutGenome,
     correctedContact, normalizeCNV, matchMargins,
     getDistance, getArea,
     boxPairs, clusterPairs,
-    plotPlaid, rotPlaid)
+    plotPlaid, rotPlaid, plotDI, rotDI)
 
 # Exporting the DIList class.
 exportClasses(

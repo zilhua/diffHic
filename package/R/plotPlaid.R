@@ -34,11 +34,13 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	if (a.min >= a.max || t.min >= t.max) { stop("invalid anchor/target ranges supplied") }
 	
 	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that edges of the plot are retained).
-	keep.a <- keep.t <- overlapsAny(fragments, anchor, maxgap=width(anchor)/2)
+	keep.a <- overlapsAny(fragments, anchor, maxgap=width(anchor)/2)
 	if (achr!=tchr || astart!=tstart || aend!=tend) {
 		keep.t <- overlapsAny(fragments, target, maxgap=width(target)/2)
+		keep <- keep.a | keep.t
+	} else {
+		keep <- keep.t <- keep.a
 	}
-	keep <- keep.a | keep.t
 	new.pts <- .getBinID(fragments[keep], width)
 	out.id <- integer(length(fragments))
 	out.id[keep] <- new.pts$id
@@ -56,7 +58,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	# Generating a plot.
 	if (is.null(xlab)) { xlab <- achr }
 	if (is.null(ylab)) { ylab <- tchr }
-	plot(-1, -1, xlim=c(a.min, a.max), ylim=c(t.min, t.max), xlab=xlab, ylab=ylab, type="n", bg="transparent", ...)
+    plot(-1, -1, xlim=c(a.min, a.max), ylim=c(t.min, t.max), xlab=xlab, ylab=ylab, type="n", ...)
 	if (!nrow(current))	{ next }
 
 	# Getting the counts around the area of interest, and then collating them.
@@ -71,7 +73,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
     out<-.Call(cxx_count_patch, list(current[retain,]), out.id, 1L)
     if (is.character(out)) { stop(out) }
 	
-	# Plotting each bin (with or without the count text).
+	# Checking whether it's been flipped, to determine the appropriate coordinates..
 	if (flipped) { 
 		targets <- new.pts$region[out[[1]]]
 		anchors <- new.pts$region[out[[2]]]
@@ -79,104 +81,106 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 		anchors <- new.pts$region[out[[1]]]
 		targets <- new.pts$region[out[[2]]]
 	}
-	cur.counts<-out[[3]]
+
+	# Summoning a function to get colours.
 	my.col<-col2rgb(col)[,1]
+	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/cap)) }
+	all.cols <- colfun(out[[3]])
+	labels <- NULL
+	if (count) { labels <- out[[3]] }
+	.plotDiag(anchors, targets, all.cols, diag=diag, labels=labels, label.args=count.args)
+	return(invisible(colfun))
+}
+
+###########################################################
+# Helper functions.
+
+.plotDiag <- function(anchors, targets, colors, diag=FALSE, do.label=FALSE, labels=NULL, label.args=list()) {
 	for (it in 1:2) {
-		rect(xleft=start(anchors), xright=end(anchors), ybottom=start(targets), ytop=end(targets), border=NA, 
-			col=rgb(my.col[1], my.col[2], my.col[3], alpha=255*pmin(1, cur.counts/cap), maxColorValue=255))
-		if (count) { do.call(text, c(list(x=mid(ranges(anchors)), y=mid(ranges(targets)), labels=cur.counts), count.args)) }
+		# Adding boxes (and text in those boxes, if desired).
+		rect(xleft=start(anchors), xright=end(anchors), ybottom=start(targets), ytop=end(targets), border=NA, col=colors)
+		if (!is.null(labels)) { do.call(text, c(list(x=mid(ranges(anchors)), y=mid(ranges(targets)), labels=labels), label.args)) }
 
 		# If we want to show elements past the diagonal for intra-chromosomal plots, we do so.
-		if (!diag || achr!=tchr) { break }
+		if (!diag || as.character(seqnames(anchors[1]))!=as.character(seqnames(targets[1]))) { break }
 		offdiag <- anchors!=targets
 		if (!any(offdiag)) { break }
 		temp <- anchors[offdiag]
 		anchors <- targets[offdiag]
 		targets <- temp
-		cur.counts <- cur.counts[offdiag]
+		colors <- colors[offdiag]
 	}
-	return(invisible(NULL))
+	invisible(NULL)
 }
 
-rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=NULL, ylab="Gap", ...)
-# This constructs a sideways plot of interaction intensities.
-# Boxes represent interactions where the interacting loci are
-# on the x-axis, extended from the diagonal.
-#
-# written by Aaron Lun
-# 18 September 2014
-{
-	if (!is.integer(width)) { width<-as.integer(width) }
-	xchr <- as.character(seqnames(region))
-	xstart <- start(region)
-	xend <- end(region)
-	if (length(xchr)!=1L) { stop("exactly one region is required for plotting") }
+.get.new.col <- function(old.colour, strength) {
+	old.colour <- as.integer(old.colour)
+	remnant <- 255 - old.colour
+	adj <- outer(remnant, 1-strength) + old.colour
+	rgb(adj[1,], adj[2,], adj[3,], maxColorValue=255)
+}
 
-	# Setting up the parameters
-	fragments <- param$fragments
-	if (!xchr %in% seqlevels(fragments)) { stop("anchor/target chromosome names not in cut site list") } 
-	discard <- .splitDiscards(param$discard)
-	recap <- param$cap
+###########################################################
+
+plotDI <- function(data, fc, anchor, target=anchor, col.up="red", col.down="blue",
+ 	background="grey70", zlim=NULL, xlab=NULL, ylab=NULL, diag=TRUE, ...)
+# This function plots differential interactions.
+{
+	achr <- as.character(seqnames(anchor))
+	tchr <- as.character(seqnames(target))
+	astart <- start(anchor)
+	aend <- end(anchor)
+	tstart <- start(target)
+	tend <- end(target)
+    if (length(achr)!=1L) { stop("exactly one anchor range is required for plotting") }
+    if (length(tchr)!=1L) { stop("exactly one target range is required for plotting") }
 
 	# Setting up the boundaries.
-	x.min <- max(1L, xstart)
-	x.max <- min(seqlengths(fragments)[[xchr]], xend)
-	if (x.min >= x.max) { stop("invalid anchor/target ranges supplied") }
-						
-	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that edges of the plot are retained).
-	keep <- overlapsAny(fragments, region, maxgap=width(region)/2)
-	new.pts <- .getBinID(fragments[keep], width)
-	out.id <- integer(length(fragments))
-	out.id[keep] <- new.pts$id
+	a.min <- max(1L, astart)
+	a.max <- min(seqlengths(regions(data))[[achr]], aend)
+	t.min <- max(1L, tstart)
+	t.max <- min(seqlengths(regions(data))[[tchr]], tend)
+	if (a.min >= a.max || t.min >= t.max) { stop("invalid anchor/target ranges supplied") }
+
+	# Checking that our points are consistent.
+	nr <- nrow(data)
+	if (nr!=length(fc)) { stop("length of fold-change vector should equal number of bin pairs") }
+
+	# Identifying the region pairs in our ranges of interest (some stretch, to allow for partial overlaps).
+	a.keep <- overlapsAny(regions(data), anchor, maxgap=width(anchor)/2)
+	t.keep <- overlapsAny(regions(data), target, maxgap=width(target)/2)
+	keep <- a.keep[data@anchor.id] & t.keep[data@target.id]
+	if (achr!=tchr || astart!=tstart || aend!=tend) {
+		alt.keep <- a.keep[data@target.id] & t.keep[data@anchor.id]
+		keep <- keep | alt.keep
+	}
+
+	if (is.null(xlab)) { xlab <- achr }
+	if (is.null(ylab)) { ylab <- tchr }
+    plot(-1, -1, xlim=c(a.min, a.max), ylim=c(t.min, t.max), xlab=xlab, ylab=ylab, type="n", ...)
+	u <- par("usr") # The coordinates of the plot area
+	rect(u[1], u[3], u[2], u[4], col=background, border=NA)
+	if (!any(keep))	{ next }
+
+	# Generating a colour-generating function.
+	if (is.null(zlim)) { zlim <- max(abs(fc)) }
+	up.col <- col2rgb(col.up)[,1]
+	down.col <- col2rgb(col.down)[,1]
+	colfun <- .forgeNewFun(zlim, up.col, down.col)
 	
-	# Pulling out the read pair indices from each file.
-	all.dex <- .loadIndices(file, seqlevels(param$fragments))
-	if (!is.null(all.dex[[xchr]][[xchr]])) {
-		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard, cap=recap)[[1]]
-	} else { 
-		current<-data.frame(anchor.id=integer(0), target.id=integer(0))
-	}
-
-	# Computing the max height.
-	max.height <- x.max - x.min
-	if (is.null(xlab)) { xlab <- xchr }
-	plot(-1, -1, xlim=c(x.min, x.max), ylim=c(0, max.height),
-		xlab=xlab, yaxs="i", ylab=ylab, type="n", bg="transparent", ...)
-	if (!nrow(current))	{ next }
-
-   	retain <- keep[current$anchor.id] & keep[current$target.id]
-	out<-.Call(cxx_count_patch, list(current[retain,]), out.id, 1L)
-	if (is.character(out)) { stop(out) }
-
-	# Rotating the vertices.
-	anchors <- new.pts$region[out[[1]]]
-	targets <- new.pts$region[out[[2]]]
-	all.x <- all.y <- rep(NA, length(anchors)*5L-1L)
-	hits <- 0:(length(anchors)-1L) * 5L
-
-	counter <- 1L
-	for (mode in list(c(1,1), c(1,2), c(2,2), c(2,1))) {
-		if (mode[1]==1L) { 
-			cur.x <- start(anchors)
-		} else {
-			cur.x <- end(anchors)
-		} 
-		if (mode[2]==1L) { 
-			cur.y <- start(targets)
-		} else {
-			cur.y <- end(targets)
-		}
-		all.x[counter+hits] <- (cur.x + cur.y)/2
-		all.y[counter+hits] <- cur.x - cur.y
-		counter <- counter + 1L
-	}
-
-	# Plotting these new vertices.
-	my.col<-col2rgb(col)[,1]
-	polygon(all.x, all.y, border=NA, 
-		col=rgb(my.col[1], my.col[2], my.col[3], alpha=255*pmin(1, out[[3]]/cap), maxColorValue=255))
-
-	return(invisible(NULL))
+	# Making the actual plot.
+	current <- data[keep,]
+	all.cols <- colfun(fc[keep])
+	.plotDiag(anchors(current), targets(current), all.cols, diag=diag)
+	return(invisible(colfun))
 }
 
-
+.forgeNewFun <- function(zlim, up.col, down.col) {
+	function(FC) {
+		all.cols <- character(length(FC))
+		pos.FC <- FC > 0				
+		if (any(pos.FC)) { all.cols[pos.FC] <- .get.new.col(up.col, pmin(1, FC[pos.FC]/zlim)) }
+		if (!all(pos.FC)) { all.cols[!pos.FC] <- .get.new.col(down.col, pmax(1, FC[!pos.FC]/zlim)) }
+		return(all.cols)
+	}
+}

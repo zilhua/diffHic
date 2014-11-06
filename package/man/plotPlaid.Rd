@@ -4,7 +4,7 @@
 
 \title{Construct a plaid plot of interactions}
 
-\description{Plot interactions between two sequences in a plaid format with informative colouring}
+\description{Plot interactions between two sequences in a plaid format with informative colouring.}
 
 \usage{
 plotPlaid(file, param, anchor, target=anchor, 
@@ -39,8 +39,8 @@ Each bin pair is represented by a box in the plotting space, where each side of 
 The colour of the box depends on the number of read pairs mapped between the corresponding bins.
 
 The resolution of colors can be controlled by varying \code{cap}. 
-All boxes with counts above \code{cap} will be assigned the maximum opacity. 
-Any box with a count below \code{cap} will be assigned a color where the transparency is proportional to the size of the count.  
+All boxes with counts above \code{cap} will be assigned the maximum intensity.
+Other boxes will be assigned a color of intensity proportional to the size of the count, such that a count of zero results in white space.
 Smaller values of \code{cap} will improve contrast at low counts at the cost of contrast at higher counts. 
 Scaling \code{cap} is recommended for valid comparisons between libraries of different sizes (e.g., larger \code{cap} for larger libraries).
 
@@ -53,11 +53,15 @@ The \code{rotPlaid} function constructs a plaid plot that has been rotated by 45
 This is useful for visualizing local interactions within a specified \code{region}.
 In a rotated plot, the x-coordinate of a box in the plotting space represents the midpoint between two interacting bins, while the y-coordinate represents the distance between bins.
 More simply, the interacting bins of a box can be identified by tracing diagonals from the edges of the box to the x-axis.
+
+Note that the plotted boxes for the bin pairs may overwrite the bounding box of the plot.
+This can be fixed by running \code{box()} after each \code{plotPlaid} call.
 }
 
 \value{
-For both functions, a value of \code{NULL} is invisibly returned. 
 A (rotated) plaid plot is produced on the current graphics device. 
+For both functions, a function is invisibly returned that converts counts into colors.
+This is useful for coordinating the colors, e.g., when constructing a separate color bar.
 }
 
 \author{Aaron Lun}
@@ -74,10 +78,16 @@ invisible(preparePairs(hic.file, param, fout))
 # Constructing intra-chromosomal plaid plots around various regions
 plotPlaid(fout, param, anchor=GRanges("chrA", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50, diag=TRUE)
-plotPlaid(fout, param, anchor=GRanges("chrA", IRanges(1, 100)), 
+box()
+xxx <- plotPlaid(fout, param, anchor=GRanges("chrA", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50, diag=FALSE)
+xxx(1)
+xxx(5)
+xxx(10)
+xxx(20)
+xxx(100)
 
-# Constructing plaid plots around various regions
+# Constructing inter-chromosomal plaid plots around various regions
 plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50)
 plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)), 
