@@ -1859,7 +1859,6 @@ colfun <- plotDI(data, result$table$logFC, expanded.a, expanded.t, diag=FALSE)
 \setkeys{Gin}{width=0.8\textwidth}
 
 <<results=hide,echo=FALSE>>=
-<<setup2>>
 if (as.character(seqnames(ax[chosen]))!="chr16" || start(ax[chosen])!=70000341 || end(ax[chosen])!=70999295 ||
     as.character(seqnames(tx[chosen]))!="chr16" || start(tx[chosen])!=65999261 || end(tx[chosen])!=67001066) {
 	warning("first DI plot hits the wrong spot")
