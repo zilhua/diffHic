@@ -8,7 +8,7 @@ export(cutGenome,
 	loadChromos, loadData,
 	DIList, pairParam,
     squareCounts, connectCounts, marginCounts, totalCounts, 
-    countNeighbors, #filterCounts, 
+    countNeighbors, enrichedGap, #filterCounts, 
     correctedContact, normalizeCNV, matchMargins,
     getDistance, getArea,
     boxPairs, clusterPairs,
@@ -27,7 +27,7 @@ exportMethods(
 # Requires several imports.
 import(Rsamtools,GenomicRanges,Biostrings,BSgenome,rhdf5,
 	IRanges,S4Vectors,GenomeInfoDb, 
-	edgeR,locfit,methods,csaw)
+	edgeR,limma,locfit,methods,csaw)
 
 
 

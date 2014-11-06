@@ -226,3 +226,81 @@ try {
 } catch (std::exception& e) {
 	return mkString(e.what());
 }
+
+/* This function does something similar to `collect_background`, but instead of
+ * counting over 'flank', it just finds the flanking bin pair with the highest
+ * abundance and reports that abundance instead. If it couldn't find anything,
+ * it just reports negative infinity.
+ */
+
+SEXP max_background (SEXP anchor, SEXP target, SEXP abundances, SEXP flank, SEXP minf) try {
+	if (!isInteger(anchor) || !isInteger(target)) { throw std::runtime_error("anchor/target vectors must be integer"); }
+	const int npair=LENGTH(anchor);
+	if (LENGTH(target)!=npair) { throw std::runtime_error("anchor/target vectors must have the same length"); }
+	if (!isReal(abundances)) { throw std::runtime_error("vector of abundances should be integer"); }
+	if (LENGTH(abundances)!=npair) { throw std::runtime_error("vector of abundances should be the same length as that of anchor/targets"); }
+
+	// Setting up pointers.
+	const int * aptr=INTEGER(anchor), * tptr=INTEGER(target);
+	const double* bptr=REAL(abundances);
+
+	// Determining the flank width and target lengths.
+	if(!isInteger(flank) || LENGTH(flank)!=1) { throw std::runtime_error("flank width must be an integer scalar"); }
+	const int flank_width=asInteger(flank);
+	if(!isInteger(minf) || LENGTH(minf)!=1) { throw std::runtime_error("minimum flank width must be an integer scalar"); }
+	const int minflank=asInteger(minf);
+
+	// Setting up maximum finders.
+	sort_row_index<double> cmp(bptr);
+	typedef std::set<int, sort_row_index<double> > maxfinder;
+	maxfinder inflank(cmp);
+	std::deque<maxfinder::iterator> inflank_it;
+	maxfinder::iterator it;
+
+	SEXP output=PROTECT(allocVector(REALSXP, npair));
+try {
+	double* optr=REAL(output);
+	int left_index=0, right_index=0;
+    int left_edge, right_edge;
+
+	for (int i=0; i<npair; ++i) {
+		const int& cura=aptr[i];
+		const int& curt=tptr[i];
+		optr[i]=R_NegInf;
+
+		// Computing the running sum at each entry.
+		left_edge = curt - flank_width;
+		while (aptr[left_index] < cura || (aptr[left_index]==cura && tptr[left_index] < left_edge)) {
+			inflank.erase(inflank_it.front());
+			inflank_it.pop_front();
+			++left_index;	
+		}
+
+		right_edge = curt + flank_width + 1;
+		while (right_index < npair && cura==aptr[right_index] && right_edge > tptr[right_index]) {
+			inflank_it.push_back(inflank.insert(right_index).first);
+			++right_index;	
+		}
+
+		// Recording the maxima, so long as it gets past the minimum flank.
+		if (!inflank.empty()) { 
+			it=inflank.end();
+			while (it!=inflank.begin()) { 
+				--it;
+				if (i - *it > minflank || *it - i > minflank) {
+					optr[i]=bptr[*it];
+					break;
+				}
+			}
+		}
+	}
+} catch (std::exception& e) {
+	UNPROTECT(1);
+	throw;
+}
+	UNPROTECT(1);
+	return output;
+} catch (std::exception& e) {
+	return mkString(e.what());
+}
+
