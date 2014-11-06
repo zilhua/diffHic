@@ -1836,6 +1836,62 @@ The circle marks the area of the interaction space that corresponds to the top-r
 An increase in the interaction intensity is clearly observed in the KO condition.
 This sharp change would not be observed with larger bin pairs, where the final count would be dominated by other (non-differential) areas.
 
+\subsection{Using differential plaid plots}
+In some cases, it may be more informative to display the magnitude of the changes across the interaction space.
+This can be achieved using the \code{plotDI} function, which assigns colours to bin pairs according to the size and direction of the log-fold change.
+Visualization of the changes is useful as it highlights the DIs, whereas conventional plaid plots are dominated by high-abundance features like TADs.
+The latter features may be constant between libraries and, thus, not of any particular interest.
+The log-fold changes also incorporate normalization information, which is difficult to represent on a count-based plaid plot.
+
+<<label=diplot,eval=FALSE>>=
+chosen <- o[2]
+expanded.a <- resize(ax[chosen], fix="center", width=5e7)
+expanded.t <- resize(tx[chosen], fix="center", width=5e7)
+colfun <- plotDI(data, result$table$logFC, expanded.a, expanded.t, diag=FALSE)
+@
+
+\setkeys{Gin}{width=0.5\textwidth}
+\begin{center}
+<<fig=TRUE,echo=FALSE>>=
+<<diplot>>
+@
+\end{center}
+\setkeys{Gin}{width=0.8\textwidth}
+
+<<results=hide,echo=FALSE>>=
+<<setup2>>
+if (as.character(seqnames(ax[chosen]))!="chr16" || start(ax[chosen])!=70000341 || end(ax[chosen])!=70999295 ||
+    as.character(seqnames(tx[chosen]))!="chr16" || start(tx[chosen])!=65999261 || end(tx[chosen])!=67001066) {
+	warning("first DI plot hits the wrong spot")
+}
+@
+
+The example above uses red and blue for positive and negative log-fold changes, respectively.
+White and near-white regions correspond to those with log-fold change close to zero.
+Grey regions mark the parts of the space where no bin pairs are present in \code{data}, possibly due to filtering on abundance.
+As a result, this approach tends to be less useful when high-abundance bin pairs are more sparsely distributed, e.g., for long-range interactions.
+A rotated DI plot can be similarly constructed using the \code{rotDI} function.
+
+Both \code{rotDI} and \code{plotDI} will invisibly return another function that maps log-fold changes to colours.
+This can be used to generate a custom colour bar, as shown below.
+A similar function that maps counts to colours is also returned by \code{plotPlaid} and \code{rotPlaid}.
+
+<<label=colorbar,eval=FALSE>>=
+logfc <- -20:20/10
+plot(0,0,type="n", axes=FALSE, xlab="", ylab="", xlim=range(logfc), ylim=c(0,1))
+rect(logfc - 0.05, 0, logfc + 0.05, 1, col=colfun(logfc), border=NA)
+axis(1, cex.axis=1.2)
+mtext("logFC", side=1, line=3, cex=1.4)
+@
+
+\setkeys{Gin}{width=0.6\textwidth}
+\begin{center}
+<<fig=TRUE,echo=FALSE,width=10, height=3>>=
+<<colorbar>>
+@
+\end{center}
+\setkeys{Gin}{width=0.8\textwidth}
+
 \chapter{Epilogue}
 
 \section{Data sources}
