@@ -1814,11 +1814,11 @@ points(nest.mid, nest.gap, cex=7)
 
 \setkeys{Gin}{width=0.8\textwidth}
 \begin{center}
-<<fig=TRUE,echo=FALSE,width=10,height=6>>=
+<<fig=TRUE,echo=FALSE,width=10,height=6,resolution=100>>=
 <<rot1>>
 <<enbox>>
 @
-<<fig=TRUE,echo=FALSE,width=10,height=6>>=
+<<fig=TRUE,echo=FALSE,width=10,height=6,resolution=100>>=
 <<rot2>>
 <<enbox>>
 @
