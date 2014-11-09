@@ -1430,7 +1430,7 @@ On the other hand, more shrinkage can be performed to increase precision if the 
 This variability is quantified as the prior degrees of freedom, for which smaller values correspond to more heteroskedasticity and less shrinkage.
 
 <<>>=
-summary(fit$df.prior)
+summary(fit$s2.fit$df.prior)
 @
 
 It is important to use the \code{robust=TRUE} argument in \code{glmQLFit}.
