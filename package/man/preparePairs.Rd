@@ -69,9 +69,9 @@ Large values will require more memory but will reduce the computation time.
 Input files must be sorted by read name for proper execution of the function.
 Read pair information need not be synchronised so long as the pairing, first read and second read flags are appropriately set.
 
-Values of \code{param$discard} and \code{param$restrict} will be ignored here.
-Thus, no reads will be discarded if they lie outside the specified chromosomes, or if they lie within blacklisted regions.
-This function strictly processes each read according to its own merits.
+Users should note that the use of a \code{pairParam} object for input is strictly for convenience.
+Any non-empty values of \code{param$discard} and \code{param$restrict} will be ignored here.
+Reads will not be discarded if they lie outside the specified chromosomes, or if they lie within blacklisted regions.
 }
 
 \value{
