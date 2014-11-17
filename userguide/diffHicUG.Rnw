@@ -869,11 +869,12 @@ The resulting values are used to obtain a direct filter threshold, as previously
 % Adjustment by the area in terms of restriction fragments will also tend to select for the wrong things, e.g., bin pairs involving low-complexity sequences like telomeres and centromeres.
 
 <<>>=
-require(csaw)
 smaller.ab <- aveLogCPM(asDGEList(smaller.data))
 summary(smaller.ab)
+require(csaw)
 larger.ab <- scaledAverage(asDGEList(data), scale=(bin.size/new.bin.size)^2)
 new.threshold <- median(larger.ab[is.na(dist)], na.rm=TRUE)
+new.threshold
 @
 
 Finally, filtering is performed by mandating a minimum fold change for the abundances of the smaller bin pairs over the adjusted threshold (in this case, 100-fold).
@@ -1338,8 +1339,7 @@ smoothScatter(margin.lr, after[,1]-after[,2], ylim=c(-4, 4), main="After",
 \begin{combox}
 In this chapter, the \code{data} object is again required.
 The computed offsets in \code{nb.off} will also be used from the last chapter.
-This chapter is relaxing as it is quite short and covers familiar territory.
-In some respects, it is the calm before the storm.
+Methods from the \edgeR{} package should already be loaded into the workspace, but if they aren't, then \code{library(edgeR)} will do the job.
 \end{combox}
 
 \section{Overview}
@@ -1452,7 +1452,8 @@ He also has a chance of being cited when \edgeR{} is involved \citep{chen2014dif
 This chapter brings everything together.
 We need the \code{fit} object from the last chapter, along with the \code{data} object (as usual).
 We also require the \code{smaller.data} object from Chapter~\ref{chap:filter}.
-Finally, the \code{bin.size} and \code{mm.frag} objects are required from Chapter~\ref{chap:counting}.
+The \code{bin.size} and \code{mm.frag} objects are required from Chapter~\ref{chap:counting}.
+Finally, we need to make sure that the \csaw{} package is loaded, e.g., with \code{library(csaw)}.
 \end{combox}
 
 \section{Using the quasi-likelihood F-test}
