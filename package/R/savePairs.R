@@ -12,33 +12,25 @@ savePairs <- function(x, file, param)
 		x$target.id[swap] <- x$anchor.id[swap]
 		x$anchor.id[swap] <- temp
 	}
-    delta.a <- diff(x$anchor.id)
-    delta.t <- diff(x$target.id)
-    if (any(delta.a<0L) || any(delta.a==0L & delta.t<0L)) { 
-		x <- x[order(x$anchor.id, x$target.id),]
-		delta.a <- diff(x$anchor.id)
-		delta.t <- diff(x$target.id)
-	}
     if (file.exists(file)) { unlink(file, recursive=TRUE) }
 
     # Need to reorder so fragments are sorted by chromosome COMBINATION. 
-    # Sort is stable, no need to supply x$anchor.id/x$target.id in 'order'.
     frag.out <- .delimitFragments(param$fragments)
 	all.chrs <- frag.out$chr
 	full.chrs <- rep(1:length(all.chrs), frag.out$end-frag.out$start+1L)
     achr <- full.chrs[x$anchor.id]
     tchr <- full.chrs[x$target.id]
-    new.o <- order(achr, tchr)
+    new.o <- order(achr, tchr, x$anchor.id, x$target.id)
     x <- x[new.o,]
 
-    # Identifying the lengths of the relevant stretches of chromatin, and saving in assorted directories
-    # (one per anchor chromosome).
+    # Identifying stretches with the same chromatin pairs.
 	new.achr <- achr[new.o]
 	new.tchr <- tchr[new.o]
     is.diff <- c(TRUE, diff(new.achr)!=0L | diff(new.tchr)!=0L)
 	first.in.combo <- which(is.diff)
 	last.in.combo <- c(first.in.combo[-1]-1L, length(new.o))
 
+	# Saving results.
 	.initializeH5(file)
 	for (ax in unique(new.achr[first.in.combo])) { .addGroup(file, all.chrs[ax]) }
     for (y in 1:length(first.in.combo)) {
