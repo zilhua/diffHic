@@ -4,18 +4,20 @@ normalizeCNV <- function(data, margins, prior.count=3, span=0.3, maxk=500, ...)
 # respectively. Both are used as covariates in the model to smooth out any
 # systematic differences in interaction intensity. The aim is to get rid
 # of any CNV-induced bias, quantified by the differences in the marginals.
+#
+# written by Aaron Lun
+# Last modified 11 December 2014
 {
-	ab <- aveLogCPM(counts(data), lib.size=totals(data))
+	cont.cor <- 0.5
+	cont.cor.scaled <- cont.cor * totals(data)/mean(totals(data))
+	ab <- aveLogCPM(counts(data), lib.size=totals(data), prior.count=cont.cor)
 	mave <- aveLogCPM(counts(margins), lib.size=totals(margins), prior.count=prior.count)
 	if (!identical(totals(margins), totals(data))) { 
 		warning("library sizes should be identical for margin and data objects")
 	}
 
-	# Computing changes relative to an ``averaged'' reference library.
-	adjc <- log2(counts(data) + 0.5) - ab
-	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count) - mave
-
 	# Generating covariates.
+	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count) - mave
 	matched <- matchMargins(data, margins)	
 	ma.adjc <- mab[matched$amatch,,drop=FALSE] 
 	mt.adjc <- mab[matched$tmatch,,drop=FALSE]
@@ -32,7 +34,7 @@ normalizeCNV <- function(data, margins, prior.count=3, span=0.3, maxk=500, ...)
 		all.cov <- list(mfc1, mfc2, ab)
 	
 		# Fitting a loess surface with the specified covariates.	
-		i.fc <- adjc[,lib] 
+		i.fc <- log2(counts(data)[,lib] + cont.cor.scaled[lib]) - ab 
 		cov.fun <- do.call(lp, c(all.cov, nn=span, deg=1))
 		fit <- locfit(i.fc ~ cov.fun, maxk=maxk, ..., lfproc=locfit.robust) 
 		offsets[,lib] <- fitted(fit)
