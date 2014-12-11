@@ -37,6 +37,8 @@ normalizeCNV <- function(data, margins, prior.count=3, span=0.3, maxk=500, ...)
 		fit <- locfit(i.fc ~ cov.fun, maxk=maxk, ..., lfproc=locfit.robust) 
 		offsets[,lib] <- fitted(fit)
 	}
+
+	offsets <- offsets/log2(exp(1))
 	offsets <- offsets - rowMeans(offsets)
 	return(offsets)
 }
