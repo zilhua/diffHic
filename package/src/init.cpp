@@ -13,6 +13,7 @@ static const R_CallMethodDef all_call_entries[] = {
 	CALLDEF(split_clusters, 6),
 	CALLDEF(collect_background, 5),
 	CALLDEF(max_background, 5),
+	CALLDEF(quadrant_bg, 9),
 	CALLDEF(collect_diagonal, 5),
 	CALLDEF(count_connect, 5),
 	CALLDEF(count_marginals, 3),
