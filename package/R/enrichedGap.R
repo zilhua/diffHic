@@ -6,7 +6,7 @@ enrichedGap <- function(data, bin.size, flank=3, trend=c("global", "none", "chr"
 #
 # written by Aaron Lun
 # Created 23 April 2014
-# Modified 17 December 2014
+# Modified 18 December 2014
 {
 	flank <- as.integer(flank)
 	if (flank <= 0L) { stop("flank width must be a positive integer") }
@@ -30,7 +30,8 @@ enrichedGap <- function(data, bin.size, flank=3, trend=c("global", "none", "chr"
 		fitted <- all.ab <- numeric(nrow(data))
 		all.ab[!is.intra] <- aveLogCPM(asDGEList(data[!is.intra,]), prior.count=0)
 		if (trend=="global") { 
-			adj.ab <- aveLogCPM(asDGEList(data[is.intra,])) # Need a prior here, to avoid big post-adjustment counts at high distances.
+			# Need a prior here, to avoid big adjusted values at high distances.
+			adj.ab <- aveLogCPM(asDGEList(data[is.intra,]), prior.count=prior.count)
 			all.ab[is.intra] <- adj.ab
 			fitted[is.intra] <- loessFit(y=adj.ab, x=log.dist[is.intra], span=span)$fitted
 		}
@@ -38,7 +39,6 @@ enrichedGap <- function(data, bin.size, flank=3, trend=c("global", "none", "chr"
 	
 	# Rescaling to count-level data with at least 6 dp, for stable calculations with integers.
 	# This should be enough precision while avoiding overrun of the integer type.
-	# Note that rescaling of distance-adjusted values won't be on the same scale as the original counts.
 	scaling <- log2(mean(totals(data))/1e6 * ncol(data))
 	MULT <- 1e6
 	back2count <- function(ab) { 
@@ -92,4 +92,11 @@ enrichedGap <- function(data, bin.size, flank=3, trend=c("global", "none", "chr"
 	# Returning the collected counts.
 	return(output)
 }
+
+# Note that, when trend!="none" and we're looking on the same chromosome,
+# rescaled distance-adjusted values won't be on the same scale as the original
+# counts. This isn't a major problem as we're calculating the relative
+# enrichment anyway. However, there mightn't be enough decimal places to cover
+# distance-adjusted values that are very low. Hopefully, more values should be
+# around 1, so it shouldn't be a problem.
 
