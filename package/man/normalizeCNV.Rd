@@ -6,19 +6,14 @@
 \description{Compute normalization offsets to remove CNV-driven and abundance-dependent biases}
 
 \usage{
-normalizeCNV(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, 
-    degree=1, span=0.3, maxk=500, ...)
+normalizeCNV(data, margins, prior.count=3, span=0.3, maxk=500, ...)
 matchMargins(data, margins)
 }
 
 \arguments{
 \item{data}{a \code{DIList} object produced by \code{\link{squareCounts}}}
 \item{margins}{a \code{DIList} object produced by \code{\link{marginCounts}}}
-\item{ref.col}{an integer scalar, specifying the library to use as the reference}
 \item{prior.count}{a numeric scalar specifying the prior count to use in computing marginal log-ratios}
-\item{split}{a logical scalar indicating whether the marginal log-ratios should be kept as separate covariates}
-\item{abundance}{a logical scalar indicating whether the average abundance should be used as a covariate}
-\item{degree}{an integer scalar specifying the degree of the polynomial fit}
 \item{span}{a numeric scalar between 0 and 1, describing the span of the fit}
 \item{maxk}{a integer scalar specifying the number of vertices to use during local fitting}
 \item{...}{other arguments to pass to \code{\link{locfit}}}
@@ -28,33 +23,35 @@ matchMargins(data, margins)
 Each bin pair in \code{data} is associated with three covariates.
 The first two are the marginal log-ratios of the corresponding bins, i.e., the log-ratio of the marginal counts between two libraries.
 These represent the relative CNVs in the interacting regions between libraries.
-The first covariate is the larger marginal log-ratio, whereas the second is the smaller.
+To avoid redundancy, the first covariate is the larger marginal log-ratio whereas the second is the smaller.
 The third covariate is the average abundance across all libraries.
 
 Each bin pair is also associated with a response, i.e., the log-ratio of the interaction counts between two libraries.
 A loess-like surface is fitted to the response against the three covariates, using the \code{\link{locfit}} function.
 The aim is to eliminate systematic differences between libraries at any combination of covariate values.
-In addition, the use of the average abundance simultaneously removes trended biases.
+This removes CNV-driven biases as well as trended biases with respect to the abundance.
 The fitted value can then be used as a GLM offset for each bin pair.
+
+CNVs in both interacting regions are used as separate covariates, rather than using the product of the relative copies from the two regions as a single covariate.
+This is because a doubling in copy number for the two regions mightn't have the same effect on intensity as a 4-fold increase in one region. 
+The effect of CNVs will also depend on the mechanism through which ligation events are generated.
+For example, a doubling in copy number for both regions might result in a 4-fold increase for random ligation, but only a 2-fold increase for genuine interactions (as the interaction is just doubled).
+Using the abundance as a covariate will ensure that these cases are fitted separately.
 
 The \code{DIList} objects in \code{data} and \code{margins} should be constructed with the same parameters in their respective functions.
 This ensures that the regions are the same, so that the marginal counts can be directly used.
 Matching of the bins in each bin pair in \code{data} to indices of \code{margins} is performed using \code{matchMargins}.
 Note that the marginal counts are not directly computed from \code{data} as filtering of bin pairs may be performed beforehand.
 
-Normalization offsets are computed between libraries in a pairwise manner.
-For datasets with more than two libraries, one library is arbitrarily chosen as the reference library according to \code{ref.col}.
-All other libraries are then normalized to this reference library.
+In practice, normalization offsets are computed for each library relative to a single reference ``average'' library.
+This average library is constructed by using the average abundance as the (log-)count for both the bin pair and marginal counts.
+The space of all pairs of CNV log-ratios is also rotated by 45 degrees prior to smoothing.
+This improves the performance of the approximations used by \code{\link{locfit}}.
 
-If \code{split=FALSE}, the two marginal log-ratios for each bin pair will be added into a single covariate.
-This improves stability by reducing the covariate space, though it assumes that such addition is sensible, i.e., different combinations of log-ratios with the same sum have the same effect.
-If \code{abundance=FALSE}, the average abundance will not be used as a covariate.
-This also reduces the covariate space and can be used when trended biases are not present.
-
-The fit parameters can be changed by varying \code{degree}, \code{span}, \code{maxk} and additional arguments in \code{\link{locfit}}.
-A fit of \code{degree} 1 is used by default to avoid overfitting.
+The fit parameters can be changed by varying \code{span}, \code{maxk} and additional arguments in \code{\link{locfit}}.
 Higher values of \code{span} will increase smoothness, at the cost of sensitivity.
 Increases in \code{maxk} may be required to obtain a more accurate approximation when fitting large datasets.
+In all cases, a loess fit of degree 1 is used.
 }
 
 \value{
@@ -93,13 +90,7 @@ margins <- DIList(counts=matrix(rpois(npts*nlibs, 100), nrow=npts),
 # Running normalizeCNV.
 head(normalizeCNV(data, margins))
 head(normalizeCNV(data, margins, prior.count=1))
-head(normalizeCNV(data, margins, ref.col=3))
-head(normalizeCNV(data, margins, split=FALSE))
-head(normalizeCNV(data, margins, abundance=FALSE))
-
-# Changing various options.
 head(normalizeCNV(data, margins, span=0.5))
-head(normalizeCNV(data, margins, degree=2))
 
 # Occasionally locfit will complain; increase maxk to compensate.
 data@counts <- matrix(as.integer(rpois(npairs*nlibs, 20)), nrow=npairs)

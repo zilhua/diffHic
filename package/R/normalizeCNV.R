@@ -1,49 +1,63 @@
-normalizeCNV <- function(data, margins, ref.col=1, prior.count=3, split=TRUE, abundance=TRUE, 
-	degree=1, span=0.3, maxk=500, ...)
+normalizeCNV <- function(data, margins, prior.count=3, span=0.3, maxk=500, ...)
 # This performs two-dimensional loess smoothing, using the counts and the 
 # marginal counts to compute the abundance and the marginal fold-changes,
 # respectively. Both are used as covariates in the model to smooth out any
 # systematic differences in interaction intensity. The aim is to get rid
 # of any CNV-induced bias, quantified by the differences in the marginals.
+#
+# written by Aaron Lun
+# Last modified 11 December 2014
 {
+	cont.cor <- 0.5
+	cont.cor.scaled <- cont.cor * totals(data)/mean(totals(data))
+	ab <- aveLogCPM(counts(data), lib.size=totals(data), prior.count=cont.cor)
+	mave <- aveLogCPM(counts(margins), lib.size=totals(margins), prior.count=prior.count)
+	if (!identical(totals(margins), totals(data))) { 
+		warning("library sizes should be identical for margin and data objects")
+	}
+
 	# Generating covariates.
-	adjc <- log(counts(data) + 0.5)
-	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count)
+	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count) - mave
 	matched <- matchMargins(data, margins)	
 	ma.adjc <- mab[matched$amatch,,drop=FALSE] 
 	mt.adjc <- mab[matched$tmatch,,drop=FALSE]
-	if (abundance) { 
-		ab <- aveLogCPM(counts(data), lib.size=totals(data))
-	}
 
 	offsets <- matrix(0, nrow=nrow(data), ncol=ncol(data))
 	for (lib in 1:ncol(data)) {
-		if (lib==ref.col) { next }
-		ma.fc <- ma.adjc[,lib] - ma.adjc[,ref.col]
-		mt.fc <- mt.adjc[,lib] - mt.adjc[,ref.col]
+		ma.fc <- ma.adjc[,lib]
+		mt.fc <- mt.adjc[,lib]
 
-		if (split) {
-			# Anchor/target distinction is arbitrary, so this coerces otherwise-identical 
-			# points into the same part of the covariate space.
-			ma.fc2 <- pmax(ma.fc, mt.fc) 
-			mt.fc2 <- pmin(ma.fc, mt.fc)
-			all.cov <- list(ma.fc2, mt.fc2)
-		} else { 
-			all.cov <- list(ma.fc + mt.fc) 
-		}
-		if (abundance) { 
-			all.cov[[length(all.cov) + 1]] <- ab 
-		}
+		# Anchor/target distinction is arbitrary, so this coerces otherwise-identical 
+		# points into the same part of the covariate space (see comment below).
+		mfc1 <- (ma.fc + mt.fc)/2
+		mfc2 <- abs(ma.fc - mt.fc)
+		all.cov <- list(mfc1, mfc2, ab)
 	
 		# Fitting a loess surface with the specified covariates.	
-		i.fc <- adjc[,lib] - adjc[,ref.col]
-		cov.fun <- do.call(lp, c(all.cov, nn=span, deg=degree))
+		i.fc <- log2(counts(data)[,lib] + cont.cor.scaled[lib]) - ab 
+		cov.fun <- do.call(lp, c(all.cov, nn=span, deg=1))
 		fit <- locfit(i.fc ~ cov.fun, maxk=maxk, ..., lfproc=locfit.robust) 
 		offsets[,lib] <- fitted(fit)
 	}
+
+	offsets <- offsets/log2(exp(1))
 	offsets <- offsets - rowMeans(offsets)
 	return(offsets)
 }
+
+##################### COMMENT ##########################
+# You get two copy number changes for each bin pair, one for each region. The
+# simplest coercion involves defining one covariate as the maximum change, and
+# the other covariate as the minimum change. However, this gives a covariate
+# space that is cut off past the diagonal. This won't be happily fitted in
+# locfit, as it uses a rectangular grid (check out Computational Methods in
+# Loader's book). You need all corners of the grid to interpolate, but one of
+# those corners will be useless if it hangs on the wrong side of the diagonal.
+# Instead, we rotate the space by 45 degrees, such that the diagonal is now a
+# vertical line. The boundary of the grid now coincides with the true boundary
+# of the space. All corners will now have sensible evaluations, such that 
+# interpolation will be more reliable.
+########################################################
 
 matchMargins <- function(data, margins) 
 # This function just matches the bin pairs in 'data' to the two indices of

@@ -28,7 +28,7 @@ If necessary, anchor and target IDs will be switched such that the former is nev
 
 The coordinates of the restriction fragment boundaries in \code{param$fragments} should correspond to the reference genome being used. 
 In most cases, these can be generated using the \code{\link{cutGenome}} function from any given \code{BSgenome} object.
-Values of \code{param$discard} and \code{param$restrict} will be ignored here.
+Values of \code{param$discard} and \code{param$restrict} will not be used here and can be ignored.
 
 Any additional fields in \code{x} will also be saved to file.
 Users are recommended to put in \code{xxx.pos} and \code{xxx.len} fields (where \code{xxx} is replaced with \code{anchor} or \code{target}).
