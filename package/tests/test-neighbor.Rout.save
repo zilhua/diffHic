@@ -1,7 +1,7 @@
 
-R version 3.1.1 (2014-07-10) -- "Sock it to Me"
+R version 3.1.2 (2014-10-31) -- "Pumpkin Helmet"
 Copyright (C) 2014 The R Foundation for Statistical Computing
-Platform: x86_64-unknown-linux-gnu (64-bit)
+Platform: i686-pc-linux-gnu (32-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -21,6 +21,7 @@ Type 'q()' to quit R.
 > # This tests the neighbor-counting code.
 > 
 > suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
+> suppressPackageStartupMessages(require(edgeR))
 > 
 > .getLimits <- function(x, flank, start, end) {
 + 	lower.x <- x - flank
@@ -32,14 +33,36 @@ Type 'q()' to quit R.
 + 	return(c(lower.x, upper.x))
 + }
 > 
-> comp <- function(npairs, chromos, flanking) {
+> # Defining some odds and ends.
+> 
+> lower.left <- function(x) { 
++     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++     out[nrow(x),1] <- FALSE
++     out
++ }
+> upper.right <- function(x) { 
++     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++     out[1, ncol(x)] <- FALSE
++     out
++ }
+> upper.left <- function(x) { 
++     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++     out[1,1] <- FALSE
++     out    
++ }
+> lower.right <- function(x) { 
++     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++     out[nrow(x), ncol(x)] <- FALSE
++     out
++ }
+> 
+> comp <- function(npairs, chromos, flanking, prior=2) {
 + 	flanking <- as.integer(flanking)
-+ 	full.flank <- flanking*2L
 + 
 + 	nlibs <- 4L
 + 	lambda <- 5
 + 	nbins <- sum(chromos)
-+     all.pairs <- rbind(t(combn(nbins, 2)), cbind(1:nbins, 1:nbins))
++ 	all.pairs <- rbind(t(combn(nbins, 2)), cbind(1:nbins, 1:nbins))
 + 	aid <- pmax(all.pairs[,1], all.pairs[,2])
 + 	tid <- pmin(all.pairs[,1], all.pairs[,2])
 +    	npairs <- min(npairs, nrow(all.pairs))
@@ -49,235 +72,132 @@ Type 'q()' to quit R.
 + 	chosen <- sample(nrow(all.pairs), npairs)
 + 	indices <- unlist(sapply(chromos, FUN=function(x) { 1:x }), use.names=FALSE)
 + 	data <- DIList(counts=counts, anchors=aid[chosen], targets=tid[chosen],
-+ 		totals=rep(1, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(indices, indices)))
++ 	    totals=rep(1e6, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(indices, indices)))
 + 	data@region$nfrags <- rep(1:3, length.out=nbins)
 + 	
++ 	# Computing the reference enrichment value.
++ 	bg <- enrichedGap(data, flank=flanking, trend="none", prior.count=prior)
++ 	final.ref <- numeric(length(bg))
++ 
++ 	# Sorting them by chromosome pairs.
 + 	all.chrs <- as.character(seqnames(regions(data)))
-+     last.id <- lapply(split(1:nbins, all.chrs), FUN=max)
-+     first.id <- lapply(split(1:nbins, all.chrs), FUN=min)
-+ 	all.diags <- data@anchor.id - data@target.id
++ 	chr.pair <- paste0(all.chrs[data@anchor.id], ".", all.chrs[data@target.id])
++ 	by.chr.pair <- split(1:npairs, chr.pair)
++ 	first.id <- lapply(split(1:nbins, all.chrs), FUN=min)
 + 
-+ 	# Going through every pair of chromosomes.
-+ 	ref.counts <- matrix(0L, nrow=npairs, ncol=nlibs)
-+ 	ref.n <- integer(npairs)
-+ 	for (i in 1:npairs) {
-+ 		current.a <- data@anchor.id[i]
-+ 		current.t <- data@target.id[i]
++ 	for (cpair in names(by.chr.pair)) { 
++ 	    cur.pairs <- by.chr.pair[[cpair]]
++ 	    two.chrs <- strsplit(cpair, "\\.")[[1]]
++ 	    current <- data[cur.pairs,]
++ 	    rel.ab <- 2^(aveLogCPM(counts(current), lib.size=totals(current), prior.count=0) 
++ 			+ log2(mean(totals(current))/1e6))
 + 
-+ 		if (all.chrs[current.a]==all.chrs[current.t]) {
-+ 			chr.start <- first.id[[all.chrs[current.t]]] 
-+ 			chr.end <- last.id[[all.chrs[current.t]]] 
++ 	    # Setting up the interaction space.
++ 	    a.dex <- anchors(current, id=TRUE) - first.id[[two.chrs[1]]] + 1L
++ 	    t.dex <- targets(current, id=TRUE) - first.id[[two.chrs[2]]] + 1L
++ 	    alen <- chromos[[two.chrs[1]]]
++ 	    tlen <- chromos[[two.chrs[2]]]
++ 	    inter.space <- matrix(0L, nrow=alen, ncol=tlen)
++ 	    inter.space[(t.dex-1)*alen + a.dex] <- 1:nrow(current) # column major.
++ 	    valid <- matrix(TRUE, nrow=alen, ncol=tlen)
++ 	    if (two.chrs[1]==two.chrs[2]) { valid[upper.tri(valid)] <- FALSE }
 + 
-+ 			# Diagonal-based background for the intra-chromosomals.
-+ 			cur.diag <- all.diags[i]
-+ 			t.out <- .getLimits(current.t, flanking, chr.start, chr.end - cur.diag)
-+ 			lower.t <- t.out[1]
-+ 			upper.t <- t.out[2]
++ 	    output <- numeric(nrow(current))
++ 	    for (pair in 1:nrow(current)) {
++ 		collected <- numeric(4)
++ 		ax <- a.dex[pair]
++ 		tx <- t.dex[pair]
++ 
++ 		for (quad in 1:4) { 
++ 		    if (quad==1L) {
++ 			cur.a <- ax + 0:flanking
++ 			cur.t <- tx + 0:flanking
++ 			keep <- upper.left
++ 		    } else if (quad==2L) {
++ 			cur.a <- ax - flanking:0
++ 			cur.t <- tx + 0:flanking
++ 			keep <- lower.left
++ 		    } else if (quad==3L) { 
++ 			cur.a <- ax + 0:flanking
++ 			cur.t <- tx - flanking:0
++ 			keep <- upper.right 
++ 		    } else {
++ 			cur.a <- ax - flanking:0
++ 			cur.t <- tx - flanking:0
++ 			keep <- lower.right
++ 		    }
 + 	
-+ 			keep <- (all.diags == cur.diag & data@target.id >= lower.t & data@target.id <= upper.t & data@target.id!=current.t)
-+ 			ref.counts[i,] <- as.integer(colSums(counts[keep,,drop=FALSE])+0.5)
-+  			ref.n[i] <- upper.t - lower.t
++ 		    # Selecting the relevant entries for the chosen quadrant.
++ 		    indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
++ 			    out <- (y-1)*alen + x
++ 			    out[x > alen | x < 1 | y > tlen | y < 1] <- -1
++ 			    return(out)
++ 		    })
++ 		    indices <- indices[keep(indices)]
++ 		    indices <- indices[indices > 0]
++ 		    indices <- indices[valid[indices]]
 + 
-+ 			# Implementing remedial action. 
-+ 			difference <- full.flank - ref.n[i]
-+ 			if (difference > 0L) {
-+ 				extra.left <- extra.right <- as.integer(difference/2L)
-+ 				if (difference %% 2L == 1L) {
-+ 					if (current.t <= (chr.start+chr.end-cur.diag+1L)/2L) {
-+ 						extra.left <- extra.left + 1L					
-+ 					} else {
-+ 						extra.right <- extra.right + 1L
-+ 					}
-+ 				}
-+ 		
-+ 				# Adding boxes on the edges.
-+ 				keep <- (all.diags <= cur.diag - 1L & all.diags >= cur.diag - extra.left & data@target.id == chr.start)
-+ 				if (any(keep)) { ref.counts[i,] <- ref.counts[i,] + as.integer(colSums(counts[keep,,drop=FALSE])+0.5) } 
-+ #				print(paste("My own stats are", cur.diag, current.t-chr.start))
-+ #				if (any(keep)){ 
-+ #					print("Left adding:")
-+ #					print(all.diags[keep])
-+ #					print(data@target.id[keep]-chr.start)
-+ #				}
-+ 				
-+ 				ref.n[i] <- ref.n[i] + ifelse(extra.left > cur.diag, cur.diag, extra.left)
-+ 				keep <- (data@anchor.id == chr.end & all.diags <= cur.diag - 1L & all.diags >= cur.diag - extra.right)
-+ 				if (any(keep)) { ref.counts[i,] <- ref.counts[i,] + as.integer(colSums(counts[keep,,drop=FALSE])+0.5) }
-+ #				if (any(keep)) {
-+ #					print("Right adding:")
-+ #					print(all.diags[keep])
-+ #					print(data@target.id[keep]-chr.start)
-+ #				}
-+ 				ref.n[i] <- ref.n[i] + ifelse(extra.right > cur.diag, cur.diag, extra.right)
-+ 			}
-+ 		} else {
-+ 			# Cross-based background for the inter-chromosomals.
-+ 			a.out <- .getLimits(current.a, flanking, first.id[[all.chrs[current.a]]], last.id[[all.chrs[current.a]]])
-+ 			lower.a <- a.out[1]
-+ 			upper.a <- a.out[2]
-+ 			t.out <- .getLimits(current.t, flanking, first.id[[all.chrs[current.t]]], last.id[[all.chrs[current.t]]])
-+ 			lower.t <- t.out[1]
-+ 			upper.t <- t.out[2]
-+ 
-+ 			keep <- (data@target.id==current.t & data@anchor.id >= lower.a & data@anchor.id <= upper.a & data@anchor.id!=current.a) |
-+ 				    (data@anchor.id==current.a & data@target.id >= lower.t & data@target.id <= upper.t & data@target.id!=current.t)  
-+ 			ref.counts[i,] <- as.integer(colSums(counts[keep,,drop=FALSE])+0.5) 
-+ 			ref.n[i] <- upper.a - lower.a + upper.t - lower.t
++ 		    # Computing the average across this quadrant.
++ 		    relevant.rows <- inter.space[indices]
++ 		    is.zero <- relevant.rows==0L		    
++ 		    collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
 + 		}
++ 		
++ 		output[pair] <- log2((rel.ab[pair]+prior)/(max(collected, na.rm=TRUE)+prior))
++ 	    }
++ 	    final.ref[cur.pairs] <- output
 + 	}
 + 
-+ 	# Converting to integer.
-+ 	bg <- countNeighbors(data, flank=flanking)
-+ 	obs <- as.matrix(bg$y$counts)
-+ 	dimnames(obs) <- NULL
-+ #	print(data[which(obs[,1]!=ref.counts[,1]),])
-+ #	print(obs[which(obs[,1]!=ref.counts[,1]),])
-+ #	print(ref.counts[which(obs[,1]!=ref.counts[,1]),])
-+ 	if (!identical(obs, ref.counts)) { stop("mismatch in counts for combined anchor/target background") }
-+ 	if (!identical(bg$n, ref.n)) { stop("mismatch in bin pair numbers for combined anchor/target background") }
-+ #	print("YAY")
-+ 	return(head(obs))
++ 	if (any(abs(bg-final.ref) > (0.001+abs(bg))*1e-6)) { stop("mismatch in relative enrichment values") }
++ 	return(head(bg))
 + }
 > 
 > ###################################################################################################
 > # Simulating.
 > 
 > set.seed(3427675)
+> comp(10, c(chrA=10), 5)
+[1] 1.0728329 0.8838070 0.5219527 1.5034482 0.9411063 1.1250285
 > comp(100, c(chrA=10, chrB=30, chrC=20), 5)
-     [,1] [,2] [,3] [,4]
-[1,]    0    0    0    0
-[2,]    0    0    0    0
-[3,]    0    0    0    0
-[4,]    0    0    0    0
-[5,]    6    9    9    4
-[6,]    6    4    5    7
+[1] 1.494109 1.486739 1.768536 1.625073 1.397335 1.964896
 > comp(100, c(chrA=10, chrC=20), 5)
-     [,1] [,2] [,3] [,4]
-[1,]   32   28   34   25
-[2,]   12   12   11    9
-[3,]    6    7    6    4
-[4,]   30   25   29   21
-[5,]   10   12   17   11
-[6,]   12   14   16   15
+[1] 0.7324501 0.8659071 1.4793651 1.2334901 1.1606162 0.5849625
 > comp(100, c(chrA=10, chrB=5, chrC=20), 5)
-     [,1] [,2] [,3] [,4]
-[1,]    8    6    9    2
-[2,]   16   16   24   21
-[3,]   13   20   17   11
-[4,]   14   13   14   12
-[5,]   11   15   10   13
-[6,]   25   25   24   20
+[1]  1.1491434  1.4919603  1.3652122  0.7041757  0.9581220 -0.6026645
 > comp(100, c(chrA=20, chrB=5), 5)
-     [,1] [,2] [,3] [,4]
-[1,]   14   12   17   11
-[2,]    5    5    7   11
-[3,]   13   10   11    8
-[4,]   31   28   13   20
-[5,]   20   24   16   24
-[6,]   19   28   21   28
+[1] 1.2527661 0.9377157 0.6780719 0.9846520 0.6968184 0.6951454
 > 
 > comp(100, c(chrA=10, chrB=30, chrC=20), 10)
-     [,1] [,2] [,3] [,4]
-[1,]   11    8   11   12
-[2,]    9   11   15   10
-[3,]    8    7    4    6
-[4,]    6    7    7    8
-[5,]    5    8    7    5
-[6,]    5    3    9    7
+[1] 1.746383 1.685010 1.682091 1.327488 1.797227 1.610958
 > comp(100, c(chrA=10, chrC=20), 10)
-     [,1] [,2] [,3] [,4]
-[1,]   58   57   64   67
-[2,]   48   77   72   48
-[3,]   29   32   21   20
-[4,]   37   59   52   40
-[5,]   24   19   22   23
-[6,]   46   48   41   32
+[1] 0.5650629 1.4932463 0.9198297 1.2879808 1.2587539 1.4363537
 > comp(100, c(chrA=10, chrB=5, chrC=20), 10)
-     [,1] [,2] [,3] [,4]
-[1,]   20   16   17   31
-[2,]    6    7    5    3
-[3,]   32   33   38   31
-[4,]   18   17   19   12
-[5,]   14    8   10   16
-[6,]    0    0    0    0
+[1] 1.835841 1.502500 1.377070 1.337035 1.108934 1.039171
 > comp(100, c(chrA=20, chrB=10), 10)
-     [,1] [,2] [,3] [,4]
-[1,]   31   31   26   34
-[2,]   25   30   30   36
-[3,]    4    6    5    6
-[4,]   23   21   30   19
-[5,]   14   10   10   15
-[6,]   31   30   32   44
+[1] 0.9795938 1.3964990 1.7138125 0.1098776 1.2062163 1.2296758
 > 
 > comp(200, c(chrA=10, chrB=30, chrC=20), 3)
-     [,1] [,2] [,3] [,4]
-[1,]   14    5   14   12
-[2,]    0    0    0    0
-[3,]    7   11   10    5
-[4,]   27   26   20   20
-[5,]    0    0    0    0
-[6,]    7    3    3    6
+[1] 1.497500 1.687532 1.584963 1.237039 1.396696 1.509014
 > comp(200, c(chrA=10, chrC=20), 3)
-     [,1] [,2] [,3] [,4]
-[1,]   26   23   21   33
-[2,]   36   46   44   52
-[3,]   18   29   19   22
-[4,]   38   30   24   24
-[5,]    9    8   13   13
-[6,]    8   13   12   16
+[1] -0.08285693  0.89600228  0.10904276  0.30863127  0.65112942  0.39231742
 > comp(200, c(chrA=10, chrB=5, chrC=20), 3)
-     [,1] [,2] [,3] [,4]
-[1,]   13   16   14   22
-[2,]   38   38   28   43
-[3,]   22   16   12   16
-[4,]   16    8   11   16
-[5,]    5    6    7    3
-[6,]   34   21   23   20
+[1] 0.80735492 0.81942775 0.25276607 0.54780950 0.08246216 1.23018553
 > comp(200, c(chrA=20, chrB=3), 3)
-     [,1] [,2] [,3] [,4]
-[1,]   20   16   13   15
-[2,]   20   18   19   21
-[3,]   30   30   29   32
-[4,]    9   16   15   11
-[5,]   21   33   22   21
-[6,]   29   36   42   30
+[1]  0.04090794 -0.17508671 -0.01861568  0.55101517  0.16889487 -0.16349873
 > 
 > comp(200, c(chrA=10, chrB=30, chrC=20), 1)
-     [,1] [,2] [,3] [,4]
-[1,]    0    0    0    0
-[2,]    0    0    0    0
-[3,]    8    9    6    6
-[4,]    0    0    0    0
-[5,]    6    8    6    3
-[6,]    0    0    0    0
+[1] 1.8579810 2.1699250 0.2537566 0.6109577 1.4594316 0.8804184
 > comp(200, c(chrA=10, chrC=20), 1)
-     [,1] [,2] [,3] [,4]
-[1,]   17   10   12    9
-[2,]    4    6    6   10
-[3,]    0    0    0    0
-[4,]   10    9    6    9
-[5,]    0    0    0    0
-[6,]    0    0    0    0
+[1]  0.2552571  0.3439544  0.7325197 -0.2223924  0.5584903  0.1549747
 > comp(200, c(chrA=10, chrB=5, chrC=20), 1)
-     [,1] [,2] [,3] [,4]
-[1,]    5    4    7    8
-[2,]   18   12   13    6
-[3,]    4    4    9    8
-[4,]    7    5    7    3
-[5,]    3    6    6    3
-[6,]    0    0    0    0
+[1]  0.2115041 -0.8930848  1.0931094  1.2879808  0.5849625  0.4306344
 > comp(200, c(chrA=20, chrB=5), 1)
-     [,1] [,2] [,3] [,4]
-[1,]    8    7    8    2
-[2,]   24   14   24   17
-[3,]   10   11   10    9
-[4,]    3    4   10    4
-[5,]    0    0    0    0
-[6,]   11   16   15   11
+[1] -2.941831e-01 -4.405726e-01 -1.069152e-01 -1.089344e-01  3.203427e-16
+[6]  4.995710e-01
 > 
 > ###################################################################################################
 > 
 > 
 > proc.time()
    user  system elapsed 
-  9.839   0.148  10.002 
+ 24.864   0.280  25.174 
