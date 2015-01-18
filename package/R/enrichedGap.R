@@ -28,7 +28,10 @@ enrichedGap <- function(data, bin.size, flank=3, trend=c("global", "none", "chr"
     		log.dist <- log10(getDistance(data) + bin.size)
 		is.intra <- !is.na(log.dist)
 		fitted <- all.ab <- numeric(nrow(data))
-		all.ab[!is.intra] <- aveLogCPM(asDGEList(data[!is.intra,]), prior.count=0)
+		if (!all(is.intra)) { 
+			# Don't worry about the lack of prior, we never compare prior-adjusted values with these guys.
+			all.ab[!is.intra] <- aveLogCPM(asDGEList(data[!is.intra,]), prior.count=0)
+		}
 		if (trend=="global") { 
 			# Need a prior here, to avoid big adjusted values at high distances.
 			adj.ab <- aveLogCPM(asDGEList(data[is.intra,]), prior.count=prior.count)
