@@ -456,10 +456,11 @@ Other pre-specified regions can also be used, e.g., known enhancers or protein b
 
 <<>>=
 require(org.Mm.eg.db)
-chrstart <- toTable(org.Mm.egCHRLOC)
-chrend <- toTable(org.Mm.egCHRLOCEND)
-gene.body <- GRanges(paste0("chr", chrstart$Chromosome),
-    IRanges(abs(chrstart$start_location), abs(chrend$end_location)))
+gene.data <- select(org.Mm.eg.db, keys=keys(org.Mm.eg.db), 
+    columns=c("CHRLOC", "CHRLOCEND"), keytype="ENTREZID")
+gene.data <- gene.data[!is.na(gene.data$CHRLOCCHR),]
+gene.body <- GRanges(paste0("chr", gene.data$CHRLOCCHR),
+    IRanges(abs(gene.data$CHRLOC), abs(gene.data$CHRLOCEND)))
 @
 
 Counting can be directly performed for these defined regions using the \code{connectCounts} function.
@@ -849,7 +850,7 @@ This reduces memory usage as the interaction space is partitioned into fewer bin
 Then, perform filtering and convert the computed filter thresholds into values for the original (smaller) bin sizes.
 \end{itemize}
 
-An example of the second option is shown here.
+An example of the third option is shown here.
 For this section, imagine that a bin size of 100 kbp is actually of interest, but filter thresholds can only be efficiently computed with 1 Mbp bins.
 The first task is to load the counts for the smaller bin pairs.
 A non-unity value of \code{filter} is set in \code{squareCounts} to avoid using too much memory.
@@ -996,6 +997,74 @@ Users are advised to use a smaller bin size to recover these interactions.
 Artifacts will still be restricted to diagonal bin pairs, so long as the bins are larger than $\sim$25 kbp (see Section~\ref{sec:strorient}).
 Short-range interactions will then be represented by the remaining off-diagonal bin pairs, due to the improved spatial resolution of smaller bins.
 While count sizes will also decrease, this should not be a major problem as counts should be larger at low interaction distances. 
+
+\section{Peak-calling in the interaction space}
+Filtering can also be performed to select for peaks in the interaction space.
+This refers to bin pairs with substantially more reads than its neighbours.
+The \code{enrichedGap} function computes an enrichment value for each bin pair, defined as the log-fold change of its abundance against its neighbours.
+Those bin pairs with high enrichment values can then be retained.
+Note that the function requires data without any filtering.
+Thus, to avoid overloading the machine memory, it may be prudent to analyze each pair of chromosomes separately.
+
+<<>>=
+chr1.data <- squareCounts(input, reform(mm.param, restrict="chr1"), width=new.bin.size)
+enrich.chr1 <- enrichedGap(chr1.data, width=new.bin.size, flank=5)
+summary(enrich.chr1)   
+@
+
+More specifically, the function partitions the neighbourhood into eight different regions around the target bin pair.
+The average abundance across each region is computed, and the region with the largest abundance is chosen.
+The enrichment value is defined as the log-fold change between the abundances of the target bin pair and the chosen region.
+These regions are designed to capture any high-intensity structural features like TADs, compartments or banding patterns \citep{rao2014kilobase} that might be present.
+Thus, any bin pair lying within one of these features will be compared to other high-abundance bin pairs from the same feature.
+Otherwise, peaks may be spuriously detected at the feature boundary, where the neighbourhood is diluted by low-abundance bin pairs outside of the feature.
+
+Some adjustment can also be performed to account for distance biases.
+A loess curve is fitted to the average abundances against the log-distances, and the fitted value is subtracted from the abundance for each intra-chromosomal bin pair.
+This allows a valid comparison between bin pairs at different distances in the interaction space (assuming that the distance effect is uninteresting, e.g., due to compaction).
+Of course, this is not required for inter-chromosomal bin pairs, and can be turned off altogether by setting \code{trend="none"}.
+
+In practice, filtering of enrichment values should be combined with filtering on absolute abundances.
+This eliminates low-abundance bin pairs with high enrichment values, e.g., when the surrounding neighbourhood is empty.
+The example below retains those bin pairs with average abundances and enrichment values above 1.
+Both thresholds are arbitrarily chosen as they ultimately depend on what the user considers to be interesting.
+
+<<>>=
+chr1.ab <- aveLogCPM(asDGEList(chr1.data))
+keep <- enrich.chr1 > 1 & chr1.ab > 1
+sum(keep)
+@
+
+This filtering strategy can be evaluated by examining the interaction space around each putative peak (see Chapter~\ref{chap:plaid}).
+Briefly, the colour intensity of each ``pixel'' is proportional to the number of read pairs between the corresponding loci on each axis.
+Red boxes mark the bin pairs retained by filtering, where each side represents a bin.
+In both examples, the bin pairs correspond nicely to punctate high-intensity contacts in the interaction space.
+
+\begin{center}
+<<fig=TRUE,echo=FALSE,height=6,width=10>>=
+#which(keep)[order(enrich.chr1[keep], decreasing=TRUE)]
+#plotPlaid(input[3], param=mm.param, width=2.5e4, cap=20, col="black",
+#	anchor=resize(anchors(chr1.data[chosen]), fix="center", width=1e6),
+#	target=resize(targets(chr1.data[chosen]), fix="center", width=1e6))
+a.list <- GRanges("chr1", IRanges(
+			c(150402687, 179710378),
+			c(150501589, 179796841)))
+t.list <- GRanges("chr1", IRanges(
+			c(139400813, 150402687),
+			c(139499958, 150501589)))
+capped <- c(20, 10)
+par(mfrow=c(1,2))
+for (chosen in 1:length(a.list)) { 
+	if (!any(anchors(chr1.data[keep])==a.list[chosen] & targets(chr1.data[keep])==t.list[chosen])) { stop("can't find example for peak-calling") }
+	plotPlaid(input[3], param=mm.param, width=2.5e4, cap=capped[chosen], col="black",
+			anchor=resize(a.list[chosen], fix="center", width=1e6),
+			target=resize(t.list[chosen], fix="center", width=1e6),
+			main=paste("Example", chosen))
+	box()
+	rect(start(a.list[chosen]), start(t.list[chosen]),
+		end(a.list[chosen]), end(t.list[chosen]), border="red")
+}
+@
 
 \section{Summary of the filtering strategies}
 Each filtering strategy is arbitrarily tunable, as one can simply increase or decrease the minimum fold change required for retention.
@@ -1648,6 +1717,7 @@ An alternative approach is to store the entirety of the \code{smaller.data} in a
 Any interesting nested changes can then be interactively identified for a given parent.
 
 \section{Visualization with plaid plots}
+\label{chap:plaid}
 
 \subsection{Using conventional plaid plots}
 Plaid plots can be used to visualize the distribution of read pairs in the interaction space \citep{lieberman2009comprehensive}. 
