@@ -19,15 +19,17 @@ enrichedGap(data, bin.size, flank=3, trend=c("global", "none", "chr"),
 }
 
 \details{
-For a target bin pair in \code{data}, this function will compute the mean abundance for each of 4 quadrants.
+For a target bin pair in \code{data}, this function will compute the mean abundance for each of 8 neighbourhoods, i.e., quadrants or extensions.
 Each quadrant is a square with side lengths equal to \code{flank}, positioned such that the target bin pair lies at the corner of each quadrant.
-The mean abundance for each quadrant is defined as the mean of the (distance-adjusted) average counts for all constituent bin pairs in that quadrant.
-The local background is defined as the maximum mean abundance across all quadrants.
+In contrast, each extension is a rectangle with dimensions of \code{(1, flank)} or \code{(flank, 1)}, where the target bin pair makes up the first or last of that rectangle.
+For each neighbourhood, the mean abundance is defined as the mean of the (distance-adjusted) average counts for all constituent bin pairs in that quadrant, excluding the target bin pair.
+The local background is defined as the maximum mean abundance across all neighbourhoods.
 The enrichment value is then defined as the the difference between the bin pair abundance and its local background.
 
 The idea is that bin pairs with high enrichments are likely to represent punctate interactions between clearly defined loci.
-The maximum-quadrant strategy is designed to mitigate the effects of structural features (e.g., TADs, compartments) in the interaction space.
-This ensures that the local background will be high for all bin pairs within these features.
+Selecting for high enrichments can then select for these peak-like features in the interaction space.
+The maximizing strategy is designed to mitigate the effects of structural features (e.g., TADs, compartments, banding effects).
+The local background of at least one neighbourhood will be high for all bin pairs within these features.
 Otherwise, the background will be diluted by low-intensity space for bin pairs on the edge of the features.
 This results in spuriously high enrichment values, such that filtering on enrichments will be misleading.
 
@@ -70,4 +72,8 @@ head(enrichedGap(data, bin.size=40, flank=5))
 head(enrichedGap(data, bin.size=40, flank=1))
 
 head(enrichedGap(data, trend="none"))
+}
+
+\references{
+Rao S et al. (2014). A 3D map of the human genome at kilobase resolution reveals principles of chromatin looping. \emph{Cell}. 159, 1665-1690.
 }

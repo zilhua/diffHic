@@ -1,7 +1,7 @@
 
 R version 3.1.2 (2014-10-31) -- "Pumpkin Helmet"
 Copyright (C) 2014 The R Foundation for Statistical Computing
-Platform: i686-pc-linux-gnu (32-bit)
+Platform: x86_64-unknown-linux-gnu (64-bit)
 
 R is free software and comes with ABSOLUTELY NO WARRANTY.
 You are welcome to redistribute it under certain conditions.
@@ -36,24 +36,27 @@ Type 'q()' to quit R.
 > # Defining some odds and ends.
 > 
 > lower.left <- function(x) { 
-+     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-+     out[nrow(x),1] <- FALSE
-+     out
++ 	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++ 	out[nrow(x),1] <- FALSE
++ 	out
 + }
 > upper.right <- function(x) { 
-+     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-+     out[1, ncol(x)] <- FALSE
-+     out
++ 	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++ 	out[1, ncol(x)] <- FALSE
++ 	out
 + }
 > upper.left <- function(x) { 
-+     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-+     out[1,1] <- FALSE
-+     out    
++ 	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++ 	out[1,1] <- FALSE
++ 	out	
 + }
 > lower.right <- function(x) { 
-+     out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-+     out[nrow(x), ncol(x)] <- FALSE
-+     out
++ 	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++ 	out[nrow(x), ncol(x)] <- FALSE
++ 	out
++ }
+> get.all <- function(x) {
++ 	matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
 + }
 > 
 > comp <- function(npairs, chromos, flanking, prior=2) {
@@ -72,7 +75,7 @@ Type 'q()' to quit R.
 + 	chosen <- sample(nrow(all.pairs), npairs)
 + 	indices <- unlist(sapply(chromos, FUN=function(x) { 1:x }), use.names=FALSE)
 + 	data <- DIList(counts=counts, anchors=aid[chosen], targets=tid[chosen],
-+ 	    totals=rep(1e6, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(indices, indices)))
++ 		totals=rep(1e6, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(indices, indices)))
 + 	data@region$nfrags <- rep(1:3, length.out=nbins)
 + 	
 + 	# Computing the reference enrichment value.
@@ -86,66 +89,82 @@ Type 'q()' to quit R.
 + 	first.id <- lapply(split(1:nbins, all.chrs), FUN=min)
 + 
 + 	for (cpair in names(by.chr.pair)) { 
-+ 	    cur.pairs <- by.chr.pair[[cpair]]
-+ 	    two.chrs <- strsplit(cpair, "\\.")[[1]]
-+ 	    current <- data[cur.pairs,]
-+ 	    rel.ab <- 2^(aveLogCPM(counts(current), lib.size=totals(current), prior.count=0) 
++ 		cur.pairs <- by.chr.pair[[cpair]]
++ 		two.chrs <- strsplit(cpair, "\\.")[[1]]
++ 		current <- data[cur.pairs,]
++ 		rel.ab <- 2^(aveLogCPM(counts(current), lib.size=totals(current), prior.count=0) 
 + 			+ log2(mean(totals(current))/1e6))
 + 
-+ 	    # Setting up the interaction space.
-+ 	    a.dex <- anchors(current, id=TRUE) - first.id[[two.chrs[1]]] + 1L
-+ 	    t.dex <- targets(current, id=TRUE) - first.id[[two.chrs[2]]] + 1L
-+ 	    alen <- chromos[[two.chrs[1]]]
-+ 	    tlen <- chromos[[two.chrs[2]]]
-+ 	    inter.space <- matrix(0L, nrow=alen, ncol=tlen)
-+ 	    inter.space[(t.dex-1)*alen + a.dex] <- 1:nrow(current) # column major.
-+ 	    valid <- matrix(TRUE, nrow=alen, ncol=tlen)
-+ 	    if (two.chrs[1]==two.chrs[2]) { valid[upper.tri(valid)] <- FALSE }
++ 		# Setting up the interaction space.
++ 		a.dex <- anchors(current, id=TRUE) - first.id[[two.chrs[1]]] + 1L
++ 		t.dex <- targets(current, id=TRUE) - first.id[[two.chrs[2]]] + 1L
++ 		alen <- chromos[[two.chrs[1]]]
++ 		tlen <- chromos[[two.chrs[2]]]
++ 		inter.space <- matrix(0L, nrow=alen, ncol=tlen)
++ 		inter.space[(t.dex-1)*alen + a.dex] <- 1:nrow(current) # column major.
++ 		valid <- matrix(TRUE, nrow=alen, ncol=tlen)
++ 		if (two.chrs[1]==two.chrs[2]) { valid[upper.tri(valid)] <- FALSE }
 + 
-+ 	    output <- numeric(nrow(current))
-+ 	    for (pair in 1:nrow(current)) {
-+ 		collected <- numeric(4)
++ 		output <- numeric(nrow(current))
++ 		for (pair in 1:nrow(current)) {
++ 		collected <- numeric(8)
 + 		ax <- a.dex[pair]
 + 		tx <- t.dex[pair]
 + 
-+ 		for (quad in 1:4) { 
-+ 		    if (quad==1L) {
-+ 			cur.a <- ax + 0:flanking
-+ 			cur.t <- tx + 0:flanking
-+ 			keep <- upper.left
-+ 		    } else if (quad==2L) {
-+ 			cur.a <- ax - flanking:0
-+ 			cur.t <- tx + 0:flanking
-+ 			keep <- lower.left
-+ 		    } else if (quad==3L) { 
-+ 			cur.a <- ax + 0:flanking
-+ 			cur.t <- tx - flanking:0
-+ 			keep <- upper.right 
-+ 		    } else {
-+ 			cur.a <- ax - flanking:0
-+ 			cur.t <- tx - flanking:0
-+ 			keep <- lower.right
-+ 		    }
++ 		for (quad in 1:8) { 
++ 			if (quad==1L) {
++ 				cur.a <- ax + 0:flanking
++ 				cur.t <- tx + 0:flanking
++ 				keep <- upper.left
++ 			} else if (quad==2L) {
++ 				cur.a <- ax - flanking:0
++ 				cur.t <- tx + 0:flanking
++ 				keep <- lower.left
++ 			} else if (quad==3L) { 
++ 				cur.a <- ax + 0:flanking
++ 				cur.t <- tx - flanking:0
++ 				keep <- upper.right 
++ 			} else if (quad==4L) {
++ 				cur.a <- ax - flanking:0
++ 				cur.t <- tx - flanking:0
++ 				keep <- lower.right
++ 			} else if (quad==5L) {
++ 				cur.a <- ax + 1:flanking
++ 				cur.t <- tx
++ 				keep <- get.all
++ 			} else if (quad==6L) {
++ 				cur.a <- ax - flanking:1
++ 				cur.t <- tx
++ 				keep <- get.all
++ 			} else if (quad==7L) {
++ 				cur.a <- ax
++ 				cur.t <- tx + 1:flanking
++ 				keep <- get.all
++ 			} else if (quad==8L) {
++ 				cur.a <- ax
++ 				cur.t <- tx - flanking:1
++ 				keep <- get.all
++ 			} 
 + 	
-+ 		    # Selecting the relevant entries for the chosen quadrant.
-+ 		    indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
-+ 			    out <- (y-1)*alen + x
-+ 			    out[x > alen | x < 1 | y > tlen | y < 1] <- -1
-+ 			    return(out)
-+ 		    })
-+ 		    indices <- indices[keep(indices)]
-+ 		    indices <- indices[indices > 0]
-+ 		    indices <- indices[valid[indices]]
++ 			# Selecting the relevant entries for the chosen quadrant.
++ 			indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
++ 				out <- (y-1)*alen + x
++ 				out[x > alen | x < 1 | y > tlen | y < 1] <- -1
++ 				return(out)
++ 			})
++ 			indices <- indices[keep(indices)]
++ 			indices <- indices[indices > 0]
++ 			indices <- indices[valid[indices]]
 + 
-+ 		    # Computing the average across this quadrant.
-+ 		    relevant.rows <- inter.space[indices]
-+ 		    is.zero <- relevant.rows==0L		    
-+ 		    collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
++ 			# Computing the average across this quadrant.
++ 			relevant.rows <- inter.space[indices]
++ 			is.zero <- relevant.rows==0L			
++ 			collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
 + 		}
 + 		
 + 		output[pair] <- log2((rel.ab[pair]+prior)/(max(collected, na.rm=TRUE)+prior))
-+ 	    }
-+ 	    final.ref[cur.pairs] <- output
++ 		}
++ 		final.ref[cur.pairs] <- output
 + 	}
 + 
 + 	if (any(abs(bg-final.ref) > (0.001+abs(bg))*1e-6)) { stop("mismatch in relative enrichment values") }
@@ -157,47 +176,47 @@ Type 'q()' to quit R.
 > 
 > set.seed(3427675)
 > comp(10, c(chrA=10), 5)
-[1] 1.0728329 0.8838070 0.5219527 1.5034482 0.9411063 1.1250285
+[1] 0.5711567 0.8838070 0.5219527 1.0418202 0.9411063 0.6674247
 > comp(100, c(chrA=10, chrB=30, chrC=20), 5)
-[1] 1.494109 1.486739 1.768536 1.625073 1.397335 1.964896
+[1] 1.494109 1.304006 1.768536 1.393481 1.099536 1.964896
 > comp(100, c(chrA=10, chrC=20), 5)
-[1] 0.7324501 0.8659071 1.4793651 1.2334901 1.1606162 0.5849625
+[1] 0.7324501 0.5594274 1.2123036 1.2334901 0.8624965 0.5849625
 > comp(100, c(chrA=10, chrB=5, chrC=20), 5)
-[1]  1.1491434  1.4919603  1.3652122  0.7041757  0.9581220 -0.6026645
+[1]  0.7369656  1.1575413  1.1355150  0.7041757  0.4516960 -0.6026645
 > comp(100, c(chrA=20, chrB=5), 5)
-[1] 1.2527661 0.9377157 0.6780719 0.9846520 0.6968184 0.6951454
+[1]  1.252766e+00  7.369656e-01  0.000000e+00  2.294818e-01  4.043903e-01
+[6] -1.281371e-15
 > 
 > comp(100, c(chrA=10, chrB=30, chrC=20), 10)
-[1] 1.746383 1.685010 1.682091 1.327488 1.797227 1.610958
+[1] 1.209096 1.685010 1.584963 1.300509 1.797227 1.277534
 > comp(100, c(chrA=10, chrC=20), 10)
-[1] 0.5650629 1.4932463 0.9198297 1.2879808 1.2587539 1.4363537
+[1]  0.16664987  1.49324633 -0.04730571  1.28798076  0.80735492  0.68965988
 > comp(100, c(chrA=10, chrB=5, chrC=20), 10)
-[1] 1.835841 1.502500 1.377070 1.337035 1.108934 1.039171
+[1] 1.5376568 1.5025003 1.3625701 0.6611981 1.1089344 0.0931094
 > comp(100, c(chrA=20, chrB=10), 10)
-[1] 0.9795938 1.3964990 1.7138125 0.1098776 1.2062163 1.2296758
+[1]  0.3468028  1.3433017  1.7138125 -0.3598959  0.6520767  1.0191088
 > 
 > comp(200, c(chrA=10, chrB=30, chrC=20), 3)
-[1] 1.497500 1.687532 1.584963 1.237039 1.396696 1.509014
+[1] 1.497500 1.687532 1.584963 1.074768 1.014647 1.509014
 > comp(200, c(chrA=10, chrC=20), 3)
-[1] -0.08285693  0.89600228  0.10904276  0.30863127  0.65112942  0.39231742
+[1] -0.11164536  0.89600228 -0.35147237  0.09192249  0.63558857  0.07038933
 > comp(200, c(chrA=10, chrB=5, chrC=20), 3)
-[1] 0.80735492 0.81942775 0.25276607 0.54780950 0.08246216 1.23018553
+[1] 0.34792330 0.81942775 0.25276607 0.54780950 0.08246216 0.83494075
 > comp(200, c(chrA=20, chrB=3), 3)
-[1]  0.04090794 -0.17508671 -0.01861568  0.55101517  0.16889487 -0.16349873
+[1] -0.09019781 -0.17508671 -0.20353339  0.55101517  0.01380580 -0.22239242
 > 
 > comp(200, c(chrA=10, chrB=30, chrC=20), 1)
-[1] 1.8579810 2.1699250 0.2537566 0.6109577 1.4594316 0.8804184
+[1]  1.85798100  2.16992500 -0.33120591  0.61095771  0.45943162 -0.05246742
 > comp(200, c(chrA=10, chrC=20), 1)
-[1]  0.2552571  0.3439544  0.7325197 -0.2223924  0.5584903  0.1549747
+[1]  0.2552571 -0.2035334  0.3625701 -0.2537566  0.5584903 -0.1876270
 > comp(200, c(chrA=10, chrB=5, chrC=20), 1)
-[1]  0.2115041 -0.8930848  1.0931094  1.2879808  0.5849625  0.4306344
+[1] -0.20353339 -0.89308480  0.14201900  1.28798076  0.04580369  0.43063435
 > comp(200, c(chrA=20, chrB=5), 1)
-[1] -2.941831e-01 -4.405726e-01 -1.069152e-01 -1.089344e-01  3.203427e-16
-[6]  4.995710e-01
+[1] -0.4405726 -0.6189098 -0.6571123 -0.1089344 -0.6214884  0.4995710
 > 
 > ###################################################################################################
 > 
 > 
 > proc.time()
    user  system elapsed 
- 24.864   0.280  25.174 
+ 11.337   0.174  11.526 

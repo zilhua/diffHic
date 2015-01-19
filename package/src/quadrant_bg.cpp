@@ -1,10 +1,13 @@
 #include "diffhic.h"
 
+/* Setting up a couple of structures to direct how the additions are performed.
+ */
+
 struct basic {
 	basic(int w, int t, bool i) : width(w), level(0), intra(i), tlen(t) {}
 	virtual void set (int, int)=0;
 	virtual ~basic() {};
-	bool bump_level () { 
+	virtual bool bump_level () { 
 		if (level >= width) { return false; }
 		++level;
 		return true;
@@ -20,7 +23,7 @@ protected:
 				right=row+1; 
 				if (left > right) { left=right; }
 			}
-		} else if (right > tlen) { right=tlen; }
+		} else if (right > tlen) { right=tlen; } // For intra's, right will hit diagonal; no need to worry about tlen.
 	}
 	void set_lefty (int a, int t) {
 		left=t-width;
@@ -45,6 +48,8 @@ struct upperleft : public basic {
 		set_lefty(a, t);
 	}
 };
+
+// For each quadrant.
 
 struct upperright : public basic {
 	upperright(int w, int t, bool i) : basic(w, t, i) {}
@@ -73,6 +78,50 @@ struct lowerright : public basic {
 	}
 };
 
+// Same again, for each horizontal/vertical extension.
+
+struct upper : public basic {
+	upper(int w, int t, bool i) : basic(w, t, i) { level=1; }
+	~upper() {};
+	void set(int a, int t) {
+		set_top(a);
+		left=t;
+		right=t+1; // No need to restrain, we're moving away from the diagonal.
+	}	
+};
+
+struct lower : public basic {
+	lower(int w, int t, bool i) : basic(w, t, i) { level=1; }
+	~lower() {};
+	void set(int a, int t) { 
+		set_bottom(a);
+		left=t;
+		right=t+1;
+		restrain(); 
+	}	
+};
+
+struct left : public basic  {
+	left(int w, int t, bool i) : basic(w, t, i) {}
+	~left() {};
+	bool bump_level() { return false; } // First bump is the last.
+	void set(int a, int t) {
+		row=a;
+		set_lefty(a, t);
+	}
+};
+
+struct right : public basic { 
+	right(int w, int t, bool i) : basic(w, t, i) {}
+	~right() {};
+	bool bump_level() { return false; }
+	void set(int a, int t) {
+		row=a;
+		set_righty(a, t);
+	}
+};
+
+/* Main loop */
 
 extern "C" {
 
@@ -124,14 +173,22 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 		upperright ur(flank_width, tlength, intrachr);
 		lowerleft ll(flank_width, tlength, intrachr);
 		lowerright lr(flank_width, tlength, intrachr);		
+		upper up(flank_width, tlength, intrachr);
+		lower lo(flank_width, tlength, intrachr);
+		left le(flank_width, tlength, intrachr);
+		right ri(flank_width, tlength, intrachr);
 		basic* current=NULL;
 
-		for (int quadtype=0; quadtype<4; ++quadtype) {
+		for (int quadtype=0; quadtype<8; ++quadtype) {
 			switch(quadtype) { 
 				case 0: current=&ul; break;
 				case 1: current=&ur; break;
 				case 2: current=&ll; break;
 				case 3: current=&lr; break;
+				case 4: current=&up; break;
+				case 5: current=&lo; break;
+				case 6: current=&le; break;
+				case 7: current=&ri; break;
 			}
 			for (curpair=0; curpair<npair; ++curpair) { 
 				nptr[curpair]=0; 
@@ -178,7 +235,8 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 			} while (current->bump_level());
 
 			// Checking if it exceeds the previous maxima.
-			for (curpair=0; curpair<npair; ++curpair) { 
+			for (curpair=0; curpair<npair; ++curpair) {
+// 			    if (quadtype==4) { Rprintf("%i %i %i\n", curpair+1, temp_int[curpair], temp_dec[curpair]); }	
 				if (nptr[curpair]) {
 					temp_val = (temp_int[curpair] + temp_dec[curpair]/multiplier)/nptr[curpair];
 					if (optr[curpair] < temp_val) { optr[curpair]=temp_val; }
