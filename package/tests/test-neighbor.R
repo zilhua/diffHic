@@ -17,24 +17,27 @@ suppressPackageStartupMessages(require(edgeR))
 # Defining some odds and ends.
 
 lower.left <- function(x) { 
-    out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-    out[nrow(x),1] <- FALSE
-    out
+	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
+	out[nrow(x),1] <- FALSE
+	out
 }
 upper.right <- function(x) { 
-    out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-    out[1, ncol(x)] <- FALSE
-    out
+	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
+	out[1, ncol(x)] <- FALSE
+	out
 }
 upper.left <- function(x) { 
-    out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-    out[1,1] <- FALSE
-    out    
+	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
+	out[1,1] <- FALSE
+	out	
 }
 lower.right <- function(x) { 
-    out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
-    out[nrow(x), ncol(x)] <- FALSE
-    out
+	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
+	out[nrow(x), ncol(x)] <- FALSE
+	out
+}
+get.all <- function(x) {
+	matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
 }
 
 comp <- function(npairs, chromos, flanking, prior=2) {
@@ -53,7 +56,7 @@ comp <- function(npairs, chromos, flanking, prior=2) {
 	chosen <- sample(nrow(all.pairs), npairs)
 	indices <- unlist(sapply(chromos, FUN=function(x) { 1:x }), use.names=FALSE)
 	data <- DIList(counts=counts, anchors=aid[chosen], targets=tid[chosen],
-	    totals=rep(1e6, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(indices, indices)))
+		totals=rep(1e6, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(indices, indices)))
 	data@region$nfrags <- rep(1:3, length.out=nbins)
 	
 	# Computing the reference enrichment value.
@@ -67,66 +70,82 @@ comp <- function(npairs, chromos, flanking, prior=2) {
 	first.id <- lapply(split(1:nbins, all.chrs), FUN=min)
 
 	for (cpair in names(by.chr.pair)) { 
-	    cur.pairs <- by.chr.pair[[cpair]]
-	    two.chrs <- strsplit(cpair, "\\.")[[1]]
-	    current <- data[cur.pairs,]
-	    rel.ab <- 2^(aveLogCPM(counts(current), lib.size=totals(current), prior.count=0) 
+		cur.pairs <- by.chr.pair[[cpair]]
+		two.chrs <- strsplit(cpair, "\\.")[[1]]
+		current <- data[cur.pairs,]
+		rel.ab <- 2^(aveLogCPM(counts(current), lib.size=totals(current), prior.count=0) 
 			+ log2(mean(totals(current))/1e6))
 
-	    # Setting up the interaction space.
-	    a.dex <- anchors(current, id=TRUE) - first.id[[two.chrs[1]]] + 1L
-	    t.dex <- targets(current, id=TRUE) - first.id[[two.chrs[2]]] + 1L
-	    alen <- chromos[[two.chrs[1]]]
-	    tlen <- chromos[[two.chrs[2]]]
-	    inter.space <- matrix(0L, nrow=alen, ncol=tlen)
-	    inter.space[(t.dex-1)*alen + a.dex] <- 1:nrow(current) # column major.
-	    valid <- matrix(TRUE, nrow=alen, ncol=tlen)
-	    if (two.chrs[1]==two.chrs[2]) { valid[upper.tri(valid)] <- FALSE }
+		# Setting up the interaction space.
+		a.dex <- anchors(current, id=TRUE) - first.id[[two.chrs[1]]] + 1L
+		t.dex <- targets(current, id=TRUE) - first.id[[two.chrs[2]]] + 1L
+		alen <- chromos[[two.chrs[1]]]
+		tlen <- chromos[[two.chrs[2]]]
+		inter.space <- matrix(0L, nrow=alen, ncol=tlen)
+		inter.space[(t.dex-1)*alen + a.dex] <- 1:nrow(current) # column major.
+		valid <- matrix(TRUE, nrow=alen, ncol=tlen)
+		if (two.chrs[1]==two.chrs[2]) { valid[upper.tri(valid)] <- FALSE }
 
-	    output <- numeric(nrow(current))
-	    for (pair in 1:nrow(current)) {
-		collected <- numeric(4)
+		output <- numeric(nrow(current))
+		for (pair in 1:nrow(current)) {
+		collected <- numeric(8)
 		ax <- a.dex[pair]
 		tx <- t.dex[pair]
 
-		for (quad in 1:4) { 
-		    if (quad==1L) {
-			cur.a <- ax + 0:flanking
-			cur.t <- tx + 0:flanking
-			keep <- upper.left
-		    } else if (quad==2L) {
-			cur.a <- ax - flanking:0
-			cur.t <- tx + 0:flanking
-			keep <- lower.left
-		    } else if (quad==3L) { 
-			cur.a <- ax + 0:flanking
-			cur.t <- tx - flanking:0
-			keep <- upper.right 
-		    } else {
-			cur.a <- ax - flanking:0
-			cur.t <- tx - flanking:0
-			keep <- lower.right
-		    }
+		for (quad in 1:8) { 
+			if (quad==1L) {
+				cur.a <- ax + 0:flanking
+				cur.t <- tx + 0:flanking
+				keep <- upper.left
+			} else if (quad==2L) {
+				cur.a <- ax - flanking:0
+				cur.t <- tx + 0:flanking
+				keep <- lower.left
+			} else if (quad==3L) { 
+				cur.a <- ax + 0:flanking
+				cur.t <- tx - flanking:0
+				keep <- upper.right 
+			} else if (quad==4L) {
+				cur.a <- ax - flanking:0
+				cur.t <- tx - flanking:0
+				keep <- lower.right
+			} else if (quad==5L) {
+				cur.a <- ax + 1:flanking
+				cur.t <- tx
+				keep <- get.all
+			} else if (quad==6L) {
+				cur.a <- ax - flanking:1
+				cur.t <- tx
+				keep <- get.all
+			} else if (quad==7L) {
+				cur.a <- ax
+				cur.t <- tx + 1:flanking
+				keep <- get.all
+			} else if (quad==8L) {
+				cur.a <- ax
+				cur.t <- tx - flanking:1
+				keep <- get.all
+			} 
 	
-		    # Selecting the relevant entries for the chosen quadrant.
-		    indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
-			    out <- (y-1)*alen + x
-			    out[x > alen | x < 1 | y > tlen | y < 1] <- -1
-			    return(out)
-		    })
-		    indices <- indices[keep(indices)]
-		    indices <- indices[indices > 0]
-		    indices <- indices[valid[indices]]
+			# Selecting the relevant entries for the chosen quadrant.
+			indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
+				out <- (y-1)*alen + x
+				out[x > alen | x < 1 | y > tlen | y < 1] <- -1
+				return(out)
+			})
+			indices <- indices[keep(indices)]
+			indices <- indices[indices > 0]
+			indices <- indices[valid[indices]]
 
-		    # Computing the average across this quadrant.
-		    relevant.rows <- inter.space[indices]
-		    is.zero <- relevant.rows==0L		    
-		    collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
+			# Computing the average across this quadrant.
+			relevant.rows <- inter.space[indices]
+			is.zero <- relevant.rows==0L			
+			collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
 		}
 		
 		output[pair] <- log2((rel.ab[pair]+prior)/(max(collected, na.rm=TRUE)+prior))
-	    }
-	    final.ref[cur.pairs] <- output
+		}
+		final.ref[cur.pairs] <- output
 	}
 
 	if (any(abs(bg-final.ref) > (0.001+abs(bg))*1e-6)) { stop("mismatch in relative enrichment values") }
