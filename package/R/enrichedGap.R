@@ -1,4 +1,4 @@
-enrichedGap <- function(data, bin.size, flank=3, trend=c("global", "none", "chr"), prior.count=2, span=0.3)
+enrichedGap <- function(data, width, flank=3, trend=c("global", "none", "chr"), prior.count=2, span=0.3)
 # This function identifies the highest-abundance neighbour in the interaction space
 # for each bin pair in `data`. The aim is to compare the abundance of each element
 # with the abundance of its neighbour. Some adjustment is necessary to account for
@@ -21,11 +21,11 @@ enrichedGap <- function(data, bin.size, flank=3, trend=c("global", "none", "chr"
 		all.ab <- aveLogCPM(asDGEList(data), prior.count=0)
     		fitted <- numeric(nrow(data))
 	} else {
-    		if (missing(bin.size)) { 
-    			warning("guessing bin size from median region width")
-    			bin.size <- median(width(regions(data)))
+    		if (missing(width)) { 
+    			warning("guessing width from median region width")
+    			width <- median(width(regions(data)))
     		}
-    		log.dist <- log10(getDistance(data) + bin.size)
+    		log.dist <- log10(getDistance(data) + width)
 		is.intra <- !is.na(log.dist)
 		fitted <- all.ab <- numeric(nrow(data))
 		if (!all(is.intra)) { 
