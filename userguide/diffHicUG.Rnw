@@ -39,13 +39,13 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\title{\pkgname{}: Differential analysis of ChIA-PET data \\ \vspace{0.2in} User's Guide}
+\title{\pkgname{}: Differential analysis of Hi-C data \\ \vspace{0.2in} User's Guide}
 \author{Aaron Lun}
 
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 7 November 2014}
+Last revised 20 December 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
