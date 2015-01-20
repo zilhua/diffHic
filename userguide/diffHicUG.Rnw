@@ -1065,6 +1065,7 @@ for (chosen in 1:length(a.list)) {
 		end(a.list[chosen]), end(t.list[chosen]), border="red")
 }
 @
+\end{center}
 
 \section{Summary of the filtering strategies}
 Each filtering strategy is arbitrarily tunable, as one can simply increase or decrease the minimum fold change required for retention.
