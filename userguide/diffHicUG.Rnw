@@ -1008,16 +1008,23 @@ Thus, to avoid overloading the machine memory, it may be prudent to analyze each
 
 <<>>=
 chr1.data <- squareCounts(input, reform(mm.param, restrict="chr1"), width=new.bin.size)
-enrich.chr1 <- enrichedGap(chr1.data, width=new.bin.size, flank=5)
+enrich.chr1 <- enrichedGap(chr1.data, width=new.bin.size)
 summary(enrich.chr1)   
 @
 
-More specifically, the function partitions the neighbourhood into eight different regions around the target bin pair.
+More specifically, the function partitions the neighbourhood into several different regions around the target bin pair.
 The average abundance across each region is computed, and the region with the largest abundance is chosen.
 The enrichment value is defined as the log-fold change between the abundances of the target bin pair and the chosen region.
 These regions are designed to capture any high-intensity structural features like TADs, compartments or banding patterns \citep{rao2014kilobase} that might be present.
 Thus, any bin pair lying within one of these features will be compared to other high-abundance bin pairs from the same feature.
 Otherwise, peaks may be spuriously detected at the feature boundary, where the neighbourhood is diluted by low-abundance bin pairs outside of the feature.
+
+% We use a different definition from Rao, in that we ignore the donut and we
+% instead test each quadrant.  I think that this provides better protection
+% against compartments, where it'll be the top-right or bottom-left/right which
+% has the high-intensity structure. In theory, the vertical/horizontal stripes
+% also protect against compartments, but that depends on those compartments
+% having well-defined boundaries.
 
 Some adjustment can also be performed to account for distance biases.
 A loess curve is fitted to the average abundances against the log-distances, and the fitted value is subtracted from the abundance for each intra-chromosomal bin pair.
@@ -1066,6 +1073,11 @@ for (chosen in 1:length(a.list)) {
 }
 @
 \end{center}
+
+Obviously, peak-calling assumes that changes in intensity of broad interactions are not interesting.
+This may not be appropriate for every study.
+Indeed, the definition of ``broad'' depends on the bin size, such that a peak called at large bin sizes may be discarded at lower bin sizes.
+Users are advised to try out the other general filters before proceeding to peak calling, to check that potentially interesting differences are not discarded in the latter step.
 
 \section{Summary of the filtering strategies}
 Each filtering strategy is arbitrarily tunable, as one can simply increase or decrease the minimum fold change required for retention.
