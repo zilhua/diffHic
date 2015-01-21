@@ -20,14 +20,20 @@ enrichedGap(data, width, flank=5, trend=c("global", "none", "chr"),
 
 \details{
 Consider the coordinates of the interaction space in terms of bins, and focus on any particular bin pair (named here as the target bin pair).
-This target bin pair is characterized by six neighbourhood regions; four quadrants and two axial segments.
-Each quadrant is a square with side lengths equal to \code{flank}, positioned such that the target bin pair lies at the corner of each quadrant.
-Each axial segment is a rectangle of dimensions \code{(1, flank*2+1)}, running parallel to one of the axes and containing the target bin pair at the center.
-Of course, the target bin pair itself is not included in either neighbourhood.
+This target bin pair is characterized by four neighbourhood regions, A - D.
+Region A is a square with side lengths equal to \code{flank*2+1}, where the target bin pair is positioned in the center.
+Region B is a square with side lengths equal to \code{flank}, positioned such that the target bin pair lies at the corner furthest from the diagonal (only used for intra-chromosomal targets).
+Region C is a horizontal rectangle with dimensions \code{(1, flank*2+1)}, containing the target bin pair at the center.
+Region D is the vertical counterpart to C.
+Of course, the target bin pair itself is not excluded in the definition of each neighbourhood.
 
-% Axial segments might be better than separate up/down/left/right neighbourhoods, as those run the risk of
+% Segments C and D might be better than separate up/down/left/right neighbourhoods, as those run the risk of
 % being too aggressive if the peak spills over into those neighbourhoods. Spillover is diluted a bit more
 % when you consider up/down together or left/right together, which reduces the problem.
+%
+% Similarly, segment A is probably better than looking at each quadrant separately, as it dilutes out any
+% other peaks in the neighbourhood. It fails to account for off-diagonal structural features, but there
+% don't seem to be that many of them anyway, so maybe that's not an issue.
 
 For a target bin pair in \code{data}, the mean abundance is computed for each of its surrounding neighbourhoods.
 This is defined as the mean of the (distance-adjusted) counts for all constituent bin pairs in that neighbourhood (average counts are used for multiple libraries).
@@ -39,16 +45,25 @@ Selecting for high enrichments can then select for these peak-like features in t
 % If a peak is outside a TAD (but still within flank distance), then the TAD will be partially included in the 
 % background. This could inflate the background abundance and prevent calling of the peak. To avoid this, you'd
 % have to be able to specify the boundaries of the structures in the interaction space, which is complicated.
+% However, most peaks seem to occur at the cap of domains anyway (or, most looping interactions generate their
+% own domain) so it might not be likely to observe a peak outside of a domain. Ah well.
 
 The maximizing strategy is designed to mitigate the effects of structural features.
-Quadrants will capture the high interaction intensity within TADs or compartments, while the axial segments will capture any bands in the interaction space.
-The abundance will be high for any neighbourhood that captures a high-intensity feature, as the average counts will be high for all bin pairs within these features.
+Region B will capture the high interaction intensity within genomic domains like TADs, while the C and D will capture any bands in the interaction space.
+The abundance will be high for any neighbourhood that captures a high-intensity feature, as the average counts will be large for all bin pairs within the features.
 This will then be chosen as the maximum during calculation of enrichment values.
-Otherwise, the background will be diluted by low-intensity space for bin pairs on the edge of the features.
-This results in spuriously high enrichment values.
+Otherwise, if only region A were used, the background abundance would be decreased by low-intensity bin pairs outside of the features.
+This results in spuriously high enrichment values for target bin pairs on the feature boundaries.
+
+The size of \code{flank} requires consideration, as it defines the size of each neighbourhood region.
+If the value is too large, other peaks may be included in the background such that the neighbourhood abundance is inflated.
+On the other hand, interactions that are imperfectly captured by the target bin pair will be counted as part of the neighbourhood, and will increase the neighbourhood abundance.
+In such cases, if \code{flank} is too small, there will not be enough neighbourhood bin pairs to dilute the increase in abundance.
+Both scenarios result in a decrease in enrichment values and loss of power to detect punctate events.
+The default value of 5 seems to work well, though users may wish to test several values for themselves.
 
 Some distance adjustment is necessary to account for the decrease in the abundance with increases in the distance between interacting bins.
-This is done by fitting a loess curve to the log-distance against the average abundance, for all intra-chromosomal bin pairs.
+This is done by fitting a loess curve of span \code{span} to the log-distance against the average abundance, for all intra-chromosomal bin pairs.
 The log-average abundance for each bin pair is then decreased by the fitted value, to obtain a distance-adjusted log-average count.
 The trend can be fitted to all intra-chromosomal bin pairs (if \code{trend="global"}) or for each chromosome separately (if \code{"chr"}).
 Alternatively, no adjustment will be performed if \code{"none"}.

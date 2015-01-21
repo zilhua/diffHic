@@ -4,7 +4,7 @@
  */
 
 struct basic {
-	basic(int w, int t, bool i) : width(w), level(0), intra(i), tlen(t) {}
+	basic(int w, int t, bool i) : width(w), level(0), intra(i), tlen(t), remove_self(false) {}
 	virtual void set (int, int)=0;
 	virtual ~basic() {};
 	virtual bool bump_level () { 
@@ -12,10 +12,11 @@ struct basic {
 		++level;
 		return true;
 	}
+	bool discard_self() { return (level==0 & remove_self); }
 	int row, left, right;
 protected:
 	int level, width, tlen;
-	bool intra;
+	bool intra, remove_self;
 
 	void restrain () {
 		if (left < 0) { left=0; }
@@ -26,65 +27,24 @@ protected:
 			}
 		} else if (right > tlen) { right=tlen; } // For intra's, right will hit diagonal; no need to worry about tlen.
 	}
-	void set_lefty (int a, int t) {
-		left=t-width;
-		right=(level ? t+1 : t);
-		restrain();
-	}
-	void set_righty (int a, int t) {
+};
+
+struct bottomright : public basic { 
+	bottomright(int w, int t, bool i) : basic(w, t, i) {}
+	~bottomright() {};
+	void set(int a, int t) {
+		row=a-level;
 		left=(level ? t : t+1); 
 		right=t+width+1; 
 		restrain();
 	}
-	void set_top (int a) { row=a+level; }
-	void set_bottom (int a) { row=a-level; }
 };
-
-struct upperleft : public basic {
-	upperleft(int w, int t, bool i) : basic(w, t, i) {}
-	~upperleft() {};
-	void set(int a, int t) {
-		set_top(a);
-		set_lefty(a, t);
-	}
-};
-
-// For each quadrant.
-
-struct upperright : public basic {
-	upperright(int w, int t, bool i) : basic(w, t, i) {}
-	~upperright() {};
-	void set(int a, int t) {
-		set_top(a);
-		set_righty(a, t);
-	}
-};
-
-struct lowerleft : public basic {
-	lowerleft(int w, int t, bool i) : basic(w, t, i) {}
-	~lowerleft() {};
-	void set(int a, int t) {
-		set_bottom(a);
-		set_lefty(a, t);
-	}
-};
-
-struct lowerright : public basic { 
-	lowerright(int w, int t, bool i) : basic(w, t, i) {}
-	~lowerright() {};
-	void set(int a, int t) {
-		set_bottom(a);
-		set_righty(a, t);
-	}
-};
-
-// Same again, for each horizontal/vertical extension.
 
 struct updown : public basic {
 	updown(int w, int t, bool i) : basic(w, t, i) { level=-w; }
 	~updown() {};
 	void set(int a, int t) {
-		set_top(a);
+		row=a+level;
 		left=t;
 		right=(level==0 ? t : t+1); 
 		restrain();
@@ -92,15 +52,29 @@ struct updown : public basic {
 };
 
 struct leftright : public basic {
-	leftright(int w, int t, bool i) : basic(w, t, i) {}
+	leftright(int w, int t, bool i) : basic(w, t, i) { remove_self=true; }
 	~leftright() {};
 	bool bump_level() { return false; }
 	void set(int a, int t) { 
 		row=a;
 		left=t-width;
-		right=t+width+1; // Need to get rid of central point manually; see below.
+		right=t+width+1; 
 		restrain(); 
 	}	
+};
+
+struct allaround : public basic {
+	allaround(int w, int t, bool i) : basic(w, t, i) { 
+		remove_self=true; 
+		level=-w;
+	}
+	~allaround() {};
+	void set(int a, int t) {
+		row=a+level;
+		left=t-width;
+		right=t+width+1;
+		restrain();		
+	}
 };
 
 /* Main loop */
@@ -151,22 +125,18 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 		double temp_val;
 
 		// Iterating over all quadrants.
-		upperleft ul(flank_width, tlength, intrachr);
-		upperright ur(flank_width, tlength, intrachr);
-		lowerleft ll(flank_width, tlength, intrachr);
-		lowerright lr(flank_width, tlength, intrachr);		
-		updown updo(flank_width, tlength, intrachr);
-		leftright leri(flank_width, tlength, intrachr);
+		bottomright br(flank_width, tlength, intrachr);		
+		updown ud(flank_width, tlength, intrachr);
+		leftright lr(flank_width, tlength, intrachr);
+		allaround aa(flank_width, tlength, intrachr);
 		basic* current=NULL;
 
-		for (int quadtype=0; quadtype<6; ++quadtype) {
+		for (int quadtype=(intrachr ? 0 : 1); quadtype<4; ++quadtype) {
 			switch(quadtype) { 
-				case 0: current=&ul; break;
-				case 1: current=&ur; break;
-				case 2: current=&ll; break;
-				case 3: current=&lr; break;
-				case 4: current=&updo; break;
-				case 5: current=&leri; break;
+				case 0: current=&br; break;
+				case 1: current=&ud; break;
+				case 2: current=&lr; break;
+				case 3: current=&aa; break;
 			}
 			for (curpair=0; curpair<npair; ++curpair) { 
 				nptr[curpair]=0; 
@@ -204,12 +174,12 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 					}
 
 					if (cur_anchor >= 0) {
-						if (quadtype!=5) { 
+						if (!current->discard_self()) { 
 							temp_int[curpair] += running_sum_int;
 							temp_dec[curpair] += running_sum_dec;
 							nptr[curpair] += right_edge - left_edge; // Figuring out the actual number of boxes.
 						} else {
-							temp_int[curpair] += running_sum_int - biptr[curpair]; // Getting rid of the central point for horizontal stripes.
+							temp_int[curpair] += running_sum_int - biptr[curpair]; 
 							temp_dec[curpair] += running_sum_dec - bdptr[curpair];
 							nptr[curpair] += right_edge - left_edge - 1;
 //						Rprintf("%i L:%i R:%i %i %i\n", cur_anchor, left_edge, right_edge, aptr[curpair], tptr[curpair]);
@@ -224,7 +194,7 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 				if (nptr[curpair]) {
 					temp_val = (temp_int[curpair] + temp_dec[curpair]/multiplier)/nptr[curpair];
 					if (optr[curpair] < temp_val) { optr[curpair]=temp_val; }
-//	 			    if (quadtype==5) { Rprintf("%i %i %.3f\n", aptr[curpair]+1, tptr[curpair]+1, temp_val); }
+//	 			    Rprintf("%i %i %.3f\n", aptr[curpair]+1, tptr[curpair]+1, temp_val);
 				}
 			}
 		}

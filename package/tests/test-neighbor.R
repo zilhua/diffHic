@@ -86,40 +86,40 @@ comp <- function(npairs, chromos, flanking, prior=2) {
 		inter.space <- matrix(0L, nrow=alen, ncol=tlen)
 		inter.space[(t.dex-1)*alen + a.dex] <- 1:nrow(current) # column major.
 		valid <- matrix(TRUE, nrow=alen, ncol=tlen)
-		if (two.chrs[1]==two.chrs[2]) { valid[upper.tri(valid)] <- FALSE }
+		
+		# Checking if we're working on the same chromosome.
+		if (two.chrs[1]==two.chrs[2]) { 
+			valid[upper.tri(valid)] <- FALSE 
+			starting.dex <- 1L
+		} else {
+			starting.dex <- 2L
+		}
 
 		output <- numeric(nrow(current))
 		for (pair in 1:nrow(current)) {
-			collected <- numeric(6)
+			total.num <- 4L
+			collected <- numeric(total.num)
 			ax <- a.dex[pair]
 			tx <- t.dex[pair]
 
-			for (quad in 1:6) { 
+			for (quad in starting.dex:total.num) {
 				if (quad==1L) {
-					cur.a <- ax + 0:flanking
+					cur.a <- ax - flanking:0
 					cur.t <- tx + 0:flanking
-					keep <- upper.left
+					keep <- lower.left 
 				} else if (quad==2L) {
-					cur.a <- ax - flanking:0
-					cur.t <- tx + 0:flanking
-					keep <- lower.left
-				} else if (quad==3L) { 
-					cur.a <- ax + 0:flanking
-					cur.t <- tx - flanking:0
-					keep <- upper.right 
-				} else if (quad==4L) {
-					cur.a <- ax - flanking:0
-					cur.t <- tx - flanking:0
-					keep <- lower.right
-				} else if (quad==5L) {
 					cur.a <- ax + (-flanking):flanking
 					cur.t <- tx
 					keep <- all.but.middle
-				} else if (quad==6L) {
+				} else if (quad==3L) {
 					cur.a <- ax
 					cur.t <- tx + (-flanking):flanking
 					keep <- all.but.middle
-				} 
+				} else if (quad==4L) {
+					cur.a <- ax + (-flanking):flanking
+					cur.t <- tx + (-flanking):flanking
+					keep <- all.but.middle
+				}
 	
 				# Selecting the relevant entries for the chosen quadrant.
 				indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
