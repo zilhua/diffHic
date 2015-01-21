@@ -18,6 +18,7 @@ protected:
 	bool intra;
 
 	void restrain () {
+		if (left < 0) { left=0; }
 		if (intra) {
 			if (right > row) { 
 				right=row+1; 
@@ -27,7 +28,6 @@ protected:
 	}
 	void set_lefty (int a, int t) {
 		left=t-width;
-		if (left < 0) { left=0; }
 		right=(level ? t+1 : t);
 		restrain();
 	}
@@ -80,45 +80,27 @@ struct lowerright : public basic {
 
 // Same again, for each horizontal/vertical extension.
 
-struct upper : public basic {
-	upper(int w, int t, bool i) : basic(w, t, i) { level=1; }
-	~upper() {};
+struct updown : public basic {
+	updown(int w, int t, bool i) : basic(w, t, i) { level=-w; }
+	~updown() {};
 	void set(int a, int t) {
 		set_top(a);
 		left=t;
-		right=t+1; // No need to restrain, we're moving away from the diagonal.
+		right=(level==0 ? t : t+1); 
+		restrain();
 	}	
 };
 
-struct lower : public basic {
-	lower(int w, int t, bool i) : basic(w, t, i) { level=1; }
-	~lower() {};
+struct leftright : public basic {
+	leftright(int w, int t, bool i) : basic(w, t, i) {}
+	~leftright() {};
+	bool bump_level() { return false; }
 	void set(int a, int t) { 
-		set_bottom(a);
-		left=t;
-		right=t+1;
+		row=a;
+		left=t-width;
+		right=t+width+1; // Need to get rid of central point manually; see below.
 		restrain(); 
 	}	
-};
-
-struct left : public basic  {
-	left(int w, int t, bool i) : basic(w, t, i) {}
-	~left() {};
-	bool bump_level() { return false; } // First bump is the last.
-	void set(int a, int t) {
-		row=a;
-		set_lefty(a, t);
-	}
-};
-
-struct right : public basic { 
-	right(int w, int t, bool i) : basic(w, t, i) {}
-	~right() {};
-	bool bump_level() { return false; }
-	void set(int a, int t) {
-		row=a;
-		set_righty(a, t);
-	}
 };
 
 /* Main loop */
@@ -173,22 +155,18 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 		upperright ur(flank_width, tlength, intrachr);
 		lowerleft ll(flank_width, tlength, intrachr);
 		lowerright lr(flank_width, tlength, intrachr);		
-		upper up(flank_width, tlength, intrachr);
-		lower lo(flank_width, tlength, intrachr);
-		left le(flank_width, tlength, intrachr);
-		right ri(flank_width, tlength, intrachr);
+		updown updo(flank_width, tlength, intrachr);
+		leftright leri(flank_width, tlength, intrachr);
 		basic* current=NULL;
 
-		for (int quadtype=0; quadtype<8; ++quadtype) {
+		for (int quadtype=0; quadtype<6; ++quadtype) {
 			switch(quadtype) { 
 				case 0: current=&ul; break;
 				case 1: current=&ur; break;
 				case 2: current=&ll; break;
 				case 3: current=&lr; break;
-				case 4: current=&up; break;
-				case 5: current=&lo; break;
-				case 6: current=&le; break;
-				case 7: current=&ri; break;
+				case 4: current=&updo; break;
+				case 5: current=&leri; break;
 			}
 			for (curpair=0; curpair<npair; ++curpair) { 
 				nptr[curpair]=0; 
@@ -226,20 +204,27 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 					}
 
 					if (cur_anchor >= 0) {
-						// Figuring out the actual number of boxes.
-						temp_int[curpair] += running_sum_int;
-						temp_dec[curpair] += running_sum_dec;
-						nptr[curpair] += right_edge - left_edge;
+						if (quadtype!=5) { 
+							temp_int[curpair] += running_sum_int;
+							temp_dec[curpair] += running_sum_dec;
+							nptr[curpair] += right_edge - left_edge; // Figuring out the actual number of boxes.
+						} else {
+							temp_int[curpair] += running_sum_int - biptr[curpair]; // Getting rid of the central point for horizontal stripes.
+							temp_dec[curpair] += running_sum_dec - bdptr[curpair];
+							nptr[curpair] += right_edge - left_edge - 1;
+//						Rprintf("%i L:%i R:%i %i %i\n", cur_anchor, left_edge, right_edge, aptr[curpair], tptr[curpair]);
+						}
+
 					}
 				}
 			} while (current->bump_level());
 
 			// Checking if it exceeds the previous maxima.
 			for (curpair=0; curpair<npair; ++curpair) {
-// 			    if (quadtype==4) { Rprintf("%i %i %i\n", curpair+1, temp_int[curpair], temp_dec[curpair]); }	
 				if (nptr[curpair]) {
 					temp_val = (temp_int[curpair] + temp_dec[curpair]/multiplier)/nptr[curpair];
 					if (optr[curpair] < temp_val) { optr[curpair]=temp_val; }
+//	 			    if (quadtype==5) { Rprintf("%i %i %.3f\n", aptr[curpair]+1, tptr[curpair]+1, temp_val); }
 				}
 			}
 		}

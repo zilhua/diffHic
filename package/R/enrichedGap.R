@@ -23,7 +23,7 @@ enrichedGap <- function(data, width, flank=3, trend=c("global", "none", "chr"), 
 	} else {
     		if (missing(width)) { 
     			warning("guessing width from median region width")
-    			width <- median(width(regions(data)))
+    			width <- median(GenomicRanges::width(regions(data)))
     		}
     		log.dist <- log10(getDistance(data) + width)
 		is.intra <- !is.na(log.dist)

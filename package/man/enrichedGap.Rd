@@ -19,19 +19,33 @@ enrichedGap(data, width, flank=3, trend=c("global", "none", "chr"),
 }
 
 \details{
-For a target bin pair in \code{data}, this function will compute the mean abundance for each of 8 neighbourhoods, i.e., quadrants or extensions.
+Consider the coordinates of the interaction space in terms of bins, and focus on any particular bin pair (named here as the target bin pair).
+This target bin pair is characterized by six neighbourhood regions; four quadrants and two axial segments.
 Each quadrant is a square with side lengths equal to \code{flank}, positioned such that the target bin pair lies at the corner of each quadrant.
-In contrast, each extension is a rectangle with dimensions of \code{(1, flank)} or \code{(flank, 1)}, where the target bin pair makes up the first or last of that rectangle.
-For each neighbourhood, the mean abundance is defined as the mean of the (distance-adjusted) average counts for all constituent bin pairs in that quadrant, excluding the target bin pair.
-The local background is defined as the maximum mean abundance across all neighbourhoods.
-The enrichment value is then defined as the the difference between the bin pair abundance and its local background.
+Each axial segment is a rectangle of dimensions \code{(1, flank*2+1)}, running parallel to one of the axes and containing the target bin pair at the center.
+Of course, the target bin pair itself is not included in either neighbourhood.
 
+% Axial segments might be better than separate up/down/left/right neighbourhoods, as those run the risk of
+% being too aggressive if the peak spills over into those neighbourhoods. Spillover is diluted a bit more
+% when you consider up/down together or left/right together, which reduces the problem.
+
+For a target bin pair in \code{data}, the mean abundance is computed for each of its surrounding neighbourhoods.
+This is defined as the mean of the (distance-adjusted) counts for all constituent bin pairs in that neighbourhood (average counts are used for multiple libraries).
+The local background for the target bin pair is defined as the maximum mean abundance across all neighbourhoods.
+The enrichment value is then defined as the the difference between the target bin pair's abundance and its local background.
 The idea is that bin pairs with high enrichments are likely to represent punctate interactions between clearly defined loci.
 Selecting for high enrichments can then select for these peak-like features in the interaction space.
-The maximizing strategy is designed to mitigate the effects of structural features (e.g., TADs, compartments, banding effects).
-The local background of at least one neighbourhood will be high for all bin pairs within these features.
+
+% If a peak is outside a TAD (but still within flank distance), then the TAD will be partially included in the 
+% background. This could inflate the background abundance and prevent calling of the peak. To avoid this, you'd
+% have to be able to specify the boundaries of the structures in the interaction space, which is complicated.
+
+The maximizing strategy is designed to mitigate the effects of structural features.
+Quadrants will capture the high interaction intensity within TADs or compartments, while the axial segments will capture any bands in the interaction space.
+The abundance will be high for any neighbourhood that captures a high-intensity feature, as the average counts will be high for all bin pairs within these features.
+This will then be chosen as the maximum during calculation of enrichment values.
 Otherwise, the background will be diluted by low-intensity space for bin pairs on the edge of the features.
-This results in spuriously high enrichment values, such that filtering on enrichments will be misleading.
+This results in spuriously high enrichment values.
 
 Some distance adjustment is necessary to account for the decrease in the abundance with increases in the distance between interacting bins.
 This is done by fitting a loess curve to the log-distance against the average abundance, for all intra-chromosomal bin pairs.

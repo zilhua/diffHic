@@ -55,8 +55,10 @@ Type 'q()' to quit R.
 + 	out[nrow(x), ncol(x)] <- FALSE
 + 	out
 + }
-> get.all <- function(x) {
-+ 	matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
+> all.but.middle <- function(x) {
++ 	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
++ 	out[ceiling(length(out)/2)] <- FALSE
++ 	out
 + }
 > 
 > comp <- function(npairs, chromos, flanking, prior=2) {
@@ -107,62 +109,55 @@ Type 'q()' to quit R.
 + 
 + 		output <- numeric(nrow(current))
 + 		for (pair in 1:nrow(current)) {
-+ 		collected <- numeric(8)
-+ 		ax <- a.dex[pair]
-+ 		tx <- t.dex[pair]
++ 			collected <- numeric(6)
++ 			ax <- a.dex[pair]
++ 			tx <- t.dex[pair]
 + 
-+ 		for (quad in 1:8) { 
-+ 			if (quad==1L) {
-+ 				cur.a <- ax + 0:flanking
-+ 				cur.t <- tx + 0:flanking
-+ 				keep <- upper.left
-+ 			} else if (quad==2L) {
-+ 				cur.a <- ax - flanking:0
-+ 				cur.t <- tx + 0:flanking
-+ 				keep <- lower.left
-+ 			} else if (quad==3L) { 
-+ 				cur.a <- ax + 0:flanking
-+ 				cur.t <- tx - flanking:0
-+ 				keep <- upper.right 
-+ 			} else if (quad==4L) {
-+ 				cur.a <- ax - flanking:0
-+ 				cur.t <- tx - flanking:0
-+ 				keep <- lower.right
-+ 			} else if (quad==5L) {
-+ 				cur.a <- ax + 1:flanking
-+ 				cur.t <- tx
-+ 				keep <- get.all
-+ 			} else if (quad==6L) {
-+ 				cur.a <- ax - flanking:1
-+ 				cur.t <- tx
-+ 				keep <- get.all
-+ 			} else if (quad==7L) {
-+ 				cur.a <- ax
-+ 				cur.t <- tx + 1:flanking
-+ 				keep <- get.all
-+ 			} else if (quad==8L) {
-+ 				cur.a <- ax
-+ 				cur.t <- tx - flanking:1
-+ 				keep <- get.all
-+ 			} 
++ 			for (quad in 1:6) { 
++ 				if (quad==1L) {
++ 					cur.a <- ax + 0:flanking
++ 					cur.t <- tx + 0:flanking
++ 					keep <- upper.left
++ 				} else if (quad==2L) {
++ 					cur.a <- ax - flanking:0
++ 					cur.t <- tx + 0:flanking
++ 					keep <- lower.left
++ 				} else if (quad==3L) { 
++ 					cur.a <- ax + 0:flanking
++ 					cur.t <- tx - flanking:0
++ 					keep <- upper.right 
++ 				} else if (quad==4L) {
++ 					cur.a <- ax - flanking:0
++ 					cur.t <- tx - flanking:0
++ 					keep <- lower.right
++ 				} else if (quad==5L) {
++ 					cur.a <- ax + (-flanking):flanking
++ 					cur.t <- tx
++ 					keep <- all.but.middle
++ 				} else if (quad==6L) {
++ 					cur.a <- ax
++ 					cur.t <- tx + (-flanking):flanking
++ 					keep <- all.but.middle
++ 				} 
 + 	
-+ 			# Selecting the relevant entries for the chosen quadrant.
-+ 			indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
-+ 				out <- (y-1)*alen + x
-+ 				out[x > alen | x < 1 | y > tlen | y < 1] <- -1
-+ 				return(out)
-+ 			})
-+ 			indices <- indices[keep(indices)]
-+ 			indices <- indices[indices > 0]
-+ 			indices <- indices[valid[indices]]
++ 				# Selecting the relevant entries for the chosen quadrant.
++ 				indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
++ 					out <- (y-1)*alen + x
++ 					out[x > alen | x < 1 | y > tlen | y < 1] <- -1
++ 					return(out)
++ 				})
++ 				indices <- indices[keep(indices)]
++ 				indices <- indices[indices > 0]
++ 				indices <- indices[valid[indices]]
 + 
-+ 			# Computing the average across this quadrant.
-+ 			relevant.rows <- inter.space[indices]
-+ 			is.zero <- relevant.rows==0L			
-+ 			collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
-+ 		}
++ 				# Computing the average across this quadrant.
++ 				relevant.rows <- inter.space[indices]
++ 				is.zero <- relevant.rows==0L			
++ 				collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
++ 			}
++ #			print(sprintf("%i %i %.3f", ax, tx, collected[6]))
 + 		
-+ 		output[pair] <- log2((rel.ab[pair]+prior)/(max(collected, na.rm=TRUE)+prior))
++ 			output[pair] <- log2((rel.ab[pair]+prior)/(max(collected, na.rm=TRUE)+prior))
 + 		}
 + 		final.ref[cur.pairs] <- output
 + 	}
@@ -176,47 +171,46 @@ Type 'q()' to quit R.
 > 
 > set.seed(3427675)
 > comp(10, c(chrA=10), 5)
-[1] 0.5711567 0.8838070 0.5219527 1.0418202 0.9411063 0.6674247
+[1] 0.7155466 0.8838070 0.5219527 1.1037479 0.9411063 0.9475326
 > comp(100, c(chrA=10, chrB=30, chrC=20), 5)
-[1] 1.494109 1.304006 1.768536 1.393481 1.099536 1.964896
+[1] 1.494109 1.431157 1.768536 1.393481 1.354957 1.964896
 > comp(100, c(chrA=10, chrC=20), 5)
-[1] 0.7324501 0.5594274 1.2123036 1.2334901 0.8624965 0.5849625
+[1] 0.7324501 0.7058169 1.4793651 1.2334901 0.8624965 0.5849625
 > comp(100, c(chrA=10, chrB=5, chrC=20), 5)
-[1]  0.7369656  1.1575413  1.1355150  0.7041757  0.4516960 -0.6026645
+[1]  0.8845228  1.2531189  1.2334901  0.7041757  0.9429691 -0.6026645
 > comp(100, c(chrA=20, chrB=5), 5)
-[1]  1.252766e+00  7.369656e-01  0.000000e+00  2.294818e-01  4.043903e-01
-[6] -1.281371e-15
+[1] 1.2527661 0.9315203 0.0000000 0.8780095 0.4918531 0.6951454
 > 
 > comp(100, c(chrA=10, chrB=30, chrC=20), 10)
-[1] 1.209096 1.685010 1.584963 1.300509 1.797227 1.277534
+[1] 1.522678 1.685010 1.682091 1.327488 1.797227 1.375509
 > comp(100, c(chrA=10, chrC=20), 10)
-[1]  0.16664987  1.49324633 -0.04730571  1.28798076  0.80735492  0.68965988
+[1] 0.1666499 1.4932463 0.9198297 1.2879808 1.0223678 0.9434165
 > comp(100, c(chrA=10, chrB=5, chrC=20), 10)
-[1] 1.5376568 1.5025003 1.3625701 0.6611981 1.1089344 0.0931094
+[1] 1.6424480 1.5025003 1.3770696 0.6611981 1.1089344 1.0391706
 > comp(100, c(chrA=20, chrB=10), 10)
-[1]  0.3468028  1.3433017  1.7138125 -0.3598959  0.6520767  1.0191088
+[1]  0.3468028  1.3964990  1.7138125 -0.1663584  0.8091777  1.1527703
 > 
 > comp(200, c(chrA=10, chrB=30, chrC=20), 3)
-[1] 1.497500 1.687532 1.584963 1.074768 1.014647 1.509014
+[1] 1.497500 1.687532 1.584963 1.237039 1.396696 1.509014
 > comp(200, c(chrA=10, chrC=20), 3)
-[1] -0.11164536  0.89600228 -0.35147237  0.09192249  0.63558857  0.07038933
+[1] -0.08285693  0.89600228 -0.35147237  0.15002544  0.63558857  0.36994961
 > comp(200, c(chrA=10, chrB=5, chrC=20), 3)
-[1] 0.34792330 0.81942775 0.25276607 0.54780950 0.08246216 0.83494075
+[1] 0.70974413 0.81942775 0.25276607 0.54780950 0.08246216 1.04439412
 > comp(200, c(chrA=20, chrB=3), 3)
-[1] -0.09019781 -0.17508671 -0.20353339  0.55101517  0.01380580 -0.22239242
+[1]  0.04090794 -0.17508671 -0.06413034  0.55101517  0.16889487 -0.16349873
 > 
 > comp(200, c(chrA=10, chrB=30, chrC=20), 1)
-[1]  1.85798100  2.16992500 -0.33120591  0.61095771  0.45943162 -0.05246742
+[1]  1.8579810  2.1699250 -0.3312059  0.6109577  1.1375035  0.5849625
 > comp(200, c(chrA=10, chrC=20), 1)
-[1]  0.2552571 -0.2035334  0.3625701 -0.2537566  0.5584903 -0.1876270
+[1]  0.2552571  0.3439544  0.7325197 -0.2223924  0.5584903 -0.1876270
 > comp(200, c(chrA=10, chrB=5, chrC=20), 1)
-[1] -0.20353339 -0.89308480  0.14201900  1.28798076  0.04580369  0.43063435
+[1] -0.1255309 -0.8930848  0.1420190  1.2879808  0.5849625  0.4306344
 > comp(200, c(chrA=20, chrB=5), 1)
-[1] -0.4405726 -0.6189098 -0.6571123 -0.1089344 -0.6214884  0.4995710
+[1] -0.2941831 -0.4964258 -0.1069152 -0.1089344 -0.3656495  0.4995710
 > 
 > ###################################################################################################
 > 
 > 
 > proc.time()
    user  system elapsed 
- 11.337   0.174  11.526 
+ 12.021   0.161  12.183 

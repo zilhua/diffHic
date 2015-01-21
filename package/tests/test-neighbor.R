@@ -36,8 +36,10 @@ lower.right <- function(x) {
 	out[nrow(x), ncol(x)] <- FALSE
 	out
 }
-get.all <- function(x) {
-	matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
+all.but.middle <- function(x) {
+	out <- matrix(TRUE, nrow=nrow(x), ncol=ncol(x))
+	out[ceiling(length(out)/2)] <- FALSE
+	out
 }
 
 comp <- function(npairs, chromos, flanking, prior=2) {
@@ -88,62 +90,55 @@ comp <- function(npairs, chromos, flanking, prior=2) {
 
 		output <- numeric(nrow(current))
 		for (pair in 1:nrow(current)) {
-		collected <- numeric(8)
-		ax <- a.dex[pair]
-		tx <- t.dex[pair]
+			collected <- numeric(6)
+			ax <- a.dex[pair]
+			tx <- t.dex[pair]
 
-		for (quad in 1:8) { 
-			if (quad==1L) {
-				cur.a <- ax + 0:flanking
-				cur.t <- tx + 0:flanking
-				keep <- upper.left
-			} else if (quad==2L) {
-				cur.a <- ax - flanking:0
-				cur.t <- tx + 0:flanking
-				keep <- lower.left
-			} else if (quad==3L) { 
-				cur.a <- ax + 0:flanking
-				cur.t <- tx - flanking:0
-				keep <- upper.right 
-			} else if (quad==4L) {
-				cur.a <- ax - flanking:0
-				cur.t <- tx - flanking:0
-				keep <- lower.right
-			} else if (quad==5L) {
-				cur.a <- ax + 1:flanking
-				cur.t <- tx
-				keep <- get.all
-			} else if (quad==6L) {
-				cur.a <- ax - flanking:1
-				cur.t <- tx
-				keep <- get.all
-			} else if (quad==7L) {
-				cur.a <- ax
-				cur.t <- tx + 1:flanking
-				keep <- get.all
-			} else if (quad==8L) {
-				cur.a <- ax
-				cur.t <- tx - flanking:1
-				keep <- get.all
-			} 
+			for (quad in 1:6) { 
+				if (quad==1L) {
+					cur.a <- ax + 0:flanking
+					cur.t <- tx + 0:flanking
+					keep <- upper.left
+				} else if (quad==2L) {
+					cur.a <- ax - flanking:0
+					cur.t <- tx + 0:flanking
+					keep <- lower.left
+				} else if (quad==3L) { 
+					cur.a <- ax + 0:flanking
+					cur.t <- tx - flanking:0
+					keep <- upper.right 
+				} else if (quad==4L) {
+					cur.a <- ax - flanking:0
+					cur.t <- tx - flanking:0
+					keep <- lower.right
+				} else if (quad==5L) {
+					cur.a <- ax + (-flanking):flanking
+					cur.t <- tx
+					keep <- all.but.middle
+				} else if (quad==6L) {
+					cur.a <- ax
+					cur.t <- tx + (-flanking):flanking
+					keep <- all.but.middle
+				} 
 	
-			# Selecting the relevant entries for the chosen quadrant.
-			indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
-				out <- (y-1)*alen + x
-				out[x > alen | x < 1 | y > tlen | y < 1] <- -1
-				return(out)
-			})
-			indices <- indices[keep(indices)]
-			indices <- indices[indices > 0]
-			indices <- indices[valid[indices]]
+				# Selecting the relevant entries for the chosen quadrant.
+				indices <- outer(cur.a, cur.t, FUN=function(x, y) { 
+					out <- (y-1)*alen + x
+					out[x > alen | x < 1 | y > tlen | y < 1] <- -1
+					return(out)
+				})
+				indices <- indices[keep(indices)]
+				indices <- indices[indices > 0]
+				indices <- indices[valid[indices]]
 
-			# Computing the average across this quadrant.
-			relevant.rows <- inter.space[indices]
-			is.zero <- relevant.rows==0L			
-			collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
-		}
+				# Computing the average across this quadrant.
+				relevant.rows <- inter.space[indices]
+				is.zero <- relevant.rows==0L			
+				collected[quad] <- sum(rel.ab[relevant.rows[!is.zero]])/length(relevant.rows)
+			}
+#			print(sprintf("%i %i %.3f", ax, tx, collected[6]))
 		
-		output[pair] <- log2((rel.ab[pair]+prior)/(max(collected, na.rm=TRUE)+prior))
+			output[pair] <- log2((rel.ab[pair]+prior)/(max(collected, na.rm=TRUE)+prior))
 		}
 		final.ref[cur.pairs] <- output
 	}
