@@ -1,4 +1,4 @@
-enrichedGap <- function(data, width, flank=3, trend=c("global", "none", "chr"), prior.count=2, span=0.3)
+enrichedGap <- function(data, width, flank=5, trend=c("global", "none", "chr"), prior.count=2, span=0.3)
 # This function identifies the highest-abundance neighbour in the interaction space
 # for each bin pair in `data`. The aim is to compare the abundance of each element
 # with the abundance of its neighbour. Some adjustment is necessary to account for

@@ -5,7 +5,7 @@
 \description{Calculate the log-fold increase in abundance for each bin pair against its local neighbourhood.}
 
 \usage{
-enrichedGap(data, width, flank=3, trend=c("global", "none", "chr"), 
+enrichedGap(data, width, flank=5, trend=c("global", "none", "chr"), 
     prior.count=2, span=0.3)
 }
 
