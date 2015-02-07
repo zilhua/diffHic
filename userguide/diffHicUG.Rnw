@@ -185,7 +185,7 @@ system.file("python", "presplit_map.py", package="diffHic", mustWork=TRUE)
 @
 
 Users are strongly recommended to synchronize mate pair information and to mark duplicate read pairs in the resulting BAM file.
-This can be achieved using the various tools in the Picard software suite (\url{http://picard.sourceforge.net}).
+This can be achieved using the various tools in the Picard software suite (\url{http://broadinstitute.github.io/picard}).
 
 \section{Matching mapped reads to restriction fragments}
 The Hi-C protocol is based on ligation between restriction fragments, i.e., the genomic interval between adjacent restriction sites \citep{lieberman2009comprehensive}.
