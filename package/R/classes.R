@@ -1,6 +1,8 @@
 # Defines the DIList class, that will be used to hold various information.
 
-setClass("DIList", representation(counts="matrix", totals="integer", anchor.id="integer", target.id="integer", region="GRanges"))
+setClass("DIList", representation(counts="matrix", 
+			anchor.id="integer", target.id="integer", region="GRanges",
+			coldata="DataFrame", exptdata="List"))
 
 setValidity("DIList", function(object) {
 	if (nrow(object@counts)!=length(object@anchor.id)) {
@@ -9,8 +11,8 @@ setValidity("DIList", function(object) {
 	if (nrow(object@counts)!=length(object@target.id)) { 
 		return('rows in count matrix not equal to length of target vector')
 	}
-	if (ncol(object@counts)!=length(object@totals)) { 
-		return('columns of count matrix not equal to length of totals vector')
+	if (ncol(object@counts)!=nrow(object@coldata)) {
+		return('columns of count matrix not equal to rows of column data frame')
 	}
 
 	if (!all(object@anchor.id >= 1L)) { 
@@ -39,39 +41,11 @@ setMethod("initialize", signature("DIList"), function(.Object, ...) {
 
 setMethod("show", signature("DIList"), function(object) {
 	total <- nrow(object@counts)
-	leftover <- 0
-	if (total > 10) {
-		toshow <- 5
-		leftover <- total - toshow
-	} else {
-		toshow <- total
-	}
 	nregs <- length(object@region)
 	nlibs <- ncol(object@counts)
 	cat("DIList object for", nlibs, ifelse(nlibs==1L, "library", "libraries"), 
 		"with", total, ifelse(total==1L, "pair", "pairs"), "across", 
 		nregs, ifelse(nregs==1L, "region\n", "regions\n"))
-	cat("\n")
-	
-	cat("Counts:\n")
-	print(head(object@counts, toshow))
-	if (leftover) { cat("... and", leftover, "more rows\n") }
-	cat("\n")
-	
-	cat("Totals:\n")
-	print(object@totals)
-	cat("\n")
-
-	a.show <- object@region[head(object@anchor.id, toshow)]
-	cat("Anchors:\n")
-	print(data.frame(Chr=seqnames(a.show), Start=start(a.show), End=end(a.show)))
-	if (leftover) { cat("... and", leftover, "more rows\n") }
-	cat("\n")
-
-	cat("Targets:\n")
-	t.show <- object@region[head(object@target.id, toshow)]
-	print(data.frame(Chr=seqnames(t.show), Start=start(t.show), End=end(t.show)))
-	if (leftover) { cat("... and", leftover, "more rows\n") }
 })
 
 # Assorted subsetting methods.
@@ -87,14 +61,14 @@ setMethod("[", "DIList", function(x, i, j, ..., drop=TRUE) {
 	}
 
 	if (missing(j)) { 
-		new.totals <- x@totals
+		new.coldata <- x@coldata
 	} else {
 		new.counts <- new.counts[,j,drop=FALSE]
-		new.totals <- x@totals[j]
+		new.coldata <- x@coldata[j,]
 	}
-	initialize(x, counts=new.counts, totals=new.totals, 
+	initialize(x, counts=new.counts, coldata=new.coldata, 
 		anchor.id=new.anchors, target.id=new.targets,
-		region=x@region)
+		region=x@region, exptdata=x@exptdata)
 })
 
 # Some getters. No need for setters, really.
@@ -115,11 +89,6 @@ setMethod("counts", signature("DIList"), function(object) {
 	object@counts
 })
 
-setGeneric("totals", function(object) { standardGeneric("totals") })
-setMethod("totals", signature("DIList"), function(object) { 
-	object@totals
-})
-
 setGeneric("regions", function(object) { standardGeneric("regions") })
 setMethod("regions", signature("DIList"), function(object) {
 	object@region
@@ -133,13 +102,27 @@ setMethod("dimnames", signature("DIList"), function(x) {
 	dimnames(x@counts)
 })
 
+setMethod("$", signature("DIList"), function(x, name) { 
+	x@coldata[[name]]
+})
+
+# Borrowing these from GenomicRanges.
+setMethod("colData", signature("DIList"), function(x, ...) {
+	x@coldata
+})
+
+setMethod("exptData", signature("DIList"), function(x, ...) {
+	x@exptdata
+})
+
 # Constructor object.
-DIList <- function(counts, totals=colSums(counts), anchors, targets, regions) {
+DIList <- function(counts, totals=colSums(counts), anchors, targets, regions, expt.data=List(), ...) {
 	if (!is.integer(counts)) { storage.mode(counts) <- "integer" }
 	anchors <- as.integer(anchors)
 	targets <- as.integer(targets)
 	totals <- as.integer(totals)
-	new("DIList", counts=counts, totals=totals, anchor.id=anchors, target.id=targets, region=regions)
+	new("DIList", counts=counts, anchor.id=anchors, target.id=targets, region=regions,
+		coldata=DataFrame(totals=totals, ...), exptdata=expt.data)
 }
 
 setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive=FALSE) {
@@ -165,8 +148,8 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 		output[[ix]] <- counts(i)
 
 		if (add.totals) { 
-			totality <- totality + totals(i) 
-		} else if (!identical(totals(i), totality)) { 
+			totality <- totality + i$totals 
+		} else if (!identical(i$totals, totality)) { 
 			warning("totals are not identical between DIList objects")
 		}
 		ix <- ix + 1L
@@ -178,11 +161,11 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 
 # Setting some methods inspired by equivalents in csaw.
 setMethod("asDGEList", signature("DIList"), function(object, ...) {
-	DGEList(counts(object), lib.size=totals(object), ...)
+	DGEList(counts(object), lib.size=object$totals, ...)
 })
 
 setMethod("normalize", signature("DIList"), function(object, ...) {
-	normalizeCounts(counts(object), totals(object), ...)
+	normalizeCounts(counts(object), lib.sizes=object$totals, ...)
 })
 
 ########################################################################################
