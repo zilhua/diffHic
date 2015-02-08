@@ -1,4 +1,4 @@
-totalCounts <- function(files, param)
+totalCounts <- function(files, param, cap=NA)
 # This function gets the total counts in a bunch of files.  This is designed
 # for whenever the total counts must be rapidly extracted, without the need to
 # count across the interaction space.
@@ -17,7 +17,7 @@ totalCounts <- function(files, param)
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
-	cap <- param$cap
+	cap <- rep(as.integer(cap), length.out=nlibs)
 
 	# Running through each pair of chromosomes.
 	overall <- .loadIndices(files, chrs, restrict)

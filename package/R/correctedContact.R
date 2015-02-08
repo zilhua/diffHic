@@ -24,7 +24,7 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
 	# Zeros are pruned out before further work.
 	is.local <- !is.na(getDistance(data))
 	if (average) { 
-   		log.lib <- log(totals(data))
+   		log.lib <- log(data$totals)
 		if (length(log.lib)>1L) {
 			ave.counts <- exp(edgeR::mglmOneGroup(counts(data), offset=log.lib - mean(log.lib), dispersion=dispersion))
 			nzero <- !is.na(ave.counts)

@@ -42,7 +42,7 @@ enrichedGap <- function(data, width, flank=5, trend=c("global", "none", "chr"), 
 	
 	# Rescaling to count-level data with at least 6 dp, for stable calculations with integers.
 	# This should be enough precision while avoiding overrun of the integer type.
-	scaling <- log2(mean(totals(data))/1e6 * ncol(data))
+	scaling <- log2(mean(data$totals)/1e6 * ncol(data))
 	MULT <- 1e6
 	back2count <- function(ab) { 
 		newval <- 2^(ab + scaling)

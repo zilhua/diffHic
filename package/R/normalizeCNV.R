@@ -9,15 +9,15 @@ normalizeCNV <- function(data, margins, prior.count=3, span=0.3, maxk=500, ...)
 # Last modified 11 December 2014
 {
 	cont.cor <- 0.5
-	cont.cor.scaled <- cont.cor * totals(data)/mean(totals(data))
-	ab <- aveLogCPM(counts(data), lib.size=totals(data), prior.count=cont.cor)
-	mave <- aveLogCPM(counts(margins), lib.size=totals(margins), prior.count=prior.count)
-	if (!identical(totals(margins), totals(data))) { 
+	cont.cor.scaled <- cont.cor * data$totals/mean(data$totals)
+	ab <- aveLogCPM(counts(data), lib.size=data$totals, prior.count=cont.cor)
+	mave <- aveLogCPM(counts(margins), lib.size=margins$totals, prior.count=prior.count)
+	if (!identical(margins$totals, data$totals)) { 
 		warning("library sizes should be identical for margin and data objects")
 	}
 
 	# Generating covariates.
-	mab <- cpm(counts(margins), lib.size=totals(margins), log=TRUE, prior.count=prior.count) - mave
+	mab <- cpm(counts(margins), lib.size=margins$totals, log=TRUE, prior.count=prior.count) - mave
 	matched <- matchMargins(data, margins)	
 	ma.adjc <- mab[matched$amatch,,drop=FALSE] 
 	mt.adjc <- mab[matched$tmatch,,drop=FALSE]

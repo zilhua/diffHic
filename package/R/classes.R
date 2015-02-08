@@ -64,7 +64,7 @@ setMethod("[", "DIList", function(x, i, j, ..., drop=TRUE) {
 		new.coldata <- x@coldata
 	} else {
 		new.counts <- new.counts[,j,drop=FALSE]
-		new.coldata <- x@coldata[j,]
+		new.coldata <- x@coldata[j,,drop=FALSE]
 	}
 	initialize(x, counts=new.counts, coldata=new.coldata, 
 		anchor.id=new.anchors, target.id=new.targets,
@@ -132,7 +132,7 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 	output <- list(counts(x))
 	out.a <- list(anchors(x, id=TRUE))
 	out.t <- list(targets(x, id=TRUE))
-	totality <- totals(x)
+	totality <- x$totals
 
 	ix <- 2L
 	for (i in list(...)) {
@@ -155,8 +155,11 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 		ix <- ix + 1L
 	}
 	
-	new("DIList", counts=do.call(rbind, output), totals=totality,
-		anchor.id=unlist(out.a), target.id=unlist(out.t), region=regions(x))
+	coldata <- colData(x)
+	coldata$totals <- totality
+	new("DIList", counts=do.call(rbind, output), 
+		anchor.id=unlist(out.a), target.id=unlist(out.t), region=regions(x),
+		exptdata=exptData(x), coldata=coldata)
 })
 
 # Setting some methods inspired by equivalents in csaw.
@@ -171,7 +174,7 @@ setMethod("normalize", signature("DIList"), function(object, ...) {
 ########################################################################################
 # Defining the pairParam class.
 
-setClass("pairParam", representation(fragments="GRanges", restrict="character", discard="GRanges", cap="integer"))
+setClass("pairParam", representation(fragments="GRanges", restrict="character", discard="GRanges"))
 
 setValidity("pairParam", function(object) {
 	# Checking that the fragments are in some order by chromosome name, 
@@ -193,10 +196,6 @@ setValidity("pairParam", function(object) {
 
 	if (any(strand(object@fragments)!="*") ) {
 		return('restriction fragment ranges should be unstranded')
-	}
-
-	if (length(object@cap)!=1L || (!is.na(object@cap) && object@cap <= 0L)) { 
-		return('any specified cap should be a positive integer')
 	}
 	return(TRUE)
 })
@@ -251,17 +250,11 @@ setMethod("show", signature("pairParam"), function(object) {
 				paste0("'", object@restrict[1], "'"), "and", paste0("'", object@restrict[2], "'\n"))
 		}
 	}
-
-	if (is.na(object@cap)) {
- 	    cat("No cap on the read pairs per pair of restriction fragments\n")
-	} else {
-		cat("Cap of", object@cap, "on the read pairs per pair of restriction fragments\n")
-	}
 })
 
 pairParam <- function(fragments, 
 #	min.inward=NA, min.outward=NA, max.frag=NA, 
-	discard=GRanges(), restrict=NULL, cap=NA)
+	discard=GRanges(), restrict=NULL)
 # This creates a SimpleList of parameter objects, specifying
 # how reads should be extracted from the BAM files. The aim is
 # to synchronize read loading throughout the package, such that
@@ -274,10 +267,9 @@ pairParam <- function(fragments,
 #	min.inward <- as.integer(min.inward)
 #	min.outward <- as.integer(min.outward)
 	restrict <- .editRestrict(restrict) 
-	cap <- as.integer(cap)
 	new("pairParam", 
 #			max.frag=max.frag, min.inward=min.inward, min.outward=min.outward,
-		restrict=restrict, discard=discard, fragments=fragments, cap=cap)
+		restrict=restrict, discard=discard, fragments=fragments)
 }
 
 .editRestrict <- function(restrict) {
@@ -305,7 +297,6 @@ setMethod("reform", signature("pairParam"), function(x, ...) {
 #			min.inward=as.integer(val),
 #			min.outward=as.integer(val),
 			restrict=.editRestrict(val),
-			cap=as.integer(val),
 			val)
 	}
 	do.call(initialize, c(x, incoming))
