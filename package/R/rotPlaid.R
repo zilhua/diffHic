@@ -1,4 +1,4 @@
-rotPlaid <- function(file, param, region, width=10000, cap=NA, col="red", max.count=20, xlab=NULL, ylab="Gap", ...)
+rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, xlab=NULL, ylab="Gap", ...)
 # This constructs a sideways plot of interaction intensities.
 # Boxes represent interactions where the interacting loci are
 # on the x-axis, extended from the diagonal.
@@ -16,7 +16,7 @@ rotPlaid <- function(file, param, region, width=10000, cap=NA, col="red", max.co
 	fragments <- param$fragments
 	if (!xchr %in% seqlevels(fragments)) { stop("anchor/target chromosome names not in cut site list") } 
 	discard <- .splitDiscards(param$discard)
-	cap <- as.integer(cap)
+	cap <- param$cap
 
 	# Setting up the boundaries.
 	x.min <- max(1L, xstart)

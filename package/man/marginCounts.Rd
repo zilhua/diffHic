@@ -6,19 +6,18 @@
 \description{Count the number of read pairs mapped to each bin across multiple Hi-C libraries.}
 
 \usage{
-marginCounts(files, param, width=50000, cap=NA)
+marginCounts(files, param, width=50000)
 }
 
 \arguments{
 	\item{files}{a character vector containing paths to the index files}
 	\item{param}{a \code{pairParam} object containing read extraction parameters}
 	\item{width}{an integer scalar specifying the width of each bin} 
-   \item{cap}{an integer scalar or vector, indicating the maximum number of read pairs to consider for each restriction fragment pair}
 }
 
 \value{
 A \code{DIList} object containing the marginal counts for each bin.
-Anchor and target regions are identical.
+Anchor and target regions are guaranteed to be identical.
 }
 
 \details{
@@ -35,9 +34,8 @@ Each row of the output refers to a single bin in the linear genome, instead of a
 Larger marginal counts can be collected by increasing the \code{width} value. 
 However, this comes at the cost of spatial resolution (and potentially detection power) as adjacent events in the same bin can no longer be distinguished. 
 
-Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
-Any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
-Any non-\code{NA} value of \code{cap} specifies an upper bound on the number of read pairs extracted from each fragment pair.
+Counting will consider the values of \code{restrict}, \code{discard} and \code{cap} in \code{param}. 
+See \code{\link{pairParam}} for more details.
 }
 
 \examples{
@@ -53,10 +51,10 @@ invisible(preparePairs(hic.file, param, fout))
 marginCounts(fout, param, width=10)
 marginCounts(fout, param, width=50)
 marginCounts(fout, param, width=100)
-marginCounts(fout, param, cap=2)
 
 # Attempting with other parameters.
 marginCounts(fout, reform(param, restrict="chrA"), width=50)
+marginCounts(fout, reform(param, cap=1), width=50)
 marginCounts(fout, reform(param, discard=GRanges("chrA", IRanges(1, 50))), width=50)
 
 \dontshow{

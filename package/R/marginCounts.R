@@ -1,4 +1,4 @@
-marginCounts <- function(files, param, width=50000, cap=NA)
+marginCounts <- function(files, param, width=50000)
 # Gets the marginal counts i.e. sum of counts for each bin or region.
 # This is useful to determine the `genomic coverage' of each region,
 # based on the number of Hi-C read pairs involving that region.
@@ -13,7 +13,7 @@ marginCounts <- function(files, param, width=50000, cap=NA)
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
-	cap <- rep(as.integer(cap), length.out=nlibs)
+	cap <- param$cap
 
     if (width < 0) { stop("width must be a non-negative integer") }
     new.pts <- .getBinID(fragments, width)
@@ -45,6 +45,6 @@ marginCounts <- function(files, param, width=50000, cap=NA)
 	retained <- which(rowSums(total.counts)>0.5)
 	return(DIList(counts=total.counts[retained,,drop=FALSE], totals=full.sizes, 
 			anchors=retained, targets=retained, regions=new.pts$region, 
-			expt.data=List(param=param), cap=cap))
+			expt.data=List(param=param)))
 }
 

@@ -18,7 +18,7 @@ filtsim <- function(npairs1, npairs2, chromos, overlap=4, min.ingap=NA, min.outg
 	cuts <- simcuts(chromos, overlap=overlap)
 	augmentsim(dir1, cuts)
 	augmentsim(dir2, cuts)
-	cap <- rep(as.integer(cap), length.out=2)
+	cap <- as.integer(cap)
 
 	# Pruning.
 	totes1 <- prunePairs(dir1, pairParam(fragments=cuts), file.out=dir1x, min.inward=min.ingap, min.outward=min.outgap, max.frag=max.frag)
@@ -96,13 +96,13 @@ filtsim <- function(npairs1, npairs2, chromos, overlap=4, min.ingap=NA, min.outg
 				collected <- collected[disc.keep,1:2]
 
 				# Comparing it to the cap.
-				if (!is.na(cap[d])) { 
+				if (!is.na(cap)) { 
 					is.diff <- c(TRUE, diff(collected$anchor.id)!=0L | diff(collected$target.id)!=0L)
 					uniq.ids <- cumsum(is.diff)
 					by.ids <- split(1:nrow(collected), uniq.ids)
 					to.keep <- logical(nrow(collected))
 					for (x in by.ids) {
-						if (length(x)>cap[d]) { x <- x[1:cap[d]] } 
+						if (length(x)>cap) { x <- x[1:cap] } 
 						to.keep[x] <- TRUE
 					}
 					collected <- collected[to.keep,]

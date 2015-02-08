@@ -1,4 +1,4 @@
-squareCounts <- function(files, param, width=50000, filter=1L, cap=NA)
+squareCounts <- function(files, param, width=50000, filter=1L)
 # This function collates counts across multiple experiments to get the full set of results. It takes 
 # a list of lists of lists of integer matrices (i.e. a list of the outputs of convertToInteractions) and
 # then compiles the counts into a list object for output. 
@@ -20,7 +20,7 @@ squareCounts <- function(files, param, width=50000, filter=1L, cap=NA)
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
-	cap <- rep(as.integer(cap), length.out=nlibs)
+	cap <- param$cap
 
 	# Output vectors.
 	full.sizes <- integer(nlibs)
@@ -62,7 +62,7 @@ squareCounts <- function(files, param, width=50000, filter=1L, cap=NA)
 	}
 	return(DIList(counts=out.counts, totals=full.sizes, 
 		anchors=out.a, targets=out.t, regions=new.pts$region,
-		expt.data=List(param=param), cap=cap))
+		expt.data=List(param=param)))
 }
 
 ## PROOF:
@@ -153,8 +153,8 @@ squareCounts <- function(files, param, width=50000, filter=1L, cap=NA)
 			}
 
 			# Removing read pairs above the cap for each restriction fragment pair.
-			if (do.cap[x]) { 
-				capped <- .Call(cxx_cap_input, out$anchor.id, out$target.id, cap[x])
+			if (do.cap) { 
+				capped <- .Call(cxx_cap_input, out$anchor.id, out$target.id, cap)
 				if (is.character(capped)) { stop(capped) }
 				out <- out[capped,]
 			}

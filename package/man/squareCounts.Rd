@@ -6,7 +6,7 @@
 \description{Collate count combinations for interactions between pairs of bins across multiple Hi-C libraries.}
 
 \usage{
-squareCounts(files, param, width=50000, filter=1L, cap=NA)
+squareCounts(files, param, width=50000, filter=1L)
 }
 
 \arguments{
@@ -14,7 +14,6 @@ squareCounts(files, param, width=50000, filter=1L, cap=NA)
 	\item{param}{a \code{pairParam} object containing read extraction parameters}
 	\item{width}{an integer scalar specifying the width of each square in base pairs}
 	\item{filter}{an integer scalar specifying the minimum count for each square}
-	\item{cap}{an integer scalar or vector, indicating the maximum number of read pairs to consider for each restriction fragment pair}
 }
 
 \value{
@@ -51,13 +50,8 @@ Another option is to increase \code{width} to reduce the total number of bins in
 %
 % It's hard to know which it is. Gets counted in the same squares, but can't tell if it's consistent with more or less compaction.
 
-Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
-Similarly, any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
-See the documentation for \code{\link{pairParam}} for more details about these parameters.
-
-If \code{cap} is set to a non-\code{NA} value, an upper bound will be placed on the number of read pairs that are extracted from each fragment pair.
-This protects against spikes in the read pair density throughout the interaction space, possibly caused by technical artifacts like PCR duplication.
-Note that this capping is done after considering \code{param$discard}, above.
+Counting will consider the values of \code{restrict}, \code{discard} and \code{cap} in \code{param}. 
+See \code{\link{pairParam}} for more details.
 }
 
 \examples{
@@ -73,12 +67,13 @@ invisible(preparePairs(hic.file, param, file=fout))
 squareCounts(fout, param)
 squareCounts(fout, param, filter=1)
 squareCounts(fout, param, width=50, filter=1)
-squareCounts(fout, param, width=100, filter=1, cap=2)
+squareCounts(fout, param, width=100, filter=1)
 
 # Attempting with other parameters.
 squareCounts(fout, reform(param, restrict="chrA"), width=100, filter=1)
-squareCounts(fout, reform(param, discard=GRanges("chrA", IRanges(1, 50))), width=100, filter=1)
 squareCounts(fout, reform(param, restrict=cbind("chrA", "chrB")), filter=1)
+squareCounts(fout, reform(param, cap=1), width=100, filter=1)
+squareCounts(fout, reform(param, discard=GRanges("chrA", IRanges(1, 50))), width=100, filter=1)
 
 \dontshow{
 unlink(fout, recursive=TRUE)

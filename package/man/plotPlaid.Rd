@@ -8,9 +8,9 @@
 
 \usage{
 plotPlaid(file, param, anchor, target=anchor, width=10000, 
-	cap=NA, col="red", max.count=20, xlab=NULL, ylab=NULL, 
+	col="red", max.count=20, xlab=NULL, ylab=NULL, 
 	diag=TRUE, count=FALSE, count.args=list(), ...)
-rotPlaid(file, param, region, width=10000, cap=NA, col="red", 
+rotPlaid(file, param, region, width=10000, col="red", 
     max.count=20, xlab=NULL, ylab="Gap", ...) 
 }
 
@@ -21,7 +21,6 @@ rotPlaid(file, param, region, width=10000, cap=NA, col="red",
 	\item{target}{a \code{GRanges} object of length 1 specifying the target region}
 	\item{region}{a \code{GRanges} object of length 1 specifying the region of interest}
 	\item{width}{an integer scalar specifying the width of each bin in base pairs}
-	\item{cap}{an integer scalar indicating the maximum number of read pairs to extract from each fragment pair}
 	\item{col}{any type of R color to describe the color of the plot elements}
 	\item{max.count}{a numeric scalar specifying the count for which the darkest color is obtained}
 	\item{xlab}{character string for the x-axis label on the plot, defaults to the anchor chromosome name}

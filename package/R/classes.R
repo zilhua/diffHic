@@ -174,7 +174,7 @@ setMethod("normalize", signature("DIList"), function(object, ...) {
 ########################################################################################
 # Defining the pairParam class.
 
-setClass("pairParam", representation(fragments="GRanges", restrict="character", discard="GRanges"))
+setClass("pairParam", representation(fragments="GRanges", restrict="character", discard="GRanges", cap="integer"))
 
 setValidity("pairParam", function(object) {
 	# Checking that the fragments are in some order by chromosome name, 
@@ -196,6 +196,10 @@ setValidity("pairParam", function(object) {
 
 	if (any(strand(object@fragments)!="*") ) {
 		return('restriction fragment ranges should be unstranded')
+	}
+
+	if (length(object@cap)!=1L || (!is.na(object@cap) && object@cap <= 0L)) { 
+		return('any specified cap should be a positive integer')
 	}
 	return(TRUE)
 })
@@ -250,11 +254,17 @@ setMethod("show", signature("pairParam"), function(object) {
 				paste0("'", object@restrict[1], "'"), "and", paste0("'", object@restrict[2], "'\n"))
 		}
 	}
+
+	if (is.na(object@cap)) {
+ 	    cat("No cap on the read pairs per pair of restriction fragments\n")
+	} else {
+		cat("Cap of", object@cap, "on the read pairs per pair of restriction fragments\n")
+	}
 })
 
 pairParam <- function(fragments, 
 #	min.inward=NA, min.outward=NA, max.frag=NA, 
-	discard=GRanges(), restrict=NULL)
+	discard=GRanges(), restrict=NULL, cap=NA)
 # This creates a SimpleList of parameter objects, specifying
 # how reads should be extracted from the BAM files. The aim is
 # to synchronize read loading throughout the package, such that
@@ -267,9 +277,10 @@ pairParam <- function(fragments,
 #	min.inward <- as.integer(min.inward)
 #	min.outward <- as.integer(min.outward)
 	restrict <- .editRestrict(restrict) 
+	cap <- as.integer(cap)
 	new("pairParam", 
 #			max.frag=max.frag, min.inward=min.inward, min.outward=min.outward,
-		restrict=restrict, discard=discard, fragments=fragments)
+		restrict=restrict, discard=discard, fragments=fragments, cap=cap)
 }
 
 .editRestrict <- function(restrict) {
@@ -297,6 +308,7 @@ setMethod("reform", signature("pairParam"), function(x, ...) {
 #			min.inward=as.integer(val),
 #			min.outward=as.integer(val),
 			restrict=.editRestrict(val),
+			cap=as.integer(val),
 			val)
 	}
 	do.call(initialize, c(x, incoming))

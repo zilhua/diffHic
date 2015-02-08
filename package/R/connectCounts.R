@@ -1,4 +1,4 @@
-connectCounts <- function(files, param, regions, filter=1L, type="any", cap=NA)
+connectCounts <- function(files, param, regions, filter=1L, type="any")
 # This counts the number of connections between specified regions in the genome (i.e. between regions
 # in 'anchor' and regions in 'target'). This is designed to make it easier to analyze results in terms
 # of genes. Note that everything is rounded up to the nearest outside restriction site (or to the
@@ -14,7 +14,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any", cap=NA)
 	# Setting up other local references.
 	restrict <- param$restrict
 	discard <- .splitDiscards(param$discard)
-	cap <- rep(as.integer(cap), length.out=nlibs)
+	cap <- param$cap
 
 	# Figuring out which regions are anchor or targets.
 	fdata <- .delimitFragments(fragments)
@@ -74,7 +74,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any", cap=NA)
 	new.regs$original <- o
 	return(DIList(counts=out.counts[o.all,,drop=FALSE], totals=full.sizes, 
 		anchors=anchor.id[o.all], targets=target.id[o.all], regions=new.regs,
-		expt.data=List(param=param), cap=cap))
+		expt.data=List(param=param)))
 }
 
 .retrieveHits <- function(olaps) { 

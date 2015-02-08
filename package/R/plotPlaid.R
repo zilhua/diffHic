@@ -1,5 +1,5 @@
 plotPlaid <- function(file, param, anchor, target=anchor, 
-   	width=10000, cap=NA, col="red", max.count=20, xlab=NULL, ylab=NULL, 
+   	width=10000, col="red", max.count=20, xlab=NULL, ylab=NULL, 
 	diag=TRUE, count=FALSE, count.args=list(), ...)
 # This function takes a set of boundaries and a count directory and it generates a plaid plot of 
 # the result. The plot is colour coded with heat for the desired count range (white for nothing
@@ -24,7 +24,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	fragments <- param$fragments
 	if (!(achr %in% seqlevels(fragments)) || !(tchr %in% seqlevels(fragments))) { stop("anchor/target chromosome names not in cut site list") }
 	discard <- .splitDiscards(param$discard)
-	cap <- as.integer(cap)
+	cap <- param$cap
 
 	# Setting up the boundaries.
 	a.min <- max(1L, astart)

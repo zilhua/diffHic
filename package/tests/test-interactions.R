@@ -149,8 +149,8 @@ dir2<-"temp-inter/2.h5"
 comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL, cap=NA) {
 	simgen(dir1, npairs1, chromos)
 	simgen(dir2, npairs2, chromos)
-	param <- pairParam(fragments=cuts, restrict=restrict)
-	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=filter, cap=cap)
+	param <- pairParam(fragments=cuts, restrict=restrict, cap=cap)
+	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=filter)
 
 	ar <- anchors(y)
 	tr <- targets(y)
@@ -167,7 +167,7 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL, cap=NA) {
 
 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict, cap=cap)
 	if (!identical(y$totals, ref$total) || 
-			!identical(y$totals, totalCounts(c(dir1, dir2), param=param, cap=cap))) {
+			!identical(y$totals, totalCounts(c(dir1, dir2), param=param))) {
 		stop("mismatches in library sizes") 
 	}
 	if (!identical(overall, ref$table)) { stop("mismatches in counts or region coordinates") }
