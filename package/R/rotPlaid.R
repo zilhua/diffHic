@@ -1,4 +1,4 @@
-rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=NULL, ylab="Gap", ...)
+rotPlaid <- function(file, param, region, width=10000, cap=NA, col="red", max.count=20, xlab=NULL, ylab="Gap", ...)
 # This constructs a sideways plot of interaction intensities.
 # Boxes represent interactions where the interacting loci are
 # on the x-axis, extended from the diagonal.
@@ -16,7 +16,7 @@ rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=N
 	fragments <- param$fragments
 	if (!xchr %in% seqlevels(fragments)) { stop("anchor/target chromosome names not in cut site list") } 
 	discard <- .splitDiscards(param$discard)
-	recap <- param$cap
+	cap <- as.integer(cap)
 
 	# Setting up the boundaries.
 	x.min <- max(1L, xstart)
@@ -32,7 +32,7 @@ rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=N
 	# Pulling out the read pair indices from each file.
 	all.dex <- .loadIndices(file, seqlevels(param$fragments))
 	if (!is.null(all.dex[[xchr]][[xchr]])) {
-		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard, cap=recap)[[1]]
+		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard, cap=cap)[[1]]
 	} else { 
 		current<-data.frame(anchor.id=integer(0), target.id=integer(0))
 	}
@@ -55,7 +55,7 @@ rotPlaid <- function(file, param, region, width=10000, col="red", cap=20, xlab=N
 
 	# Plotting these new vertices.
 	my.col<-col2rgb(col)[,1]
-	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/cap)) }
+	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/max.count)) }
 	polygon(corner$x, corner$y, border=NA, col=colfun(out[[3]]))
 	return(invisible(colfun))
 }

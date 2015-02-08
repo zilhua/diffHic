@@ -1,5 +1,5 @@
 plotPlaid <- function(file, param, anchor, target=anchor, 
-   	width=10000, col="red", cap=20, xlab=NULL, ylab=NULL, 
+   	width=10000, cap=NA, col="red", max.count=20, xlab=NULL, ylab=NULL, 
 	diag=TRUE, count=FALSE, count.args=list(), ...)
 # This function takes a set of boundaries and a count directory and it generates a plaid plot of 
 # the result. The plot is colour coded with heat for the desired count range (white for nothing
@@ -24,7 +24,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	fragments <- param$fragments
 	if (!(achr %in% seqlevels(fragments)) || !(tchr %in% seqlevels(fragments))) { stop("anchor/target chromosome names not in cut site list") }
 	discard <- .splitDiscards(param$discard)
-	recap <- param$cap
+	cap <- as.integer(cap)
 
 	# Setting up the boundaries.
 	a.min <- max(1L, astart)
@@ -49,9 +49,9 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 	all.dex <- .loadIndices(file, seqlevels(param$fragments))
 	flipped <- FALSE
 	if (!is.null(all.dex[[achr]][[tchr]])) {
-		current <- .baseHiCParser(TRUE, file, achr, tchr, discard=discard, cap=recap)[[1]]
+		current <- .baseHiCParser(TRUE, file, achr, tchr, discard=discard, cap=cap)[[1]]
 	} else if (!is.null(all.dex[[tchr]][[achr]])) { 
-		current <- .baseHiCParser(TRUE, file, tchr, achr, discard=discard, cap=recap)[[1]]
+		current <- .baseHiCParser(TRUE, file, tchr, achr, discard=discard, cap=cap)[[1]]
 		flipped <- TRUE
 	} else { current<-data.frame(anchor.id=integer(0), target.id=integer(0)) }
 
@@ -84,7 +84,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 
 	# Summoning a function to get colours.
 	my.col<-col2rgb(col)[,1]
-	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/cap)) }
+	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/max.count)) }
 	all.cols <- colfun(out[[3]])
 	labels <- NULL
 	if (count) { labels <- out[[3]] }
