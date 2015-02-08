@@ -62,7 +62,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	}
 	return(DIList(counts=out.counts, totals=full.sizes, 
 		anchors=out.a, targets=out.t, regions=new.pts$region,
-		expt.data=List(param=param)))
+		expt.data=List(param=param, width=width)))
 }
 
 ## PROOF:
