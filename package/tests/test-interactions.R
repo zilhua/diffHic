@@ -149,8 +149,8 @@ dir2<-"temp-inter/2.h5"
 comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL, cap=NA) {
 	simgen(dir1, npairs1, chromos)
 	simgen(dir2, npairs2, chromos)
-	param <- pairParam(fragments=cuts, restrict=restrict, cap=cap)
-	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=filter)
+	param <- pairParam(fragments=cuts, restrict=restrict)
+	y<-squareCounts(c(dir1, dir2), param=param, width=dist, filter=filter, cap=cap)
 
 	ar <- anchors(y)
 	tr <- targets(y)
@@ -166,12 +166,12 @@ comp<-function(npairs1, npairs2, dist, cuts, filter=1L, restrict=NULL, cap=NA) {
 	rownames(overall)<-NULL
 
 	ref<-finder(dir1, dir2, dist=dist, cuts=cuts, filter=filter, restrict=restrict, cap=cap)
-	if (!identical(totals(y), ref$total) || 
-			!identical(totals(y), totalCounts(c(dir1, dir2), param=param))) {
+	if (!identical(y$totals, ref$total) || 
+			!identical(y$totals, totalCounts(c(dir1, dir2), param=param, cap=cap))) {
 		stop("mismatches in library sizes") 
 	}
 	if (!identical(overall, ref$table)) { stop("mismatches in counts or region coordinates") }
-	if (filter<=1L && !identical(as.integer(colSums(counts(y))+0.5), totals(y))) { 
+	if (filter<=1L && !identical(as.integer(colSums(counts(y))+0.5), y$totals)) { 
 		stop("sum of counts from binning should equal totals without filtering") }
 
 	return(head(overall))

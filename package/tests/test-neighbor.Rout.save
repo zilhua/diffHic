@@ -1,5 +1,5 @@
 
-R Under development (unstable) (2014-12-14 r67167) -- "Unsuffered Consequences"
+R version 3.1.2 (2014-10-31) -- "Pumpkin Helmet"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -94,8 +94,8 @@ Type 'q()' to quit R.
 + 		cur.pairs <- by.chr.pair[[cpair]]
 + 		two.chrs <- strsplit(cpair, "\\.")[[1]]
 + 		current <- data[cur.pairs,]
-+ 		rel.ab <- 2^(aveLogCPM(counts(current), lib.size=totals(current), prior.count=0) 
-+ 			+ log2(mean(totals(current))/1e6))
++ 		rel.ab <- 2^(aveLogCPM(counts(current), lib.size=current$totals, prior.count=0) 
++ 			+ log2(mean(current$totals)/1e6))
 + 
 + 		# Setting up the interaction space.
 + 		a.dex <- anchors(current, id=TRUE) - first.id[[two.chrs[1]]] + 1L
@@ -213,4 +213,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
-  9.551   0.156   9.723 
+ 11.050   0.166  11.239 

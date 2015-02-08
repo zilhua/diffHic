@@ -75,8 +75,8 @@ comp <- function(npairs, chromos, flanking, prior=2) {
 		cur.pairs <- by.chr.pair[[cpair]]
 		two.chrs <- strsplit(cpair, "\\.")[[1]]
 		current <- data[cur.pairs,]
-		rel.ab <- 2^(aveLogCPM(counts(current), lib.size=totals(current), prior.count=0) 
-			+ log2(mean(totals(current))/1e6))
+		rel.ab <- 2^(aveLogCPM(counts(current), lib.size=current$totals, prior.count=0) 
+			+ log2(mean(current$totals)/1e6))
 
 		# Setting up the interaction space.
 		a.dex <- anchors(current, id=TRUE) - first.id[[two.chrs[1]]] + 1L

@@ -29,7 +29,7 @@ comp<-function(n1, n2, dist, cuts, restrict=NULL) {
 	
 	keep<-which(rowSums(ref)>0.5)
 	if (!identical(ref[keep,], counts(frags))) { stop("mismatches in counts") }
-	if (!identical(totals(frags), totals(y))) { stop("mismatches in total counts") }
+	if (!identical(frags$totals, y$totals)) { stop("mismatches in total counts") }
 	if (!identical(keep, frags@anchor.id) || !identical(keep, frags@target.id)) { stop("mismatches in the regions to keep") }
 	if (!identical(regions(y), regions(frags)))  { stop("mismatches in final regions") }
 	return(head(counts(frags)))

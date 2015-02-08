@@ -1,5 +1,5 @@
 
-R version 3.1.0 (2014-04-10) -- "Spring Dance"
+R version 3.1.2 (2014-10-31) -- "Pumpkin Helmet"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -48,7 +48,7 @@ Type 'q()' to quit R.
 + 	
 + 	keep<-which(rowSums(ref)>0.5)
 + 	if (!identical(ref[keep,], counts(frags))) { stop("mismatches in counts") }
-+ 	if (!identical(totals(frags), totals(y))) { stop("mismatches in total counts") }
++ 	if (!identical(frags$totals, y$totals)) { stop("mismatches in total counts") }
 + 	if (!identical(keep, frags@anchor.id) || !identical(keep, frags@target.id)) { stop("mismatches in the regions to keep") }
 + 	if (!identical(regions(y), regions(frags)))  { stop("mismatches in final regions") }
 + 	return(head(counts(frags)))
@@ -397,4 +397,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 31.961   0.265  32.302 
+ 23.264   0.457  23.709 

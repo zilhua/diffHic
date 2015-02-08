@@ -176,7 +176,7 @@ samecomp <- function(nreads, cuts, ranges, filter=0L, type="any", restrict=NULL)
 	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
 	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
-	if (!identical(ref$totals, totals(out)) ||
+	if (!identical(ref$totals, out$totals) ||
 		!identical(ref$totals, totalCounts(c(dir1, dir2), param=param))) {
 		stop("mismatch in total output") }	
 

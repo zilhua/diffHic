@@ -1,5 +1,5 @@
 
-R version 3.1.1 (2014-07-10) -- "Sock it to Me"
+R version 3.1.2 (2014-10-31) -- "Pumpkin Helmet"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -37,7 +37,7 @@ Type 'q()' to quit R.
 + 	cuts <- simcuts(chromos, overlap=overlap)
 + 	augmentsim(dir1, cuts)
 + 	augmentsim(dir2, cuts)
-+ 	cap <- as.integer(cap)
++ 	cap <- rep(as.integer(cap), length.out=2)
 + 
 + 	# Pruning.
 + 	totes1 <- prunePairs(dir1, pairParam(fragments=cuts), file.out=dir1x, min.inward=min.ingap, min.outward=min.outgap, max.frag=max.frag)
@@ -115,13 +115,13 @@ Type 'q()' to quit R.
 + 				collected <- collected[disc.keep,1:2]
 + 
 + 				# Comparing it to the cap.
-+ 				if (!is.na(cap)) { 
++ 				if (!is.na(cap[d])) { 
 + 					is.diff <- c(TRUE, diff(collected$anchor.id)!=0L | diff(collected$target.id)!=0L)
 + 					uniq.ids <- cumsum(is.diff)
 + 					by.ids <- split(1:nrow(collected), uniq.ids)
 + 					to.keep <- logical(nrow(collected))
 + 					for (x in by.ids) {
-+ 						if (length(x)>cap) { x <- x[1:cap] } 
++ 						if (length(x)>cap[d]) { x <- x[1:cap[d]] } 
 + 						to.keep[x] <- TRUE
 + 					}
 + 					collected <- collected[to.keep,]
@@ -248,4 +248,4 @@ by.frag   by.in  by.out by.disc
 > 
 > proc.time()
    user  system elapsed 
- 40.089   1.012  41.214 
+ 43.048   1.105  44.150 
