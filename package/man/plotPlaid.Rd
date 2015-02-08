@@ -7,11 +7,11 @@
 \description{Plot interactions between two sequences in a plaid format with informative colouring.}
 
 \usage{
-plotPlaid(file, param, anchor, target=anchor, 
-    width=10000, col="red", cap=20, xlab=NULL, ylab=NULL, 
+plotPlaid(file, param, anchor, target=anchor, width=10000, 
+	cap=NA, col="red", max.count=20, xlab=NULL, ylab=NULL, 
 	diag=TRUE, count=FALSE, count.args=list(), ...)
-rotPlaid(file, param, region, width=10000, col="red", 
-    cap=20, xlab=NULL, ylab="Gap", ...) 
+rotPlaid(file, param, region, width=10000, cap=NA, col="red", 
+    max.count=20, xlab=NULL, ylab="Gap", ...) 
 }
 
 \arguments{
@@ -21,8 +21,9 @@ rotPlaid(file, param, region, width=10000, col="red",
 	\item{target}{a \code{GRanges} object of length 1 specifying the target region}
 	\item{region}{a \code{GRanges} object of length 1 specifying the region of interest}
 	\item{width}{an integer scalar specifying the width of each bin in base pairs}
+	\item{cap}{an integer scalar indicating the maximum number of read pairs to extract from each fragment pair}
 	\item{col}{any type of R color to describe the color of the plot elements}
-	\item{cap}{a numeric scalar specifying the count for which the darkest color is obtained}
+	\item{max.count}{a numeric scalar specifying the count for which the darkest color is obtained}
 	\item{xlab}{character string for the x-axis label on the plot, defaults to the anchor chromosome name}
 	\item{ylab}{character string for the y-axis label on the plot, defaults to the target chromosome name in \code{plotPlaid}}
 	\item{diag}{a logical scalar specifying whether boxes should be shown above the diagonal for intra-chromosomal plots in \code{plotPlaid}}
@@ -38,11 +39,11 @@ Each region is partitioned into bins of size \code{width}.
 Each bin pair is represented by a box in the plotting space, where each side of the box represents a bin.
 The colour of the box depends on the number of read pairs mapped between the corresponding bins.
 
-The resolution of colors can be controlled by varying \code{cap}. 
-All boxes with counts above \code{cap} will be assigned the maximum intensity.
+The resolution of colors can be controlled by varying \code{max.count}. 
+All boxes with counts above \code{max.count} will be assigned the maximum intensity.
 Other boxes will be assigned a color of intensity proportional to the size of the count, such that a count of zero results in white space.
-Smaller values of \code{cap} will improve contrast at low counts at the cost of contrast at higher counts. 
-Scaling \code{cap} is recommended for valid comparisons between libraries of different sizes (e.g., larger \code{cap} for larger libraries).
+Smaller values of \code{max.count} will improve contrast at low counts at the cost of contrast at higher counts. 
+Scaling \code{max.count} is recommended for valid comparisons between libraries of different sizes (e.g., larger \code{max.count} for larger libraries).
 
 If \code{count=TRUE}, the number of read pairs will be shown on top of each bin. 
 This will be slower to plot but can be useful in some cases, e.g., when more detail is required, or when the range of colors is not sufficient to capture the range of counts in the data. 
@@ -95,9 +96,9 @@ plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)),
 
 # For a hypothetical second library which is half the size of the previous one:
 plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)),
-    target=GRanges("chrA", IRanges(1, 200)), width=100, cap=20, count=TRUE)
+    target=GRanges("chrA", IRanges(1, 200)), width=100, max.count=20, count=TRUE)
 plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)),
-    target=GRanges("chrA", IRanges(1, 200)), width=100, cap=40,
+    target=GRanges("chrA", IRanges(1, 200)), width=100, max.count=40,
     count=TRUE, count.args=list(col="blue"))
 
 # Rotated

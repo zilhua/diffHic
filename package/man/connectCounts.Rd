@@ -5,7 +5,7 @@
 \description{Count the number of read pairs connecting pairs of user-specified regions}
 
 \usage{ 
-connectCounts(files, param, regions, filter=1L, type="any")
+connectCounts(files, param, regions, filter=1L, type="any", cap=NA)
 }
 
 \arguments{
@@ -14,6 +14,7 @@ connectCounts(files, param, regions, filter=1L, type="any")
    \item{regions}{a \code{GRanges} object specifying the regions between which read pairs should be counted}
    \item{filter}{an integer scalar specifying the minimum count for each interaction}
    \item{type}{a character string specifying how restriction fragments should be assigned to regions}
+   \item{cap}{an integer scalar or vector, indicating the maximum number of read pairs to consider for each restriction fragment pair}
 }
 
 \value{
@@ -41,8 +42,11 @@ The ordering permutation can be recovered from the \code{original} metadata fiel
 Similarly, the number of restriction fragments assigned to each interval is stored in the \code{nfrags} metadata field.
 
 Any read pairs with one or more reads \emph{not} in a chromosome of \code{param$restrict} will be ignored.
-Similarly, any read pairs with one or more reads that align within an element of \code{param$discard} will be ignored.
-See the documentation for \code{\link{pairParam}} for more details about these parameters.
+Similarly, any pairs with reads that align within an element of \code{param$discard} will be ignored.
+See \code{\link{pairParam}} for more details.
+
+Any non-\code{NA} value of \code{cap} specifies an upper bound on the number of read pairs extracted from each fragment pair.
+See \code{\link{squareCounts}} for more details.
 }
 
 \seealso{
@@ -68,11 +72,12 @@ regions2 <- suppressWarnings(c(regions, GRanges("chrB", IRanges(50, 100))))
 connectCounts(fout, param, regions=regions, filter=1L)
 connectCounts(fout, param, regions=regions2, filter=1L)
 connectCounts(fout, param, regions=regions2, filter=1L, type="within")
+connectCounts(fout, param, regions=regions2, filter=1L, cap=2)
 
 # Still works with restriction.
 connectCounts(fout, param=reform(param, restrict="chrA"), 
     regions=regions2, filter=1L)
-connectCounts(fout, param=reform(param, restrict=cbind("chrA", "chrB")), 
+connectCounts(fout, param=reform(param, discard=GRanges("chrA", IRanges(1, 50))),
     regions=regions2, filter=1L)
 
 \dontshow{

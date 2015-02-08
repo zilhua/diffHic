@@ -85,7 +85,7 @@ data <- DIList(counts=matrix(rpois(npairs*nlibs, runif(npairs, 10, 100)), nrow=n
 	totals=runif(nlibs, 1e6, 2e6), anchors=pmax(anchors, targets), targets=pmin(anchors, targets),
 	regions=GRanges("chrA", IRanges(1:npts, 1:npts)))
 margins <- DIList(counts=matrix(rpois(npts*nlibs, 100), nrow=npts),
-	totals=totals(data), anchors=1:npts, targets=1:npts, regions=regions(data))
+	totals=data$totals, anchors=1:npts, targets=1:npts, regions=regions(data))
 
 # Running normalizeCNV.
 head(normalizeCNV(data, margins))

@@ -12,8 +12,13 @@
 \alias{regions,DIList-method}
 \alias{counts}
 \alias{counts,DIList-method}
-\alias{totals}
-\alias{totals,DIList-method}
+
+\alias{$}
+\alias{$,DIList-method}
+\alias{colData}
+\alias{colData,DIList-method}
+\alias{exptData}
+\alias{exptData,DIList-method}
 
 \alias{dim,DIList-method}
 \alias{dimnames,DIList-method}
@@ -38,7 +43,8 @@ Each DIList stores counts for pairwise genomic interactions.
 Slots are defined as:
 \describe{
 \item{\code{counts}}{an integer matrix containing the number of read pairs for an interaction in each library}
-\item{\code{totals}}{an integer vector containing the total number of read pairs for each library}
+\item{\code{coldata}}{a \code{DataFrame} object containing library-specific information in each row, e.g., the total number of read pairs}
+\item{\code{exptdata}}{a \code{List} object containing data or parameters pertinent to counting}
 \item{\code{anchor.id}}{an integer vector specifying the index of the first interacting region}
 \item{\code{target.id}}{an integer vector specifying the index of the second interacting region}
 \item{\code{region}}{a \code{GRanges} object containing the coordinates of all interacting regions}
@@ -81,8 +87,16 @@ In the code snippets below, \code{x} is a DIList object.
 	Get the matrix of counts for all interactions in all libraries.
 	}
 
-	\item{}{\code{totals(x)}:
-	Get the vector of total library sizes for all libraries.
+	\item{}{\code{colData(x)}:
+	Get the \code{DataFrame} of library-specific information.
+	}
+
+	\item{}{\code{exptData(x)}:
+	Get the \code{List} of experiment-specific information.
+	}
+
+	\item{}{\code{x$name}:
+	Get the value of \code{colData(x)$name}.
 	}
 
 	\item{}{\code{dim(x)}:
@@ -150,8 +164,11 @@ anchors(blah, id=TRUE)
 targets(blah)
 targets(blah, id=TRUE)
 counts(blah)
-totals(blah)
 regions(blah)
+
+blah$totals
+colData(blah)
+exptData(blah)
 
 asDGEList(blah)
 normalize(blah, logratioTrim=0)
