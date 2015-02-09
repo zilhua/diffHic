@@ -42,12 +42,12 @@ Using the DIList class to store pairwise genomic interactions.
 Each DIList stores counts for pairwise genomic interactions.
 Slots are defined as:
 \describe{
-\item{\code{counts}}{an integer matrix containing the number of read pairs for an interaction in each library}
-\item{\code{coldata}}{a \code{DataFrame} object containing library-specific information in each row, e.g., the total number of read pairs}
-\item{\code{exptdata}}{a \code{List} object containing data or parameters pertinent to counting}
-\item{\code{anchor.id}}{an integer vector specifying the index of the first interacting region}
-\item{\code{target.id}}{an integer vector specifying the index of the second interacting region}
-\item{\code{region}}{a \code{GRanges} object containing the coordinates of all interacting regions}
+\item{\code{counts}:}{an integer matrix containing the number of read pairs for an interaction in each library}
+\item{\code{coldata}:}{a \code{DataFrame} object containing library-specific information in each row, e.g., the total number of read pairs}
+\item{\code{exptdata}:}{a \code{List} object containing data or parameters pertinent to counting}
+\item{\code{anchor.id}:}{an integer vector specifying the index of the first interacting region}
+\item{\code{target.id}:}{an integer vector specifying the index of the second interacting region}
+\item{\code{region}:}{a \code{GRanges} object containing the coordinates of all interacting regions}
 }
 Each row of \code{counts} corresponds to an interaction, while each column corresponds to a library.
 Each interaction is parameterized by an \code{anchor.id} and \code{target.id} index, pointing to the anchor and target intervals in \code{region}, respectively.
