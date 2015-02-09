@@ -84,7 +84,7 @@ setMethod("targets", signature("DIList"), function(object, id=FALSE) {
 	object@region[object@target.id]
 })
 
-setGeneric("counts", function(object) { standardGeneric("counts") })
+#setGeneric("counts", function(object) { standardGeneric("counts") })
 setMethod("counts", signature("DIList"), function(object) {
 	object@counts
 })
