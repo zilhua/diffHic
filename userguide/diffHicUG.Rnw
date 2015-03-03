@@ -165,9 +165,8 @@ Obviously, readers will have to modify the code for their own analyses.
 \label{chap:prep} 
 
 \begin{combox}
-Hello, dear reader.
-A little box will appear at the start of each chapter, describing the objects that are required from the previous chapter.
-As we're starting out here, we don't really need anything except your enthusiasm.
+This box will appear at the start of each chapter, describing the objects required from previous chapters.
+As we're starting out here, we don't really need anything.
 \end{combox}
 
 \section{A comment on aligning Hi-C libraries}
@@ -234,8 +233,8 @@ Of particular note is the removal of reads that are potential PCR duplicates wit
 This requires marking of the reads beforehand using an appropriate program such as Picard's \textsf{MarkDuplicates}.
 Filtering on the minimum mapping quality score with \code{minq} is also recommended to remove spurious alignments.
 
-Read pairs mapping to the same restriction fragment provide little information on interactions between fragments.
-Dangling ends are inward-facing read pairs that are mapped to the same fragment \citep{belton2012hic}.
+Read pairs mapping to the same restriction fragment provide little information on interactions between fragments \citep{belton2012hic}.
+Dangling ends are inward-facing read pairs that are mapped to the same fragment.
 These are uninformative as they are usually formed from sequencing of the restriction fragment prior to ligation.
 Self-circles are outward-facing read pairs that are formed when two ends of the same restriction fragment ligate to one another.
 Interactions within a fragment cannot be easily distinguished from these self-circularization events.
@@ -248,7 +247,7 @@ Only the $5'$ end(s) will be used to determine the restriction fragment index fo
 The total number of chimeric read pairs will be reported, along with the number where $5'$ ends or $3'$ ends are mapped.
 Of course, the function will also work if the mapping location is only given for the $5'$ end, though chimeric statistics will not be properly computed.
 
-The proportion of invalid chimeric pairs can also be calculated.
+The proportion of invalid chimeric pairs can then be calculated.
 Invalid pairs are those where the $3'$ location of a chimeric read disagrees with the $5'$ location of the mate.
 The invalid proportion can be used as an empirical measure of the mapping error rate - or, at least, the upper bound thereof, given that error rates are likely to be lower for longer, non-chimeric alignments.
 High error rates may be indicative of a fault in the mapping pipeline.
@@ -299,7 +298,7 @@ The insert size is defined as the linear distance between two paired reads on th
 The \code{min.inward} paramater removes inward-facing intra-chromosomal read pairs where the insert size is less than the specified value.
 The \code{min.outward} parameter does the same for outward-facing intra-chromosomal read pairs.
 This is designed to remove dangling ends or self-circles involving DNA fragments that have not been completely digested \citep{jin2013highres}.
-Such read pairs are technical artifacts that are (incorrectly) missed by \code{preparePairs}, as the two reads involved are mapped to different restriction fragments.
+Such read pairs are technical artifacts that are (incorrectly) retained by \code{preparePairs}, as the two reads involved are mapped to different restriction fragments.
 
 \subsection{Setting size thresholds with strand orientation plots}
 \label{sec:strorient}
@@ -354,11 +353,11 @@ legend("topright", c("inward", "outward", "same"),
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
 
-It is hypothetically possible that these spikes reflect some genuine aspect of chromatin organization.
-For example, the outward-facing spike may be the result of systematic outward looping in chromatin packaging.
-Removal of the spikes would preclude the detection of such features.
-Nonetheless, filtering is still recommended to prevent genuine interactions from being dominated by technical artifacts.
-Indeed, even if there are imbalances in the strand orientations for any one genuine interaction, these skews should balance out when read pairs from all interactions are considered (i.e., systematic preferences assumed to be absent).
+% It is hypothetically possible that these spikes reflect some genuine aspect of chromatin organization.
+% For example, the outward-facing spike may be the result of systematic outward looping in chromatin packaging.
+% Removal of the spikes would preclude the detection of such features.
+% Nonetheless, filtering is still recommended to prevent genuine interactions from being dominated by technical artifacts.
+% Indeed, even if there are imbalances in the strand orientations for any one genuine interaction, these skews should balance out when read pairs from all interactions are considered (i.e., assume no systematic bias in the orientation).
 
 As an aside, the position of the spikes in the above plots can be used to estimate some fragment lengths.
 The $x$-coordinate of the outward-facing spike represents the length of the DNA fragments after restriction digestion.
