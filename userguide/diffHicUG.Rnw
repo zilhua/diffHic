@@ -1661,7 +1661,8 @@ This yields identifiers for each bin pair where \code{smaller} bin pairs are nes
 Note that the larger bin size \textit{must} be a multiple of the smaller bin size, to simplify later interpretation.
 
 <<>>=
-matched <- boxPairs(bin.size, larger=data, smaller=smaller.data, param=mm.param)
+matched <- boxPairs(larger=data, smaller=smaller.data, 
+    param=mm.param, reference=bin.size)
 ldex <- matched$indices$larger
 sdex <- matched$indices$smaller
 @
