@@ -1,4 +1,4 @@
-correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.02, winsor.high=0.02, average=TRUE, dispersion=0.05)
+correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.02, winsor.high=0.02, dispersion=0.05)
 # This performs the iterative correction method of Mirny et al. (2012) to
 # identify the true contact probability of each patch of the interaction
 # space. The idea is to use the true contact probability as a filter
@@ -20,41 +20,22 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
 	if (winsor.high >= 1) { stop("proportion of high coverage interactions to winsorize should be less than 1") }
 	exclude.local <- as.integer(exclude.local)
     
-	# Computing the average counts, if requested. Otherwise, going through each individual library.
-	# Zeros are pruned out before further work.
 	is.local <- !is.na(getDistance(data))
-	if (average) { 
-   		log.lib <- log(data$totals)
-		if (length(log.lib)>1L) {
-			ave.counts <- exp(edgeR::mglmOneGroup(counts(data), offset=log.lib - mean(log.lib), dispersion=dispersion))
-			nzero <- !is.na(ave.counts)
-		} else {
-			nzero <- counts(data) != 0L
-			ave.counts <- as.double(counts(data))
-		}
-		out<-.Call(cxx_iterative_correction, ave.counts[nzero], data@anchor.id[nzero], data@target.id[nzero], 
-			is.local[nzero], length(regions(data)), iterations, exclude.local, ignore.low, winsor.high)
- 		if (is.character(out)) { stop(out) }
-		full.truth <- rep(NA, length(nzero))
-		full.truth[nzero] <- out[[1]]
-		out[[1]] <- full.truth
+   	log.lib <- log(data$totals)
+	if (length(log.lib)>1L) {
+		ave.counts <- exp(edgeR::mglmOneGroup(counts(data), offset=log.lib - mean(log.lib), dispersion=dispersion))
+		nzero <- !is.na(ave.counts)
 	} else {
-		collected.truth <- collected.bias <- collected.max <- list()
-		for (lib in 1:ncol(data)) {
-			curcount <- counts(data)[,lib]
-			nzero <- curcount!=0L
-			per.it <-.Call(cxx_iterative_correction, as.double(curcount[nzero]), data@anchor.id[nzero], data@target.id[nzero], 
-				is.local[nzero], length(regions(data)), iterations, exclude.local, ignore.low, winsor.high)
- 			if (is.character(per.it)) { stop(per.it) }		
-
-			full.truth <- rep(NA, length(nzero)) 
-			full.truth[nzero] <- per.it[[1]]
-			collected.truth[[lib]] <- full.truth
-			collected.bias[[lib]] <- per.it[[2]]
-			collected.max[[lib]] <- per.it[[3]]
-		}
-		out <- list(do.call(cbind, collected.truth), do.call(cbind, collected.bias), do.call(cbind, collected.max))
+		nzero <- counts(data) != 0L
+		ave.counts <- as.double(counts(data))
 	}
+
+	out<-.Call(cxx_iterative_correction, ave.counts[nzero], data@anchors[nzero], data@targets[nzero], 
+		is.local[nzero], length(regions(data)), iterations, exclude.local, ignore.low, winsor.high)
+ 	if (is.character(out)) { stop(out) }
+	full.truth <- rep(NA, length(nzero))
+	full.truth[nzero] <- out[[1]]
+	out[[1]] <- full.truth
 	
 	names(out) <- c("truth", "bias", "max")
 	return(out)
