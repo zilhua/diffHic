@@ -78,3 +78,5 @@ boxPairs(larger=y, smaller=y2, param=param)
 unlink(fout, recursive=TRUE)
 }
 }
+
+\keyword{clustering}

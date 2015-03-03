@@ -53,5 +53,6 @@ try(loadData(tmpf, "chrA2", "chrB2"))
 \dontshow{
 unlink(tmpf)
 }
-
 }
+
+\keyword{preprocessing}

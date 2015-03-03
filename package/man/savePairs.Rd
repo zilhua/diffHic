@@ -67,3 +67,4 @@ unlink(fout)
 	\code{\link{cutGenome}}
 }
 
+\keyword{preprocessing}

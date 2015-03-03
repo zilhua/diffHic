@@ -70,3 +70,5 @@ clusterPairs(y, tol=100, upper=50)
 unlink(fout, recursive=TRUE)
 }
 }
+
+\keyword{clustering}

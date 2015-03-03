@@ -105,3 +105,5 @@ head(enrichedGap(data, trend="none"))
 \references{
 Rao S et al. (2014). A 3D map of the human genome at kilobase resolution reveals principles of chromatin looping. \emph{Cell}. 159, 1665-1690.
 }
+
+\keyword{filtering}

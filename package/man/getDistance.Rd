@@ -51,3 +51,4 @@ unlink(fout, recursive=TRUE)
 }
 }
 
+\keyword{filtering}

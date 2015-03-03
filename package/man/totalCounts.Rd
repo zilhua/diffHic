@@ -63,3 +63,4 @@ unlink(fout, recursive=TRUE)
 \code{\link{squareCounts}}
 }
 
+\keyword{counting}

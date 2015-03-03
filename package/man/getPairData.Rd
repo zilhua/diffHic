@@ -56,3 +56,5 @@ getPairData(tmpf, param)
 unlink(tmpf)
 }
 }
+
+\keyword{diagnostics}

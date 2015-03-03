@@ -103,3 +103,5 @@ head(matched)
 anchor.counts <- margins[matched$amatch,]
 target.counts <- margins[matched$tmatch,]
 }
+
+\keyword{normalization}

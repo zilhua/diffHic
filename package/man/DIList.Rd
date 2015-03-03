@@ -182,3 +182,5 @@ c(blah[1:2,], blah[3:4,], add.totals=FALSE)
 \code{\link{DGEList}},
 \code{\link{normalize}}
 }
+
+\keyword{counting}

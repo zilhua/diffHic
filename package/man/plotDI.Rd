@@ -102,3 +102,5 @@ unlink(fout, recursive=TRUE)
 \references{
 Lieberman-Aiden E et al. (2009). Comprehensive Mapping of Long-Range Interactions Reveals Folding Principles of the Human Genome. \emph{Science} 326, 289-293. 
 }
+
+\keyword{visualization}

@@ -57,3 +57,5 @@ unlink(c(fout, fout2, fout3), recursive=TRUE)
 \author{
 	Aaron Lun
 }
+
+\keyword{preprocessing}

@@ -48,3 +48,4 @@ cutGenome(x, "AGCT", overhang=4)
 \code{\link{matchPattern}}
 }
 
+\keyword{preprocessing}

@@ -87,3 +87,4 @@ unlink(fout, recursive=TRUE)
 Imakaev M et al. (2012). Iterative correction of Hi-C data reveals hallmarks of chromosome organization. \emph{Nat. Methods} 9, 999-1003.
 }
 
+\keyword{normalization}

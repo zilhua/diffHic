@@ -81,3 +81,5 @@ unlink(c(fout, fout2))
 \references{
 Jin F et al. (2013). A high-resolution map of the three-dimensional chromatin interactome in human cells. \emph{Nature} doi:10.1038/nature12644.
 }
+
+\keyword{preprocessing}

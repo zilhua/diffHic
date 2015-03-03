@@ -70,3 +70,4 @@ unlink(fout, recursive=TRUE)
 \code{\link{DIList-class}}
 }
 
+\keyword{counting}
