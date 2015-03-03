@@ -167,6 +167,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 				out <- out[capped,]
 			}
 
+			dim(out$anchor.id) <- dim(out$target.id) <- NULL
 			overall[[x]] <- out[,c("anchor.id", "target.id")]
 		}
 	}
@@ -213,7 +214,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 # It also checks for out-of-boundedness.
 {
 	if (max(indices) > length(fragments)) { stop("index outside range of fragment object") }
-	chrs <- runValue(seqnames(fragments)[indices])
-	if (length(chrs)!=1L || chrs!=nominal) { stop("mismatch between requested and extracted chromosomes") }
+	curchr <- as.character(runValue(seqnames(fragments)[indices]))
+	if (length(curchr)!=1L || curchr!=nominal) { stop("mismatch between requested and extracted chromosomes") }
 	return(TRUE)
 }
