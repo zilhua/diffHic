@@ -51,4 +51,6 @@ head(boxed$indices$smaller)
 head(enrichedGap(data))
 head(clusterPairs(data, tol=10))
 
+# End.
 
+unlink(fout)

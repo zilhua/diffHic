@@ -180,8 +180,10 @@ Sample1     1       17            1
 > head(clusterPairs(data, tol=10))
 [1] 1 2 2 2 3 3
 > 
+> # End.
 > 
+> unlink(fout)
 > 
 > proc.time()
    user  system elapsed 
- 10.417   0.175  10.586 
+ 10.439   0.158  10.595 
