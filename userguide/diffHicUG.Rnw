@@ -401,8 +401,8 @@ This information will be used in downstream \pkgname{} functions, such as read c
 \label{chap:counting}
 
 \begin{combox}
-A different dataset is used in this chapter, so we really don't need anything from the previous chapter.
-Just stay enthused, because this is where the fun starts.
+A different dataset will be used here, so we don't need anything from the last chapter.
+Horses for courses; this dataset's a lot nicer for detecting differential interactions.
 \end{combox}
 
 \section{Overview}
@@ -417,7 +417,7 @@ Recall that each paired read is assigned to a restriction fragment index.
 The interaction space contains all index pairs $(x, y)$ for $x, y \in [1 .. N]$, where $x \ge y$ and $N$ is the number of restriction fragments in the genome.
 This can be visualized as the triangular space between $y=x$, $y=0$ and $x=N$ on the Cartesian plane.
 A rectangular area in the interaction space represents a pairwise interaction between the genomic intervals spanned by the two adjacent sides of that rectangle.
-The number of read pairs in each area is then used as the count for the corresponding interaction.
+The number of read pairs in this area is used as the count for the corresponding interaction.
 Non-rectangular areas can also represent interactions, but these are more difficult to interpret and will not be considered here.
 
 The examples shown here will use the \citeauthor{sofueva2013cohesin} dataset.
@@ -463,12 +463,7 @@ The \code{width} of the bin is specified in base pairs and determines the spatia
 Smaller bins will have greater spatial resolution as adjacent features can be distinguished in the interaction space.
 Larger bins will have greater counts as a larger area is used to collect read pairs.
 Optimal summarization will not be achieved if bins are too small or too large to capture the (changes in) intensity of the underlying interactions.
-
-Determination of the ideal bin size is not trivial as the features of interest are not usually known in advance.
-Instead, repeated analyses with multiple bin sizes are recommended.
-This provides some robustness to the choice of bin size.
-Sharp interactions can be detected by pairs of smaller bins while diffuse interactions can be detected by larger bin pairs.
-See Section~\ref{sec:mergebins} for more information on consolidating results from multiple bin sizes.
+For this analysis, 1 Mbp bins are used to capture broad structural features. 
 
 <<>>=
 head(regions(data))
@@ -478,6 +473,12 @@ The boundary of each bin is rounded to the closest restriction site in \code{squ
 This is due to the inherent limits on spatial resolution in a Hi-C experiment.
 The number of restriction fragments in each bin is recorded in the \code{nfrags} field of the metadata.
 
+Determination of the ideal bin size is not trivial as the features of interest are not usually known in advance.
+Instead, repeated analyses with multiple bin sizes are recommended.
+This provides some robustness to the choice of bin size.
+Sharp interactions can be detected by pairs of smaller bins while diffuse interactions can be detected by larger bin pairs.
+See Section~\ref{sec:mergebins} for more information on consolidating results from multiple bin sizes.
+
 \section{Counting with pre-defined regions}
 For some studies, prior knowledge about the regions of interest may be available.
 For example, a researcher may be interested in examining interactions between genes.
@@ -485,12 +486,8 @@ The coordinates can be obtained from existing annotation, as shown below for the
 Other pre-specified regions can also be used, e.g., known enhancers or protein binding sites.
 
 <<>>=
-require(org.Mm.eg.db)
-gene.data <- select(org.Mm.eg.db, keys=keys(org.Mm.eg.db), 
-    columns=c("CHRLOC", "CHRLOCEND"), keytype="ENTREZID")
-gene.data <- gene.data[!is.na(gene.data$CHRLOCCHR),]
-gene.body <- GRanges(paste0("chr", gene.data$CHRLOCCHR),
-    IRanges(abs(gene.data$CHRLOC), abs(gene.data$CHRLOCEND)))
+require(TxDb.Mmusculus.UCSC.mm10.knownGene)
+gene.body <- genes(TxDb.Mmusculus.UCSC.mm10.knownGene)
 @
 
 Counting can be directly performed for these defined regions using the \code{connectCounts} function.
@@ -531,6 +528,7 @@ margin.data <- marginCounts(input, mm.param, width=bin.size)
 margin.data
 @
 
+Each row of the returned \code{DIList} contains the read pair counts for a single genomic bin.
 Note that the anchor/target notation is superfluous for \code{marginCounts}.
 This is because the marginal counts refer to individual bins rather than bin pairs.
 Nonetheless, a \code{DIList} is still returned for consistency, in which the anchor and target regions are identical.
@@ -554,15 +552,15 @@ smoothScatter(0.5*(adjc[,1]+adjc[,3]), adjc[,1]-adjc[,3],
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
 
-It must be stressed that the marginal count refers to a count for each bin. 
-To avoid any confusion, the count for each \textit{bin pair} will be described as the interaction count.
-Later, it may be necessary to adjust the interaction count based on the marginal counts for the corresponding bins (Section~\ref{sec:copy}, for example).
-In such cases, one should ensure that the same values of \code{width} and \code{param} are used in both \code{squareCounts} and \code{marginCounts}.
-One can check that this is the case by ensuring that the regions are the same.
-
-<<>>=
-identical(regions(data), regions(margin.data))
-@
+% It must be stressed that the marginal count refers to a count for each bin. 
+% To avoid any confusion, the count for each \textit{bin pair} will be described as the interaction count.
+% Later, it may be necessary to adjust the interaction count based on the marginal counts for the corresponding bins (Section~\ref{sec:copy}, for example).
+% In such cases, one should ensure that the same values of \code{width} and \code{param} are used in both \code{squareCounts} and \code{marginCounts}.
+% One can check that this is the case by ensuring that the regions are the same.
+% 
+% <<>>=
+% identical(regions(data), regions(margin.data))
+% @
 
 \section{Additional parameter options}
 
