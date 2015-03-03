@@ -1,4 +1,4 @@
-correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.02, winsor.high=0.02, dispersion=0.05)
+correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.02, winsor.high=0.02, average=TRUE, dispersion=0.05)
 # This performs the iterative correction method of Mirny et al. (2012) to
 # identify the true contact probability of each patch of the interaction
 # space. The idea is to use the true contact probability as a filter
@@ -9,8 +9,22 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
 #
 # written by Aaron Lun
 # some time ago	
-# modified 4 August 2014
+# modified 3 March 2015
 {
+	if (!average & ncol(data)>1L) {
+		collected.truth <- collected.bias <- collected.max <- list()
+		for (lib in 1:ncol(data)) { 
+			out <- Recall(data[,lib], iterations=iterations, exclude.local=exclude.local, ignore.low=ignore.low, 
+				winsor.high=winsor.high, average=FALSE, dispersion=dispersion)
+			collected.truth[[lib]] <- out$truth
+			collected.bias[[lib]] <- out$bias
+			collected.max[[lib]] <- out$max
+		}
+		return(list(truth=do.call(cbind, collected.truth), 
+			bias=do.call(cbind, collected.bias),
+			max=do.call(cbind, collected.max)))
+	}
+
 	# Checking arguments.
 	iterations <- as.integer(iterations)
 	if (iterations <= 0L) { stop("number of iterations must be a positive integer") }

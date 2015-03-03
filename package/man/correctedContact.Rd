@@ -7,7 +7,7 @@
 
 \usage{
 correctedContact(data, iterations=50, exclude.local=1, ignore.low=0.02, 
-    winsor.high=0.02, dispersion=0.05)
+    winsor.high=0.02, average=TRUE, dispersion=0.05)
 }
 
 \arguments{
@@ -16,14 +16,19 @@ correctedContact(data, iterations=50, exclude.local=1, ignore.low=0.02,
 	\item{exclude.local}{an integer scalar, indicating the distance off the diagonal under which bin pairs are excluded}
 	\item{ignore.low}{a numeric scalar, indicating the proportion of low-abundance bins to ignore}
 	\item{winsor.high}{a numeric scalar indicating the proportion of high-abundance bin pairs to winsorize}
+	\item{average}{a logical scalar specifying whether counts should be averaged across libraries}
 	\item{dispersion}{a numeric scalar for use in computing the average count in \code{\link{mglmOneGroup}}}
 }
 
 \value{
-A list with several components. 
-	\item{truth}{a numeric vector containing the true interaction probabilities for each bin pair}
-	\item{bias}{a numeric vector of biases for all bins}
-    \item{max}{a numeric vector containing the maximum fold-change change in biases at each iteration}
+A list with several components.
+\describe{	
+	\item{\code{truth}:}{a numeric vector containing the true interaction probabilities for each bin pair}
+	\item{\code{bias}:}{a numeric vector of biases for all bins}
+    \item{\code{max}:}{a numeric vector containing the maximum fold-change change in biases at each iteration}
+}
+If \code{average=FALSE}, each component is a numeric matrix instead.
+Each column of the matrix contains the specified information for each library in \code{data}.
 }
 
 \details{
@@ -44,9 +49,9 @@ Local bin pairs can be excluded as these are typically irrelevant to long-range 
 They are also typically very high-abundance and may have excessive weight during correction, if not removed. 
 This can be done by removing all bin pairs where the difference between the anchor and target indices is less than \code{exclude.local}.
 
-If multiple libraries are used to generate \code{data}, an average count will be computed for each bin pairs across all libraries using \code{\link{mglmOneGroup}} with the specified \code{dispersion}.
+For \code{average=TRUE}, if multiple libraries are used to generate \code{data}, an average count will be computed for each bin pairs across all libraries using \code{\link{mglmOneGroup}} with the specified \code{dispersion}.
 The average count will then be used for correction.
-Users can also perform correction on each library separately, by column-subsetting \code{data} before supplying it to \code{correctedContact}.
+Otherwise, correction will be performed on the counts for each library separately.
 
 The maximum step size in the output can be used as a measure of convergence. 
 Ideally, the step size should approach 1 as iterations pass. 
@@ -57,14 +62,16 @@ This indicates that the correction procedure is converging to a single solution,
 }
 
 \examples{
-hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
-cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
-param <- pairParam(cuts)
-
-# Setting up the parameters
-fout <- "output"
-invisible(preparePairs(hic.file, param, fout))
-data <- squareCounts(fout, param, width=50, filter=1L)
+# Dummying up some data.
+set.seed(3423746)
+npts <- 100
+npairs <- 5000
+nlibs <- 4
+anchors <- sample(npts, npairs, replace=TRUE)
+targets <- sample(npts, npairs, replace=TRUE)
+data <- DIList(counts=matrix(rpois(npairs*nlibs, runif(npairs, 10, 100)), nrow=npairs),
+	totals=runif(nlibs, 1e6, 2e6), anchors=pmax(anchors, targets), targets=pmin(anchors, targets),
+	regions=GRanges("chrA", IRanges(1:npts, 1:npts)))
 
 # Correcting.
 stuff <- correctedContact(data)
@@ -72,14 +79,17 @@ head(stuff$truth)
 head(stuff$bias)
 plot(stuff$max)
 
-unlink(fout, recursive=TRUE)
+# Different behaviour with average=FALSE.
+stuff <- correctedContact(data, average=FALSE)
+head(stuff$truth)
+head(stuff$bias)
+head(stuff$max)
 }
 
 \author{Aaron Lun}
 
 \seealso{
 \code{\link{squareCounts}}, 
-%\code{\link{getBias}},
 \code{\link{mglmOneGroup}}
 }
 
