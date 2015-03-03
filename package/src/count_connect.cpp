@@ -149,7 +149,8 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter) try
 	}
 
 	// Assessing how many combinations are above threshold.
-	int index=0, countsum=0, ncombos=0;
+	size_t index=0;
+	int countsum=0, ncombos=0;
 	std::deque<bool> isokay;
 	while (index < counts.size()) { 
 		for (int i=0; i<nlibs; ++i) { 

@@ -205,7 +205,7 @@ try {
 	}
 
 	// Mopping up anything which doesn't have any synonyms.
-	for (int i=0; i<newids.size(); ++i) {
+	for (size_t i=0; i<newids.size(); ++i) {
 		if (newids[i]==nothing) { 
 			newids[i]=numids;
 			++numids;

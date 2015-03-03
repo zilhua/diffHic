@@ -4,7 +4,6 @@
 SEXP count_patch(SEXP all, SEXP bin, SEXP filter) try {
     if (!isInteger(bin)) { throw std::runtime_error("anchor bin indices must be integer vectors"); }
 	const int* bptr=INTEGER(bin)-1; // Assuming 1-based indices for anchors and targets.
-	const int nbin=LENGTH(bin);
 	if (!isInteger(filter) || LENGTH(filter)!=1) { throw std::runtime_error("filter value must be an integer scalar"); }
 	const int f=asInteger(filter);
    	if (!isNewList(all)) { throw std::runtime_error("data on interacting PETs must be contained within a list"); }
@@ -114,7 +113,7 @@ SEXP count_patch(SEXP all, SEXP bin, SEXP filter) try {
 		
 		// Iterating across and filling both the matrix and the components.
 		int cdex=-1;
-		for (int i=0; i<anchors.size(); ++i) {
+		for (size_t i=0; i<anchors.size(); ++i) {
 			aoptr[i]=anchors[i];
 			toptr[i]=targets[i];
 			for (int j=0; j<nlibs; ++j) { coptrs[j][i]=counts[++cdex]; }

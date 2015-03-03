@@ -9,7 +9,7 @@ class fragment_finder {
 public:
 	fragment_finder(SEXP, SEXP); // Takes a list of vectors of positions and reference names for those vectors.
 	int find_fragment(const int&, const int&, const bool&, const int&) const;
-	const int nchrs() const;
+	size_t nchrs() const;
 private:
 	struct chr_stats {
 		chr_stats(const int* s, const int* e, const int& l) : start_ptr(s), end_ptr(e), num(l) {}
@@ -67,7 +67,7 @@ int fragment_finder::find_fragment(const int& c, const int& p, const bool& r, co
 	return index;
 }
 
-const int fragment_finder::nchrs() const { return pos.size(); }
+size_t fragment_finder::nchrs() const { return pos.size(); }
 	
 /***********************************************************************
  * Parses the CIGAR string to extract the alignment length, offset from 5' end of read.
@@ -151,7 +151,7 @@ struct valid_pair {
 SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, SEXP pos, 
 		SEXP flag, SEXP cigar, SEXP mapqual, SEXP chimera_strict, SEXP minqual, SEXP do_dedup) try {
 	fragment_finder ff(start_list, end_list);
-	const int nc=ff.nchrs();
+	const size_t nc=ff.nchrs();
 
 	// Checking input values.
 	if (!isInteger(pairlen)) { throw std::runtime_error("length of pairs must be an integer vector"); }
@@ -183,7 +183,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 
 	// Constructing output containers
 	std::deque<std::deque<std::deque<valid_pair> > > collected(nc);
-	for (int i=0; i<nc; ++i) { collected[i].resize(i+1); }
+	for (size_t i=0; i<nc; ++i) { collected[i].resize(i+1); }
 	std::deque<segment> read1, read2;
 	segment current;
 	valid_pair curpair;
@@ -272,7 +272,6 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 		}
 		
 		// Determining the type of construct if they have the same ID.
-		bool skip=false;
 		switch (get_status(read1.front(), read2.front())) {
 			case is_pet:
 				++dangling;
@@ -320,8 +319,8 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 	try { 
 		// Checking how many are not (doubly) empty.
 		std::deque<std::pair<int, int> > good;
-		for (int i=0; i<nc; ++i) {
-			for (int j=0; j<=i; ++j) {
+		for (size_t i=0; i<nc; ++i) {
+			for (size_t j=0; j<=i; ++j) {
 				const std::deque<valid_pair>& curpairs=collected[i][j];
 				if (!curpairs.empty()) { good.push_back(std::make_pair(i, j)); }
 			}
@@ -333,7 +332,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 		SET_VECTOR_ELT(total_output, 1, allocVector(VECSXP, good.size()));
 		SEXP output=VECTOR_ELT(total_output, 1);
 
-		for (int i=0; i<good.size(); ++i) {
+		for (size_t i=0; i<good.size(); ++i) {
 			aptr[i]=good[i].first+1;
 			tptr[i]=good[i].second+1;
 
@@ -346,7 +345,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 			int* tpxptr=apxptr+curpairs.size();
 			int* afxptr=tpxptr+curpairs.size();
 			int* tfxptr=afxptr+curpairs.size();
-			for (int k=0; k<curpairs.size(); ++k) {
+			for (size_t k=0; k<curpairs.size(); ++k) {
 				axptr[k]=curpairs[k].anchor+1;
 				txptr[k]=curpairs[k].target+1;
 				apxptr[k]=curpairs[k].apos;

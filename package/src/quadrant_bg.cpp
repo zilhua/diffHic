@@ -4,7 +4,7 @@
  */
 
 struct basic {
-	basic(int w, int t, bool i) : width(w), level(0), intra(i), tlen(t), remove_self(false) {}
+	basic(int w, int t, bool i) : level(0), width(w), tlen(t), intra(i), remove_self(false) {}
 	virtual void set (int, int)=0;
 	virtual ~basic() {};
 	virtual bool bump_level () { 
@@ -12,7 +12,7 @@ struct basic {
 		++level;
 		return true;
 	}
-	bool discard_self() { return (level==0 & remove_self); }
+	bool discard_self() { return (level==0 && remove_self); }
 	int row, left, right;
 protected:
 	int level, width, tlen;
