@@ -41,7 +41,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
 			for (lib in 1:length(pairs)) { 
 				.checkIndexOK(fragments, anchor, pairs[[lib]]$anchor.id)
-				.checkIndexOK(fragments, target, pairs[[lib]]$target.id)
+				if (anchor!=target) { .checkIndexOK(fragments, target, pairs[[lib]]$target.id) }
 				full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]]) 
 			}
 			
@@ -211,10 +211,11 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 
 .checkIndexOK <- function(fragments, nominal, indices) 
 # Checking that everything, in fact, comes from the same chromosome.
-# It also checks for out-of-boundedness.
+# It also checks for out-of-boundedness. The rather complicated code
+# in the 'if' just speeds things up by avoiding expansion of the entire vector.
 {
 	if (max(indices) > length(fragments)) { stop("index outside range of fragment object") }
-	curchr <- as.character(runValue(seqnames(fragments)[indices]))
-	if (length(curchr)!=1L || curchr!=nominal) { stop("mismatch between requested and extracted chromosomes") }
+	if (!all((seqnames(fragments) == nominal)[which(tabulate(indices)>0L)])) {
+		stop("mismatch between requested and extracted chromosomes") }
 	return(TRUE)
 }
