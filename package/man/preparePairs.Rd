@@ -119,6 +119,8 @@ unlink(tmpf)
 
 \references{
 Imakaev M et al. (2012). Iterative correction of Hi-C data reveals hallmarks of chromosome organization. \emph{Nat. Methods} 9, 999-1003.
+
+Belton, RP et al. (2012). Hi-C: a comprehensive technique to capture the conformation of genomes. \emph{Methods} 58, 268-276.
 }
 
 \keyword{preprocessing}
