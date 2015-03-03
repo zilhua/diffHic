@@ -212,10 +212,13 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 .checkIndexOK <- function(fragments, nominal, indices) 
 # Checking that everything, in fact, comes from the same chromosome.
 # It also checks for out-of-boundedness. The rather complicated code
-# in the 'if' just speeds things up by avoiding expansion of the entire vector.
+# in the 'if' just speeds things up by avoiding expansion of the entire 
+# vector; it's faster than 'unique', too.
 {
-	if (max(indices) > length(fragments)) { stop("index outside range of fragment object") }
-	if (!all((seqnames(fragments) == nominal)[which(tabulate(indices)>0L)])) {
-		stop("mismatch between requested and extracted chromosomes") }
+	if (length(indices)) {
+		if (max(indices) > length(fragments)) { stop("index outside range of fragment object") }
+		if (!all((seqnames(fragments) == nominal)[which(tabulate(indices)>0L)])) {
+			stop("mismatch between requested and extracted chromosomes") }
+	}
 	return(TRUE)
 }
