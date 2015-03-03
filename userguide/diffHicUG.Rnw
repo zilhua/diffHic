@@ -1158,7 +1158,7 @@ adj.counts <- cpm(asDGEList(data), log=TRUE)
 
 Trended biases are problematic as they can inflate the variance estimates or fold-changes for some bin pairs. 
 They must be eliminated with non-linear normalization prior to further analysis.
-The example below uses the NB-loess method, which is an adaptation of existing non-linear methods for discrete count data. %\citep{normpaper}. % Coming soon, I hope.
+The example below uses a non-linear method from \csaw{}, adapted from existing methods to handle discrete count data. %\citep{normpaper}. % Coming soon, I hope.
 An offset term is computed for each bin pair in each library, to use in a generalized linear model (GLM). 
 A large offset for an observation is equivalent to downscaling that count relative to the counts of the other libraries. 
 
@@ -1168,7 +1168,7 @@ head(nb.off)
 @
 
 The MA plot can be examined after adjusting the log-counts with the offsets.
-Most of the trend is removed which indicates that normalization was successful.
+Most of the trend is removed, indicating that normalization was successful.
 Of course, this assumes that most bin pairs at each abundance do not represent differential interactions.
 Any systematic differences between libraries are assumed to be technical in origin and are removed.
 If this assumption does not hold, genuine differences may be lost upon normalization.
@@ -1279,8 +1279,8 @@ In short, normalization within a library is a different problem from normalizati
 \subsection{Eliminating CNVs with multi-dimensional smoothing}
 Copy number variations (CNVs) in the interacting regions will also affect the interaction intensity. 
 These CNV-driven differences in intensities are generally uninteresting and must be removed to avoid spurious detection.
-This is done using the \code{normalizeCNV} function, which simultaneously removes trended biases as well.
-The function is based on multi-dimensional smoothing across several covariates with the \code{locfit} package \citep{loader1999local}.
+This is done using the \code{normalizeCNV} function, based on multi-dimensional smoothing across several covariates with the \code{locfit} package \citep{loader1999local}.
+It requires both bin pair and marginal counts, obtained with the same values of \code{width} and \code{param} in \code{squareCounts} and \code{marginCounts}, respectively.
 
 <<>>=
 cnv.offs <- normalizeCNV(data, margin.data)
@@ -1304,22 +1304,22 @@ As with trended biases, filtering by average abundance is strongly recommended p
 This reduces the computational work required for multi-dimensional smoothing.
 Discreteness and domination of the fit by low-abundance bin pairs is also avoided.
 
-\subsection{Why use multi-dimensional smoothing?}
-As a comparison, consider the use of iterative correction to normalize CNVs.
-This identifies CNVs based on differences in the coverage of each bin between samples.
-However, converting the change in coverage into a quantifiable change in the interaction intensity requires the assumption of factorizability \citep{imakaev2012iterative}, i.e., the effect on intensity is a product of the biases of the interacting regions.
-This is reasonable under a random ligation model, but does not account for other mechanisms of read pair generation.
-\begin{quote}
-For example, wholesale duplication of an entire TAD will double the reported interaction intensity for intra-TAD interactions for that TAD (assuming negligble inter-TAD contacts between the original and the copy).
-This is inconsistent with factorizability, where a 4-fold increase in interaction intensity would be expected after doubling the copy number for all interacting loci inside the TAD.
-\end{quote}
-
-The use of a empirical fit reduces the number of assumptions involved in translating a CNV into its effect on interaction intensities.
-Simultaneous fitting to all covariates means that different biases at any combination of covariate values can be accommodated.
-That said, the use of many covariates may lead to overfitting and removal of genuine differences.
-The function also assumes that CNVs in different parts of the genome have the same effect on the interaction intensities.
-Thus, caution is required when using \code{normalizeCNV}. 
-The safest choice is to avoid it when there is no evidence for CNVs (see the plot in Section~\ref{sec:marginal}).
+%\subsection{Why use multi-dimensional smoothing?}
+%As a comparison, consider the use of iterative correction to normalize CNVs.
+%This identifies CNVs based on differences in the coverage of each bin between samples.
+%However, converting the change in coverage into a quantifiable change in the interaction intensity requires the assumption of factorizability \citep{imakaev2012iterative}, i.e., the effect on intensity is a product of the biases of the interacting regions.
+%This is reasonable under a random ligation model, but does not account for other mechanisms of read pair generation.
+%\begin{quote}
+%For example, wholesale duplication of an entire TAD will double the reported interaction intensity for intra-TAD interactions for that TAD (assuming negligble inter-TAD contacts between the original and the copy).
+%This is inconsistent with factorizability, where a 4-fold increase in interaction intensity would be expected after doubling the copy number for all interacting loci inside the TAD.
+%\end{quote}
+%
+%The use of a empirical fit reduces the number of assumptions involved in translating a CNV into its effect on interaction intensities.
+%Simultaneous fitting to all covariates means that different biases at any combination of covariate values can be accommodated.
+%That said, the use of many covariates may lead to overfitting and removal of genuine differences.
+%The function also assumes that CNVs in different parts of the genome have the same effect on the interaction intensities.
+%Thus, caution is required when using \code{normalizeCNV}. 
+%The safest choice is to avoid it when there is no evidence for CNVs (see the plot in Section~\ref{sec:marginal}).
 
 \subsection{Visualizing the effect of CNV removal}
 To demonstrate, the \citeauthor{rickman2012oncogene} dataset is used here as it contains more CNVs.
