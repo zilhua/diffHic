@@ -1601,9 +1601,52 @@ o <- order(final$PValue)
 write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
-\subsection{Aggregating small bin pairs}
+%\subsection{Aggregating results for small bin pairs}
+%The code below demonstrates the potential for loss of FDR control in real data.
+%Significant bin pairs that are adjacent in the interaction space are clustered together.
+%Each cluster can be treated as a representative of a single underlying interaction.
+%A substantial proportion of clusters consist of multiple bin pairs, which suggests that controlling the FDR across bin pairs may not be equivalent to controlling that across clusters/interactions. 
+%
+%<<>>=
+%small.de <- p.adjust(result.small$table$PValue, method="BH") <= 0.05
+%clustered <- clusterPairs(smaller.data[small.de], tol=1)
+%table(tabulate(clustered))[1:10]
+%@
+%
+%One solution might be to cluster bin pairs in the interaction space to identify the underlying true interaction.
+%One can then combine $p$-values across all bin pairs in the cluster using Simes' method \citep{simes1986}, to obtain a single combined $p$-value for the cluster.
+%This approach avoids misinterpretation for diffuse interactions as each cluster (and thus interaction) has one $p$-value.
+%However, this is confounded by the density of the interaction space, particularly at short distances and/or in TADs.
+%The boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
+%
+%This problem can be avoided by performing pre-defined clustering based on large bin pairs.
+%Specifically, a large bin pair is defined and the set of all smaller bin pairs nested therein is defined as a cluster.
+%This is robust to high-density space as the definition of the cluster does not depend on the neighbouring bin pairs.
+%Misinterpretation of the FDR is mitigated, as fewer bin pairs will represent each interaction when the bins are large.
+%Identification of these clusters can be achieved with the \code{boxPairs} function, as shown below.
+%
+%<<>>=
+%matched <- boxPairs(reference=bin.size, smaller=smaller.data, param=mm.param)
+%tabcom <- combineTests(matched$indices$smaller, result.small$table)
+%head(tabcom)
+%sum(tabcom$FDR <= 0.05)
+%@
+%
+%The $p$-values for all of the smaller bin pairs are then combined using Simes' method.
+%The resulting combined $p$-value represents the evidence against the global null hypothesis for the larger bin pair, i.e., there are no significant differences in any of the smaller bin pairs nested within the larger bin pair.
+%The BH method is applied to the combined $p$-values to control the FDR across all larger bin pairs/interactions.
+%Rejection of the global null indicates that there is a change and that the larger bin pair is worth further investigation.
+%
+%As an aside, why would small bin pairs be used for diffuse interactions in the first place?
+%The motiviation behind this approach is that the interaction space contains both sharp and diffuse interactions.
+%The use of small bin pairs will optimally detect the former, while the nesting strategy protects against misinterpretation of the FDR by the latter.
+
+\subsection{Merging results from different bin widths}
+\label{sec:mergebins}
+The choice of bin size is not clear when there are both sharp and diffuse changes in the interaction space.
+Comprehensive detection of differential interactions can be achieved by combining the differential analyses from both small and large bin pairs.
 Smaller bins provide greater spatial resolution and can identify sharp differential interactions that would otherwise be lost within larger bin pairs.
-To demonstrate, a quick-and-dirty analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
+To demonstrate, a quick-and-dirty differential analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
 
 <<>>=
 y.small <- asDGEList(smaller.data)
@@ -1613,65 +1656,9 @@ fit.small <- glmQLFit(y.small, design, robust=TRUE)
 result.small <- glmQLFTest(fit.small)
 @
 
-Use of smaller bin pairs can be problematic when diffuse interactions are present.
-Recall that the FDR refers to the proportion of bin pairs that are false positives.
-However, each bin pair is just an analytical construct. 
-The more relevant error rate is the FDR across the underlying interactions, as this represents actual biology.
-The FDR over bin pairs can be used as a proxy for the FDR over interactions, if one assumes that each bin pair roughly corresponds to an interaction.
-This is reasonable for large bin pairs, but is less so when multiple smaller bin pairs are used to represent a diffuse interaction.
-This can result in misinterpretation of the FDR such that control is lost \citep{lun2014denovo}.
-
-The code below demonstrates the potential for loss of FDR control in real data.
-Significant bin pairs that are adjacent in the interaction space are clustered together.
-Each cluster can be treated as a representative of a single underlying interaction.
-A substantial proportion of clusters consist of multiple bin pairs, which suggests that controlling the FDR across bin pairs may not be equivalent to controlling that across clusters/interactions. 
-
-<<>>=
-small.de <- p.adjust(result.small$table$PValue, method="BH") <= 0.05
-clustered <- clusterPairs(smaller.data[small.de], tol=1)
-table(tabulate(clustered))[1:10]
-@
-
-One solution might be to cluster bin pairs in the interaction space to identify the underlying true interaction.
-One can then combine $p$-values across all bin pairs in the cluster using Simes' method \citep{simes1986}, to obtain a single combined $p$-value for the cluster.
-This approach avoids misinterpretation for diffuse interactions as each cluster (and thus interaction) has one $p$-value.
-However, this is confounded by the density of the interaction space, particularly at short distances and/or in TADs.
-The boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
-
-Boundary ambiguity can be avoided by performing pre-defined clustering based on large bin pairs.
-Specifically, a large bin pair is defined and the set of all smaller bin pairs nested therein is defined as a cluster.
-This is robust to high-density space as the definition of the cluster does not depend on the neighbouring bin pairs.
-Misinterpretation of the FDR is mitigated, as fewer bin pairs will represent each interaction when the bins are large.
-Identification of these clusters can be achieved with the \code{boxPairs} function, as shown below.
-Note that the larger bin size must be a multiple of the \code{width} used for the smaller bins.
-
-<<>>=
-matched <- boxPairs(reference=bin.size, smaller=smaller.data, param=mm.param)
-@
-
-The $p$-values for all of the smaller bin pairs can then be combined using Simes' method.
-The resulting combined $p$-value represents the evidence against the global null hypothesis for the larger bin pair, i.e., there are no significant differences in any of the smaller bin pairs nested within the larger bin pair.
-The BH method is applied to the combined $p$-values to control the FDR across all larger bin pairs/interactions.
-Rejection of the global null indicates that there is a change and that the larger bin pair is worth further investigation.
-
-<<>>=
-tabcom <- combineTests(matched$indices$smaller, result.small$table)
-head(tabcom)
-sum(tabcom$FDR <= 0.05)
-@
-
-Of course, bin clustering will not be optimal for diffuse interactions.
-One could obtain larger counts by directly using larger bin pairs, given that spatial resolution is not an issue for diffuse interactions.
-Nonetheless, bin clustering will protect against misinterpretation when both sharp and diffuse interactions are present.
-The use of small bin pairs will allow detection of the former, while bin clustering will prevent distortion of the FDR by the latter.
-This method is also a good introduction to the next (more useful) section.
-
-\subsection{Merging results from different bin widths}
-\label{sec:mergebins}
-The choice of bin size is not clear when there are both sharp and diffuse changes in the interaction space.
-Robust results can be obtained by combining the differential analyses from both small and large bin pairs.
-All smaller bin pairs that are nested within each of the larger bin pairs are identified using the \code{boxPairs} function.
+To consolidate these results, all smaller bin pairs that are nested within each of the larger bin pairs are identified using the \code{boxPairs} function.
 This yields identifiers for each bin pair where \code{smaller} bin pairs are nested in \code{larger} bin pairs with the same ID.
+Note that the larger bin size \textit{must} be a multiple of the smaller bin size, to simplify later interpretation.
 
 <<>>=
 matched <- boxPairs(bin.size, larger=data, smaller=smaller.data, param=mm.param)
@@ -1701,21 +1688,14 @@ The BH method is also applied to the combined $p$-values.
 result.com <- combineTests(ids=c(sdex, ldex), 
     tab=rbind(result.small$table, result$table), weight=weight)
 head(result.com)
-@
-
-The FDR refers to the proportion of larger bin pairs that are false discoveries.
-Misinterpretation is mitigated by nesting the smaller bin pairs within their larger counterparts.
-Note the difference in the results after combining analyses from large and small bin pairs, relative to the analyses using only one bin size.
-An increase in the number of detections suggests that the different bin sizes complement each other.
-Sharp changes in the interaction space are detected with small bins, whereas diffuse changes are detected with larger bins.
-
-<<>>=
 sum(result.com$FDR <= 0.05)
 @
 
 % In other cases, decreased power may be observed if either - but not both- sharp or diffuse interactions are observed.
 % This is because the effective number of tests increases, along with the severity of the correction.
 
+Here, the number of detections is greater than that found with large bins alone.
+This suggests that the different bin sizes complement each other by detecting features at different resolutions.
 Statistics for each of the larger bin pairs can then be stored to file. 
 Reordering is performed using the combined $p$-value to promote the strongest changes.
 
@@ -1728,6 +1708,13 @@ final.2 <- data.frame(anchor.chr=seqnames(ax.2), anchor.start=start(ax.2),
 o2 <- order(final.2$PValue)
 write.table(final.2[o2,], file="results.2.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
+
+In addition, nesting protects against misinterpretation of the FDR for diffuse differential interactions.
+The FDR across bin pairs is not the same as that across the true underlying interactions.
+For large bin pairs, the two may be similar if one assumes that each bin pair roughly corresponds to an interaction.
+This assumption is less reasonable when multiple smaller bin pairs are used to represent a diffuse interaction.
+Misinterpreting one FDR as the other may result in loss of control \citep{lun2014denovo}.
+Nesting ensures that the FDR is computed over large bin pairs, even when detection is driven by small bin pairs.
 
 \subsection{Reporting nested bin pairs}
 It is often convenient to identify the top-ranked (smaller) nested bin pair within each of the (larger) parent bin pairs.
