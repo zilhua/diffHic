@@ -53,6 +53,16 @@ Warning messages:
 4         4         1        156          6        -10        -10
 5         4         2        141         80         -5         10
 6         4         2        154         50         10         10
+> head(loadData(fout, "chrA", "chrB"))
+  anchor.id target.id anchor.pos target.pos anchor.len target.len
+1         5         2         19         44         10        -10
+2         5         3         14        105         10        -10
+3         6         1         65         19          5         10
+4         6         2         24         90         -5          5
+5         6         3         24        100         -5        -10
+6         6         3         24         95         -5        -10
+Warning message:
+In value[[3L]](cond) : anchor and target definitions are reversed
 > 
 > # Loading the counts.
 > data <- squareCounts(fout, param, width=50, filter=1)
@@ -186,4 +196,4 @@ Sample1     1       17            1
 > 
 > proc.time()
    user  system elapsed 
- 10.439   0.158  10.595 
+ 10.122   0.150  10.301 

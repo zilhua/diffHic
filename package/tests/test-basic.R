@@ -13,6 +13,7 @@ head(getPairData(fout, param))
 
 loadChromos(fout)
 head(loadData(fout, "chrA", "chrA"))
+head(loadData(fout, "chrA", "chrB"))
 
 # Loading the counts.
 data <- squareCounts(fout, param, width=50, filter=1)
