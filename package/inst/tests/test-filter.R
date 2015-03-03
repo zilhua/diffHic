@@ -108,6 +108,7 @@ filtsim <- function(npairs1, npairs2, chromos, overlap=4, min.ingap=NA, min.outg
 					collected <- collected[to.keep,]
 				} 
 
+				dim(collected$anchor.id) <- dim(collected$target.id) <- NULL
 				everything[[d]] <- collected
 			}
 									

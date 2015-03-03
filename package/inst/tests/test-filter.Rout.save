@@ -1,5 +1,5 @@
 
-R version 3.1.2 (2014-10-31) -- "Pumpkin Helmet"
+R Under development (unstable) (2014-12-14 r67167) -- "Unsuffered Consequences"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -127,6 +127,7 @@ Type 'q()' to quit R.
 + 					collected <- collected[to.keep,]
 + 				} 
 + 
++ 				dim(collected$anchor.id) <- dim(collected$target.id) <- NULL
 + 				everything[[d]] <- collected
 + 			}
 + 									
@@ -248,4 +249,4 @@ by.frag   by.in  by.out by.disc
 > 
 > proc.time()
    user  system elapsed 
- 40.193   0.955  41.204 
+ 27.572   1.112  28.681 
