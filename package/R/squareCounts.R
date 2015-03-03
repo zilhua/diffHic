@@ -37,9 +37,15 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 		for (target in names(current)) {
 			if (!.checkIfPairOK(restrict, anchor, target)) { next }
 
-			# Extracting counts and aggregating them in C++ to obtain count combinations for each bin pair.
+			# Extracting counts and checking them.
 			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
-			for (lib in 1:length(pairs)) { full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]]) }
+			for (lib in 1:length(pairs)) { 
+				.checkIndexOK(fragments, anchor, pairs[[lib]]$anchor.id)
+				.checkIndexOK(fragments, target, pairs[[lib]]$target.id)
+				full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]]) 
+			}
+			
+			# Aggregating them in C++ to obtain count combinations for each bin pair.
             out <- .Call(cxx_count_patch, pairs, new.pts$id, filter)
 			if (is.character(out)) { stop(out) }
 			if (!length(out[[1]])) { next }
@@ -202,3 +208,12 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	return(TRUE)
 }
 
+.checkIndexOK <- function(fragments, nominal, indices) 
+# Checking that everything, in fact, comes from the same chromosome.
+# It also checks for out-of-boundedness.
+{
+	if (max(indices) > length(fragments)) { stop("index outside range of fragment object") }
+	chrs <- runValue(seqnames(fragments)[indices])
+	if (length(chrs)!=1L || chrs!=nominal) { stop("mismatch between requested and extracted chromosomes") }
+	return(TRUE)
+}

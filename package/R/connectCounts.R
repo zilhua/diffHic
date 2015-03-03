@@ -51,7 +51,11 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 			if (!.checkIfPairOK(restrict, anchor, target)) { next }
 
            	pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
-            full.sizes <- full.sizes + sapply(pairs, FUN=nrow)
+			for (lib in 1:length(pairs)) { 
+				.checkIndexOK(fragments, anchor, pairs[[lib]]$anchor.id)
+				.checkIndexOK(fragments, target, pairs[[lib]]$target.id)
+	            full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]])
+			}
 			if (! (target %in% my.chrs) || ! (anchor %in% my.chrs)) { next }	
 
 			# Extracting counts. Running through the fragments and figuring out what matches where.
