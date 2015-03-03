@@ -12,7 +12,7 @@ comp<- function(npairs, nfrags, nlibs, lambda=5, dispersion=0.05, winsorize=0.02
 	chosen <- sample(nrow(all.pairs), npairs)
 	data <- DIList(counts=counts, anchors=all.pairs$anchor.id[chosen], 
 		targets=all.pairs$target.id[chosen], totals=rep(1, nlibs), 
-		region=GRanges(sort(sample(c("chrA", "chrB", "chrC"), nfrags, replace=TRUE)),
+		regions=GRanges(sort(sample(c("chrA", "chrB", "chrC"), nfrags, replace=TRUE)),
 			IRanges(1:nfrags, 1:nfrags)))
 	
 	# Constructing the values.	
@@ -21,8 +21,8 @@ comp<- function(npairs, nfrags, nlibs, lambda=5, dispersion=0.05, winsorize=0.02
 	ave.count <- exp(mglmOneGroup(counts, offset=numeric(nlibs), dispersion=dispersion))
 	for (x in 1:nrow(data)) { 
 		if (ave.count[x] < 1e-6) { next } # As zeros get removed.
-		a<-data@anchor.id[x]
-		t<-data@target.id[x]
+		a<-data@anchors[x]
+		t<-data@targets[x]
 		actual.mat[a,t] <- ave.count[x]
 		is.filled[a,t] <- TRUE
 		if (a!=t) { 

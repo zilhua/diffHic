@@ -1,5 +1,5 @@
 
-R version 3.1.1 (2014-07-10) -- "Sock it to Me"
+R Under development (unstable) (2014-12-14 r67167) -- "Unsuffered Consequences"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -47,7 +47,6 @@ Type 'q()' to quit R.
 +    	chosen.a <- chosen.a[o]
 +    	chosen.t <- chosen.t[o]
 +    	is.diff <- c(TRUE, diff(chosen.a)!=0 | diff(chosen.t)!=0)
-+    	pairs <- data.frame(anchor.id=chosen.a, target.id=chosen.t)
 + 	return(DIList(anchors=chosen.a, targets=chosen.t, 
 + 		counts=matrix(0, nrow=alln, ncol=1), totals=0, region=output))
 + }
@@ -76,12 +75,12 @@ Type 'q()' to quit R.
 + 	last.id <- 1L
 + 
 + 	for (x in 1:np) {
-+ 		cura <- data@anchor.id[x]
++ 		cura <- data@anchors[x]
 + 		keep.a <- subjectHits(allap)[queryHits(allap)==cura]
-+ 		curt <- data@target.id[x]
++ 		curt <- data@targets[x]
 + 		keep.t <- subjectHits(allap)[queryHits(allap)==curt]
 + 
-+ 		partners <- which(data@anchor.id %in% keep.a & data@target.id %in% keep.t)
++ 		partners <- which(data@anchors %in% keep.a & data@targets %in% keep.t)
 + 		partners <- partners[partners>=x]
 + 		curids <- myids[partners]
 + 		curids <- curids[curids!=impossible]
@@ -114,8 +113,8 @@ Type 'q()' to quit R.
 + 	myid2 <- myids
 + 	for (x in names(clusters)) {
 + 		active <- clusters[[x]]
-+ 		active.a <- data@anchor.id[active]
-+ 		active.t <- data@target.id[active]
++ 		active.a <- data@anchors[active]
++ 		active.t <- data@targets[active]
 + 
 + 		cluster.as <- min(all.starts[active.a])
 + 		cluster.ae <- max(all.ends[active.a])
@@ -290,4 +289,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 20.812   0.182  21.027 
+ 15.730   0.143  15.873 

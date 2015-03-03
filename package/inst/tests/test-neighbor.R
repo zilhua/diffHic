@@ -59,7 +59,7 @@ comp <- function(npairs, chromos, flanking, prior=2) {
 	indices <- unlist(sapply(chromos, FUN=function(x) { 1:x }), use.names=FALSE)
 	data <- DIList(counts=counts, anchors=aid[chosen], targets=tid[chosen],
 		totals=rep(1e6, nlibs), regions=GRanges(rep(names(chromos), chromos), IRanges(indices, indices)))
-	data@region$nfrags <- rep(1:3, length.out=nbins)
+	data@regions$nfrags <- rep(1:3, length.out=nbins)
 	
 	# Computing the reference enrichment value.
 	bg <- enrichedGap(data, flank=flanking, trend="none", prior.count=prior)
@@ -67,7 +67,7 @@ comp <- function(npairs, chromos, flanking, prior=2) {
 
 	# Sorting them by chromosome pairs.
 	all.chrs <- as.character(seqnames(regions(data)))
-	chr.pair <- paste0(all.chrs[data@anchor.id], ".", all.chrs[data@target.id])
+	chr.pair <- paste0(all.chrs[data@anchors], ".", all.chrs[data@targets])
 	by.chr.pair <- split(1:npairs, chr.pair)
 	first.id <- lapply(split(1:nbins, all.chrs), FUN=min)
 

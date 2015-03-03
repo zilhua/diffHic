@@ -39,7 +39,7 @@ comp <- function(reference, widths) {
 		if (!identical(counts(output$pairs)[,x], tabulate(output$indices[[x]], nbins=nrow(output$pairs)))) { stop("incidence counts don't match up") }
 	}
 
-	return(head(data.frame(anchor.id=output$pairs@anchor.id, target.id=output$pairs@target.id)))
+	return(head(data.frame(anchor.id=output$pairs@anchors, target.id=output$pairs@targets)))
 }
 
 set.seed(74653812)

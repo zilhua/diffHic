@@ -21,8 +21,8 @@ comp<-function(n1, n2, dist, cuts, restrict=NULL) {
 	n <- length(regions(y))
 	ref <- matrix(0L, n, 2)
 	for (x in 1:nrow(y)) {
-		a<-y@anchor.id[x]
-		t<-y@target.id[x]
+		a<-y@anchors[x]
+		t<-y@targets[x]
 		ref[a,]<-ref[a,]+ counts(y)[x,]
 		if (a!=t) { ref[t,]<-ref[t,]+counts(y)[x,] }
 	}
@@ -30,7 +30,7 @@ comp<-function(n1, n2, dist, cuts, restrict=NULL) {
 	keep<-which(rowSums(ref)>0.5)
 	if (!identical(ref[keep,], counts(frags))) { stop("mismatches in counts") }
 	if (!identical(frags$totals, y$totals)) { stop("mismatches in total counts") }
-	if (!identical(keep, frags@anchor.id) || !identical(keep, frags@target.id)) { stop("mismatches in the regions to keep") }
+	if (!identical(keep, frags@anchors) || !identical(keep, frags@targets)) { stop("mismatches in the regions to keep") }
 	if (!identical(regions(y), regions(frags)))  { stop("mismatches in final regions") }
 	return(head(counts(frags)))
 }

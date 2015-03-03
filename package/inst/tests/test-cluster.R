@@ -28,7 +28,6 @@ simgen <- function(alln, chromos, width, min.space, max.space) {
    	chosen.a <- chosen.a[o]
    	chosen.t <- chosen.t[o]
    	is.diff <- c(TRUE, diff(chosen.a)!=0 | diff(chosen.t)!=0)
-   	pairs <- data.frame(anchor.id=chosen.a, target.id=chosen.t)
 	return(DIList(anchors=chosen.a, targets=chosen.t, 
 		counts=matrix(0, nrow=alln, ncol=1), totals=0, region=output))
 }
@@ -57,12 +56,12 @@ clustercomp <- function(data, tol, maxw, debug=FALSE) {
 	last.id <- 1L
 
 	for (x in 1:np) {
-		cura <- data@anchor.id[x]
+		cura <- data@anchors[x]
 		keep.a <- subjectHits(allap)[queryHits(allap)==cura]
-		curt <- data@target.id[x]
+		curt <- data@targets[x]
 		keep.t <- subjectHits(allap)[queryHits(allap)==curt]
 
-		partners <- which(data@anchor.id %in% keep.a & data@target.id %in% keep.t)
+		partners <- which(data@anchors %in% keep.a & data@targets %in% keep.t)
 		partners <- partners[partners>=x]
 		curids <- myids[partners]
 		curids <- curids[curids!=impossible]
@@ -95,8 +94,8 @@ clustercomp <- function(data, tol, maxw, debug=FALSE) {
 	myid2 <- myids
 	for (x in names(clusters)) {
 		active <- clusters[[x]]
-		active.a <- data@anchor.id[active]
-		active.t <- data@target.id[active]
+		active.a <- data@anchors[active]
+		active.t <- data@targets[active]
 
 		cluster.as <- min(all.starts[active.a])
 		cluster.ae <- max(all.ends[active.a])

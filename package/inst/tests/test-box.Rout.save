@@ -1,5 +1,5 @@
 
-R version 3.1.0 (2014-04-10) -- "Spring Dance"
+R Under development (unstable) (2014-12-14 r67167) -- "Unsuffered Consequences"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -58,7 +58,7 @@ Type 'q()' to quit R.
 + 		if (!identical(counts(output$pairs)[,x], tabulate(output$indices[[x]], nbins=nrow(output$pairs)))) { stop("incidence counts don't match up") }
 + 	}
 + 
-+ 	return(head(data.frame(anchor.id=output$pairs@anchor.id, target.id=output$pairs@target.id)))
++ 	return(head(data.frame(anchor.id=output$pairs@anchors, target.id=output$pairs@targets)))
 + }
 > 
 > set.seed(74653812)
@@ -174,4 +174,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 23.407   0.065  23.509 
+ 14.116   0.172  14.289 

@@ -172,8 +172,8 @@ samecomp <- function(nreads, cuts, ranges, filter=0L, type="any", restrict=NULL)
 	param <- pairParam(cuts, restrict=restrict)
 	out <- connectCounts(c(dir1, dir2), regions=ranges, filter=filter, type=type, param=param) 
 	ref <- refline(c(dir1, dir2), cuts=cuts, ranges=ranges, filter=filter, type=type, restrict=restrict)
-	if (!identical(ref$pairs$anchor.id, out@anchor.id)) { stop("mismatch in anchor identities") }
-	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
+	if (!identical(ref$pairs$anchor.id, out@anchors)) { stop("mismatch in anchor identities") }
+	if (!identical(ref$pairs$target.id, out@targets)) { stop("mismatch in target identities") }
 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
 	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
 	if (!identical(ref$totals, out$totals) ||

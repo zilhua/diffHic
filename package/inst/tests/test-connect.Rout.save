@@ -1,5 +1,5 @@
 
-R version 3.1.2 (2014-10-31) -- "Pumpkin Helmet"
+R Under development (unstable) (2014-12-14 r67167) -- "Unsuffered Consequences"
 Copyright (C) 2014 The R Foundation for Statistical Computing
 Platform: x86_64-unknown-linux-gnu (64-bit)
 
@@ -191,8 +191,8 @@ Type 'q()' to quit R.
 + 	param <- pairParam(cuts, restrict=restrict)
 + 	out <- connectCounts(c(dir1, dir2), regions=ranges, filter=filter, type=type, param=param) 
 + 	ref <- refline(c(dir1, dir2), cuts=cuts, ranges=ranges, filter=filter, type=type, restrict=restrict)
-+ 	if (!identical(ref$pairs$anchor.id, out@anchor.id)) { stop("mismatch in anchor identities") }
-+ 	if (!identical(ref$pairs$target.id, out@target.id)) { stop("mismatch in target identities") }
++ 	if (!identical(ref$pairs$anchor.id, out@anchors)) { stop("mismatch in anchor identities") }
++ 	if (!identical(ref$pairs$target.id, out@targets)) { stop("mismatch in target identities") }
 + 	if (!identical(ref$counts, counts(out))) { stop("mismatch in counts") }
 + 	if (!identical(ref$region, regions(out))) { stop("mismatch in region output") }	
 + 	if (!identical(ref$totals, out$totals) ||
@@ -496,4 +496,4 @@ Type 'q()' to quit R.
 > 
 > proc.time()
    user  system elapsed 
- 64.230   0.427  64.643 
+ 45.666   0.496  46.206 
