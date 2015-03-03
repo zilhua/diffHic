@@ -5,13 +5,13 @@
 \description{Match smaller bin pairs to the larger bin pairs in which they are nested.}
 
 \usage{
-boxPairs(reference, ..., param)
+boxPairs(..., param, reference)
 }
 
 \arguments{
-\item{reference}{an integer scalar specifying the reference bin size}
 \item{...}{one or more named \code{DIList} objects produced by \code{\link{squareCounts}}, with smaller bin sizes than \code{reference}}
 \item{param}{a \code{pairParam} object containing read extraction parameters}
+\item{reference}{an integer scalar specifying the reference bin size}
 }
 
 \value{
@@ -43,7 +43,8 @@ This is necessary to ensure complete nesting.
 Otherwise, the behaviour of the function will not be clearly defined.
 
 Some users may wish to identify bin pairs in one \code{DIList} that are nested within bin pairs in another \code{DIList}.
-This can be done by setting the larger bin size as \code{reference}, and supplying both bin pair \code{DIList} objects in the ellipsis.
+This can be done by supplying both \code{DIList} objects in the ellipsis, and leaving \code{reference} unspecified.
+The value of \code{reference} will be automatically selected as the largest width of the supplied \code{DIList} objects.
 It is then a trivial matter to \code{\link{match}} the output indices for the smaller bin pairs to the output indices of the larger bin pairs.
 }
 
@@ -69,6 +70,7 @@ y2 <- squareCounts(fout, param, width=25, filter=1)
 # Clustering.
 boxPairs(reference=100, larger=y, smaller=y2, param=param)
 boxPairs(reference=50, larger=y, smaller=y2, param=param)
+boxPairs(larger=y, smaller=y2, param=param)
 
 \dontshow{
 unlink(fout, recursive=TRUE)
