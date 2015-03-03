@@ -32,11 +32,11 @@ The aim is to eliminate systematic differences between libraries at any combinat
 This removes CNV-driven biases as well as trended biases with respect to the abundance.
 The fitted value can then be used as a GLM offset for each bin pair.
 
-CNVs in both interacting regions are used as separate covariates, rather than using the product of the relative copies from the two regions as a single covariate.
-This is because a doubling in copy number for the two regions mightn't have the same effect on intensity as a 4-fold increase in one region. 
-The effect of CNVs will also depend on the mechanism through which ligation events are generated.
-For example, a doubling in copy number for both regions might result in a 4-fold increase for random ligation, but only a 2-fold increase for genuine interactions (as the interaction is just doubled).
-Using the abundance as a covariate will ensure that these cases are fitted separately.
+% CNVs in both interacting regions are used as separate covariates, rather than using the product of the relative copies from the two regions as a single covariate.
+% This is because a doubling in copy number for the two regions mightn't have the same effect on intensity as a 4-fold increase in one region. 
+% The effect of CNVs will also depend on the mechanism through which ligation events are generated.
+% For example, a doubling in copy number for both regions might result in a 4-fold increase for random ligation, but only a 2-fold increase for genuine interactions (as the interaction is just doubled).
+% Using the abundance as a covariate will ensure that these cases are fitted separately.
 
 The \code{DIList} objects in \code{data} and \code{margins} should be constructed with the same parameters in their respective functions.
 This ensures that the regions are the same, so that the marginal counts can be directly used.

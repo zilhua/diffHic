@@ -38,7 +38,7 @@ Plotting space that is not covered by any bin pair is shown in \code{background}
 
 The colour of the box depends on the magnitude and sign of the log-fold change in \code{fc}.
 Positive log-FCs will range from white to \code{col.up}, whereas negative log-FCs will range from white to \code{col.down}.
-The chosen color is proportional to the magnitude of the log-FC, and the most extreme colors are only obtained at the maximum absolute log-FC.
+The chosen color is proportional to the magnitude of the log-FC, and the most extreme colors are only obtained at the maximum absolute log-FC in \code{fc}.
 The maximum value can be capped at \code{zlim} for better resolution of small log-FCs.
 
 If \code{diag=TRUE}, boxes will also be plotted above the diagonal for intra-chromosomal plots. 

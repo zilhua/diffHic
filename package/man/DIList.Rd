@@ -43,24 +43,24 @@ Each DIList stores counts for pairwise genomic interactions.
 Slots are defined as:
 \describe{
 \item{\code{counts}:}{an integer matrix containing the number of read pairs for an interaction in each library}
-\item{\code{coldata}:}{a \code{DataFrame} object containing library-specific information in each row, e.g., the total number of read pairs}
-\item{\code{exptdata}:}{a \code{List} object containing data or parameters pertinent to counting}
-\item{\code{anchor.id}:}{an integer vector specifying the index of the first interacting region}
-\item{\code{target.id}:}{an integer vector specifying the index of the second interacting region}
-\item{\code{region}:}{a \code{GRanges} object containing the coordinates of all interacting regions}
+\item{\code{colData}:}{a \code{DataFrame} object containing library-specific information in each row, e.g., the total number of read pairs}
+\item{\code{exptData}:}{a \code{List} object containing data or parameters pertinent to counting}
+\item{\code{anchors}:}{an integer vector specifying the index of the first interacting region}
+\item{\code{targets}:}{an integer vector specifying the index of the second interacting region}
+\item{\code{regions}:}{a \code{GRanges} object containing the coordinates of all interacting regions}
 }
 Each row of \code{counts} corresponds to an interaction, while each column corresponds to a library.
-Each interaction is parameterized by an \code{anchor.id} and \code{target.id} index, pointing to the anchor and target intervals in \code{region}, respectively.
+Each interaction is parameterized by an \code{anchors} and \code{targets} index, pointing to the anchor and target intervals in \code{regions}, respectively.
 The anchor interval is defined as that with the higher genomic start coordinate, compared to that of the target interval.
-This means that \code{anchor.id} is never less than \code{target.id} to avoid redundant permutations.
+This means that \code{anchors} is never less than \code{targets} to avoid redundant permutations.
 }
 
 \section{Constructor}{
 \describe{
-	\item{}{\code{DIList(counts, totals=colSums(counts), anchors, targets, regions)}:
+	\item{}{\code{DIList(counts, totals=colSums(counts), anchors, targets, regions, exptData=List(), ...)}:
 	Returns a DIList object where each entry is used to fill the corresponding slots.
 	Type coercion is performed as required.
-	Values of \code{anchors}, \code{targets} and \code{regions} are used for slots \code{anchor.id}, \code{target.id} and \code{region}.
+	Arguments in \code{...} are used as columns in \code{colData}.
 	}
 }
 }
@@ -71,12 +71,12 @@ In the code snippets below, \code{x} is a DIList object.
 \describe{
 	\item{}{\code{anchors(x, id=FALSE)}:
 	Get the \code{GRanges} corresponding to the anchor intervals for each interaction.
-	If \code{id=TRUE}, indices to the corresponding intervals in \code{region} are returned instead.
+	If \code{id=TRUE}, indices to the corresponding intervals in \code{regions} are returned instead.
 	}
 	
 	\item{}{\code{targets(x, id=FALSE)}:
 	Get the \code{GRanges} corresponding to the target intervals for each interaction.
-	If \code{id=TRUE}, indices to the corresponding intervals in \code{region} are returned instead.
+	If \code{id=TRUE}, indices to the corresponding intervals in \code{regions} are returned instead.
 	}
 
 	\item{}{\code{regions(x)}:

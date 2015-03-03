@@ -26,17 +26,6 @@ Pairs of these bins are referred to here as the parent bin pairs, and are descri
 The function accepts a number of \code{DIList} objects of bin pair data in the ellipsis, referred to here as input bin pairs.
 The aim is to identify the parent bin pair in which each input bin pair is nested.
 
-One vector will be present in the output \code{indices} for each input \code{DIList} in the ellipsis.
-In each vector, each entry represents an index for a single input bin pair in the corresponding \code{DIList}.
-This index points to a row of \code{pairs} and indicates the parent bin pair in which that input bin pair is nested.
-
-The \code{pairs} object holds the coordinates of each parent bin pair.
-Note that the counts in \code{pairs} are somewhat repurposed here.
-Each parent bin pair corresponds to a row of the count matrix, whereas each input \code{DIList} corresponds to a column.
-Each entry specifies the number of nested bin pairs in the parent for the corresponding input \code{DIList}.
-Similarly, the \code{totals} vector contains the total number of input bin pairs in each input \code{DIList}.
-All columns/entries are named according to the name of the corresponding input \code{DIList}.
-
 All input \code{DIList} objects in the ellipsis must be constructed carefully.
 In particular, the value of \code{width} in \code{\link{squareCounts}} must be such that \code{reference} is an exact multiple of each \code{width}.
 This is necessary to ensure complete nesting.
@@ -46,6 +35,19 @@ Some users may wish to identify bin pairs in one \code{DIList} that are nested w
 This can be done by supplying both \code{DIList} objects in the ellipsis, and leaving \code{reference} unspecified.
 The value of \code{reference} will be automatically selected as the largest width of the supplied \code{DIList} objects.
 It is then a trivial matter to \code{\link{match}} the output indices for the smaller bin pairs to the output indices of the larger bin pairs.
+}
+
+\section{Explaining the return value}{
+One vector will be present in the output \code{indices} for each input \code{DIList} in the ellipsis.
+In each vector, each entry represents an index for a single input bin pair in the corresponding \code{DIList}.
+This index points to a row of \code{pairs} and indicates the parent bin pair in which that input bin pair is nested.
+
+The \code{pairs} object holds the coordinates of each parent bin pair.
+Note that the counts in this \code{DIList} are repurposed here.
+Each parent bin pair corresponds to a row of the count matrix, whereas each input \code{DIList} corresponds to a column.
+Each entry specifies the number of nested bin pairs in the parent for the corresponding input \code{DIList}.
+Similarly, the \code{totals} vector contains the total number of input bin pairs in each input \code{DIList}.
+All columns/entries are named according to the name of the corresponding input \code{DIList}.
 }
 
 \seealso{

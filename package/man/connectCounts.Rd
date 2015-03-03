@@ -36,7 +36,7 @@ This means that the boundaries of each region are expanded outwards to obtain th
 In contrast, setting \code{type="within"} would contract each region inwards.
 
 The modified regions can be extracted from the \code{regions} slot in the output \code{DIList} object.
-Note that these will be reordered compared to the input \code{regions}.
+These will be reordered according to the new start positions.
 The ordering permutation can be recovered from the \code{original} metadata field of the \code{GRanges} object.
 Similarly, the number of restriction fragments assigned to each interval is stored in the \code{nfrags} metadata field.
 

@@ -18,7 +18,6 @@ If \code{view=TRUE}, the system's default PDF document reader is started and the
 }
 
 \details{
-%Calling \code{vignette("diffHic")} will yield a short vignette that contains little information. 
 The user guide for the diffHic package can be obtained with this function. 
 The user's guide is not a true vignette as it is not generated using \code{\link{Sweave}} when the package is built. 
 This is due to the time-consuming nature of the code when run on realistic case studies.

@@ -32,7 +32,8 @@ Each row of the output refers to a single bin in the linear genome, instead of a
 % Cleaner than pulling out a SummarizedExperiment from the middle of nowhere.
 
 Larger marginal counts can be collected by increasing the \code{width} value. 
-However, this comes at the cost of spatial resolution (and potentially detection power) as adjacent events in the same bin can no longer be distinguished. 
+However, this comes at the cost of spatial resolution as adjacent events in the same bin can no longer be distinguished. 
+Note that filtering is automatically performed to remove empty bins.
 
 Counting will consider the values of \code{restrict}, \code{discard} and \code{cap} in \code{param}. 
 See \code{\link{pairParam}} for more details.

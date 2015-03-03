@@ -17,7 +17,8 @@ squareCounts(files, param, width=50000, filter=1L)
 }
 
 \value{
-A \code{DIList} object is returned containing the number of read pairs for each bin pair, across all libraries.
+A \code{DIList} object is returned containing the number of read pairs for each bin pair across all libraries.
+The genomic coordinates for each bin are also recorded.
 }
 
 \details{
@@ -35,7 +36,7 @@ The number of read pairs between each pair of sides is counted for each library 
 Larger counts can be collected by increasing the value of \code{width}. 
 This can improve detection power by increasing the evidence for significant differences.
 However, this comes at the cost of spatial resolution as adjacent events in the same bin or square can no longer be distinguished.
-This can reduce detection power if counts for differential interactions are contaminated by counts for non-differential interactions.
+This may reduce detection power if counts for differential interactions are contaminated by counts for non-differential interactions.
 
 Low abundance squares with count sums below \code{filter} are not reported.
 This reduces memory usage for large datasets.
@@ -83,6 +84,7 @@ unlink(fout, recursive=TRUE)
 \author{Aaron Lun}
 
 \seealso{
+\code{\link{preparePairs}},
 \code{\link{cutGenome}},
 \code{\link{DIList-class}}
 }

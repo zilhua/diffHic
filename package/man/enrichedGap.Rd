@@ -19,12 +19,12 @@ enrichedGap(data, flank=5, trend=c("global", "none", "chr"),
 
 \details{
 Consider the coordinates of the interaction space in terms of bins, and focus on any particular bin pair (named here as the target bin pair).
-This target bin pair is characterized by four neighbourhood regions, A - D.
+This target bin pair is characterized by four neighbourhood regions, from A to D.
 Region A is a square with side lengths equal to \code{flank*2+1}, where the target bin pair is positioned in the center.
 Region B is a square with side lengths equal to \code{flank}, positioned such that the target bin pair lies at the corner furthest from the diagonal (only used for intra-chromosomal targets).
 Region C is a horizontal rectangle with dimensions \code{(1, flank*2+1)}, containing the target bin pair at the center.
 Region D is the vertical counterpart to C.
-Of course, the target bin pair itself is not excluded in the definition of each neighbourhood.
+Of course, the target bin pair itself is excluded in the definition of each neighbourhood.
 
 % Segments C and D might be better than separate up/down/left/right neighbourhoods, as those run the risk of
 % being too aggressive if the peak spills over into those neighbourhoods. Spillover is diluted a bit more
@@ -36,7 +36,7 @@ Of course, the target bin pair itself is not excluded in the definition of each 
 
 For a target bin pair in \code{data}, the mean abundance is computed for each of its surrounding neighbourhoods.
 This is defined as the mean of the (distance-adjusted) counts for all constituent bin pairs in that neighbourhood (average counts are used for multiple libraries).
-The local background for the target bin pair is defined as the maximum mean abundance across all neighbourhoods.
+The local background for the target bin pair is defined as the maximum of the mean abundances for all neighbourhoods.
 The enrichment value is then defined as the the difference between the target bin pair's abundance and its local background.
 The idea is that bin pairs with high enrichments are likely to represent punctate interactions between clearly defined loci.
 Selecting for high enrichments can then select for these peak-like features in the interaction space.
@@ -57,7 +57,7 @@ This results in spuriously high enrichment values for target bin pairs on the fe
 The size of \code{flank} requires consideration, as it defines the size of each neighbourhood region.
 If the value is too large, other peaks may be included in the background such that the neighbourhood abundance is inflated.
 On the other hand, interactions that are imperfectly captured by the target bin pair will be counted as part of the neighbourhood, and will increase the neighbourhood abundance.
-In such cases, if \code{flank} is too small, there will not be enough neighbourhood bin pairs to dilute the increase in abundance.
+In such cases, if \code{flank} is too small, there will not be enough neighbourhood bin pairs to dilute the increase in abundance from the uncaptured interaction.
 Both scenarios result in a decrease in enrichment values and loss of power to detect punctate events.
 The default value of 5 seems to work well, though users may wish to test several values for themselves.
 
