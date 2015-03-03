@@ -10,7 +10,8 @@ Imports: Rsamtools, Biostrings, BSgenome, rhdf5,
 	IRanges, S4Vectors, GenomeInfoDb,
 	BiocGenerics
 Suggests: BSgenome.Ecoli.NCBI.20080805
-biocViews: MultipleComparison, Preprocessing, Sequencing 
+biocViews: MultipleComparison, Preprocessing, Sequencing, Coverage, Alignment, 
+	Normalization, Clustering
 Description: Detects differential interactions across biological conditions 
 	in a Hi-C experiment. Methods are provided for read alignment and data 
 	pre-processing into interaction counts. Statistical analysis is based 
