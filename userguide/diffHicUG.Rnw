@@ -1436,8 +1436,8 @@ It can also consider extra-Poisson variability between biological replicates of 
 Here, biological replicates refer to Hi-C libraries prepared from independent biological samples.
 
 The magnitude of biological variability is empirically determined from these biological replicates.
-This is used during testing to reduce the significance of any detected differences when the data is highly variable.
-Estimation of the NB dispersion parameter in \edgeR{} allows modelling of this biological variation.
+Specifically, variability is modelled in \edgeR{} by estimating the NB dispersion parameter.
+This is used during testing to reduce the significance of any detected differences when the counts are highly variable.
 Similarly, estimation of the quasi-likelihood (QL) dispersion can be performed to account for heteroskedasticity \citep{lund2012ql}. 
 
 Dispersion estimation requires the fitting of a GLM to the counts for each bin pair \citep{mccarthy2012glm}. 
@@ -1451,6 +1451,9 @@ design <- model.matrix(~factor(c("flox", "flox", "ko", "ko")))
 colnames(design) <- c("Intercept", "KO")
 design
 @
+
+Obviously, more complex designs can be used if necessary.
+This includes designs with blocking factors for batch effects, pairing between samples or multiple groups.
 
 It is also necessary to assemble a \code{DGEList} object for entry into \edgeR{}.
 Note the inclusion of the normalization offsets that were previously computed with the NB-loess method.
@@ -1503,7 +1506,7 @@ fit <- glmQLFit(y, design, robust=TRUE)
 
 Again, there is not enough information for each bin pair for precise estimation.
 Instead, information is shared between bin pairs using an empirical Bayes (EB) approach.
-Per-bin-pair QL estimates are shrunk towards the mean/trended value across all bin pairs.
+Per-bin-pair QL estimates are shrunk towards a common trend across all bin pairs.
 This stabilizes the QL dispersion estimates and improves precision for downstream applications.
 
 <<eval=FALSE,label=qlplot>>=
