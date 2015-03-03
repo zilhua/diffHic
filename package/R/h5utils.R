@@ -67,7 +67,7 @@ loadChromos <- function(file)
 # file. This is designed to allow users to pull out one chromosome or another.
 #
 # written by Aaron Lun
-# 3 November 2014.
+# created 3 November 2014.
 {
 	current <- h5ls(file)
 	keep <- current$otype=="H5I_DATASET"
@@ -80,7 +80,7 @@ loadData <- function(file, anchor, target)
 # isn't sure of the order of the anchor/target chromosomes.
 #
 # written by Aaron Lun
-# 3 November 2014
+# created 3 November 2014
 {
 	stopifnot(is.character(anchor) & is.character(target) & is.character(file))
 	tryCatch(.getPairs(file, anchor, target), error=function(e) {

@@ -5,8 +5,10 @@ mergePairs <- function(files, file.out)
 # and combining the reads. This avoids having to read the entire structure into memory at once.
 #
 # written by Aaron Lun
+# some time ago
+# last modified 3 March 2015
 {
-    # Use a temporary file as a placeholder just in case 'dir' is in 'y'.
+    # Use a temporary file as a placeholder just in case 'file.out' is in 'files'.
     overall <- suppressWarnings(.loadIndices(files))
     tmpf <- tempfile(tmpdir=".")
 	.initializeH5(tmpf) 
@@ -39,7 +41,7 @@ mergePairs <- function(files, file.out)
         }
     }
 
-    # Moving the temporary, which is now the new component.
+    # Moving the temporary, which is now the new file.
     if (!file.rename(tmpf, file.out)) { stop("cannot move file to the specified destination") }
     invisible(NULL)
 }

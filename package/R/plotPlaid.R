@@ -9,6 +9,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 #
 # written by Aaron Lun
 # sometime in 2012.
+# last modified 3 March 2015.
 {
 	width<-as.integer(width) 
 	achr <- as.character(seqnames(anchor))
@@ -125,6 +126,10 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 plotDI <- function(data, fc, anchor, target=anchor, col.up="red", col.down="blue",
  	background="grey70", zlim=NULL, xlab=NULL, ylab=NULL, diag=TRUE, ...)
 # This function plots differential interactions.
+#
+# written by Aaron Lun
+# created 21 November 2014
+# last modified 3 March 2015
 {
 	achr <- as.character(seqnames(anchor))
 	tchr <- as.character(seqnames(target))
@@ -149,9 +154,9 @@ plotDI <- function(data, fc, anchor, target=anchor, col.up="red", col.down="blue
 	# Identifying the region pairs in our ranges of interest (some stretch, to allow for partial overlaps).
 	a.keep <- overlapsAny(regions(data), anchor, maxgap=width(anchor)/2)
 	t.keep <- overlapsAny(regions(data), target, maxgap=width(target)/2)
-	keep <- a.keep[data@anchor.id] & t.keep[data@target.id]
+	keep <- a.keep[data@anchors] & t.keep[data@targets]
 	if (achr!=tchr || astart!=tstart || aend!=tend) {
-		alt.keep <- a.keep[data@target.id] & t.keep[data@anchor.id]
+		alt.keep <- a.keep[data@targets] & t.keep[data@anchors]
 		keep <- keep | alt.keep
 	}
 

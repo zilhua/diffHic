@@ -4,8 +4,8 @@ boxPairs <- function(..., param, reference)
 # summarization of analyses involving multiple bin sizes.
 #
 # written by Aaron Lun
-# 3 June 2014
-# modified 4 August 2014
+# created 3 June 2014
+# last modified 3 March 2015
 {
 	fragments <- param$fragments
 	all.hits <- list(...)
@@ -24,8 +24,8 @@ boxPairs <- function(..., param, reference)
 		olap <- findOverlaps(regions(current), parents, type="within", select="first")
 		if (any(is.na(olap))) { stop("smaller bins must be fully contained within larger bins") }
 		
-		all.a[[x]] <- olap[current@anchor.id]
-		all.t[[x]] <- olap[current@target.id]
+		all.a[[x]] <- olap[current@anchors]
+		all.t[[x]] <- olap[current@targets]
 		all.mode[[x]] <- rep(x, ncur)
 		all.idx[[x]] <- 1:ncur
 		num.pairs[[x]] <- ncur

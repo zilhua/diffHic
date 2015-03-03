@@ -6,7 +6,8 @@ normalizeCNV <- function(data, margins, prior.count=3, span=0.3, maxk=500, ...)
 # of any CNV-induced bias, quantified by the differences in the marginals.
 #
 # written by Aaron Lun
-# Last modified 11 December 2014
+# created 11 September 2014
+# last modified 3 March 2015
 {
 	cont.cor <- 0.5
 	cont.cor.scaled <- cont.cor * data$totals/mean(data$totals)
@@ -64,17 +65,18 @@ matchMargins <- function(data, margins)
 # 'margins' that each bin corresponds to.
 #
 # written by Aaron Lun
-# 17 September 2014	
+# created 17 September 2014	
+# last modified 3 March 2015 
 {
 	# Checking to ensure that the regions are the same.
 	if (!identical(regions(data), regions(margins))) {
 		stop("regions must be the same for bin pair and marginal counts") 
 	}
-	all.indices <- integer(length(data@region))
-	all.indices[margins@anchor.id] <- 1:length(margins@anchor.id)
-	amatch <- all.indices[data@anchor.id]
+	all.indices <- integer(length(data@regions))
+	all.indices[margins@anchors] <- 1:length(margins@anchors)
+	amatch <- all.indices[data@anchors]
 	if (any(amatch==0L)) { stop("non-empty anchor in data that is not in margins") }
-	tmatch <- all.indices[data@target.id]
+	tmatch <- all.indices[data@targets]
 	if (any(tmatch==0L)) { stop("non-empty target in data that is not in margins") }
 	
 	return(data.frame(amatch, tmatch))

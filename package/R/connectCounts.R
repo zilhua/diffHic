@@ -65,16 +65,16 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 	}
 
 	out.counts <- do.call(rbind, out.counts)
-	anchor.id <- unlist(out.left)
-	target.id <- unlist(out.right)
-	o.all <- order(anchor.id, target.id)
+	anchors <- unlist(out.left)
+	targets <- unlist(out.right)
+	o.all <- order(anchors, targets)
 
 	# Generating a new set of regions.
 	new.regs <- .redefineRegions(olaps, fragments, regions)
 	new.regs$original <- o
 	return(DIList(counts=out.counts[o.all,,drop=FALSE], totals=full.sizes, 
-		anchors=anchor.id[o.all], targets=target.id[o.all], regions=new.regs,
-		expt.data=List(param=param)))
+		anchors=anchors[o.all], targets=targets[o.all], regions=new.regs,
+		exptData=List(param=param)))
 }
 
 .retrieveHits <- function(olaps) { 

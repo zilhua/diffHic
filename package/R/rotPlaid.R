@@ -107,7 +107,7 @@ rotDI <- function(data, fc, region, col.up="red", col.down="blue",
 						
 	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that edges of the plot are retained).
 	ref.keep <- overlapsAny(regions(data), region, maxgap=width(region)/2)
-	keep <- ref.keep[data@anchor.id] & ref.keep[data@target.id]
+	keep <- ref.keep[data@anchors] & ref.keep[data@targets]
 
 	# Computing the max height.
 	max.height <- x.max - x.min

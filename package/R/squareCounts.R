@@ -4,6 +4,8 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 # then compiles the counts into a list object for output. 
 #
 # written by Aaron Lun
+# some time ago
+# last modified 3 March 2015
 {
 	nlibs <- length(files)
 	if (nlibs==0) { 
@@ -62,7 +64,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	}
 	return(DIList(counts=out.counts, totals=full.sizes, 
 		anchors=out.a, targets=out.t, regions=new.pts$region,
-		expt.data=List(param=param, width=width)))
+		exptData=List(param=param, width=width)))
 }
 
 ## PROOF:

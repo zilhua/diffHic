@@ -4,7 +4,7 @@ preparePairs<-function(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq
 # also returned describing various bits and pieces of hiC quality.
 #
 # written by Aaron Lun
-# 30 May, 2013
+# created 30 May 2013
 {
 	# Preparing cuts; start positions, end positions, index in 'fragments', segmented by chromosome.
 	# Anchor/target order is defined by the order of chromosomes in 'fragments'; earlier chromosomes

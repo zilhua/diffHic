@@ -3,7 +3,8 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 # depending on the type of distance specified.
 #
 # written by Aaron Lun
-# 22 April, 2014
+# created 22 April 2014
+# last modified 3 March 2015
 {
 	all.as <- anchors(data)
 	all.ts <- targets(data)
@@ -33,14 +34,14 @@ getArea <- function(data, bp=TRUE)
 # integer type.
 # 
 # written by Aaron Lun
-# 30 July, 2014
-# modified 14 August 2014
+# created 30 July 2014
+# last modified 3 March 2015
 {
-	ax <- data@anchor.id
-	tx <- data@target.id
+	ax <- data@anchors
+	tx <- data@targets
 
 	if (bp) {
-		cur.width <- as.double(width(data@region))
+		cur.width <- as.double(width(data@regions))
 		returned <- cur.width[ax] * cur.width[tx]
 
 		# Accounting for special behaviour around the diagonal.		
@@ -51,23 +52,23 @@ getArea <- function(data, bp=TRUE)
 		returned[is.olap] <- returned[is.olap] - self.lap.area
 	} else {
 		is.same <- ax==tx
-		curnfrag <- as.double(data@region$nfrags[ax])
-		returned <- curnfrag * data@region$nfrags[tx]
+		curnfrag <- as.double(data@regions$nfrags[ax])
+		returned <- curnfrag * data@regions$nfrags[tx]
 		returned[is.same] <- curnfrag[is.same]*(curnfrag[is.same]+1)/2
 
 		# Detour to protect against overlapping regions.
 		fragments <- exptData(data)$param$fragments
 		fdata <- .delimitFragments(fragments)
 
-		left.edge <- pmax(start(data@region)[ax], start(data@region)[tx])
-		right.edge <- pmin(end(data@region)[ax], end(data@region)[tx])
+		left.edge <- pmax(start(data@regions)[ax], start(data@regions)[tx])
+		right.edge <- pmin(end(data@regions)[ax], end(data@regions)[tx])
 		is.partial <- !is.same & right.edge >= left.edge & 
-			as.logical(seqnames(data@region)[ax]==seqnames(data@region)[tx]) 
+			as.logical(seqnames(data@regions)[ax]==seqnames(data@regions)[tx]) 
 
 		if (any(is.partial)) { 
 			right.edge <- right.edge[is.partial]
 			left.edge <- left.edge[is.partial]
-			by.chr <- split(1:sum(is.partial), as.character(seqnames(data@region)[ax][is.partial]))
+			by.chr <- split(1:sum(is.partial), as.character(seqnames(data@regions)[ax][is.partial]))
 
 			for (x in 1:length(fdata$chr)) {
 				current.chr <- fdata$chr[x]

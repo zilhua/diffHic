@@ -4,6 +4,7 @@ getPairData <- function(file, param)
 # in (or manually parsing the said directory).
 #
 # written by Aaron Lun
+# created 20 September 2014
 {
 	# Pulling out data and merging it.
 	alll <- allo <- alli <- list()

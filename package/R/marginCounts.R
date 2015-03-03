@@ -45,6 +45,6 @@ marginCounts <- function(files, param, width=50000)
 	retained <- which(rowSums(total.counts)>0.5)
 	return(DIList(counts=total.counts[retained,,drop=FALSE], totals=full.sizes, 
 			anchors=retained, targets=retained, regions=new.pts$region, 
-			expt.data=List(param=param)))
+			exptData=List(param=param)))
 }
 

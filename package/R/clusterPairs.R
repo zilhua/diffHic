@@ -6,12 +6,13 @@ clusterPairs <- function(data, tol, upper=1e6)
 # them into smaller clusters of equal size.
 #
 # written by Aaron Lun
-# 6 December 2013
+# created 6 December 2013
+# last modified 3 March 2015
 {
 	region <- regions(data)
 	allchrs <- as.character(seqnames(region))
-	achrs <- allchrs[data@anchor.id]
-	tchrs <- allchrs[data@target.id]
+	achrs <- allchrs[data@anchors]
+	tchrs <- allchrs[data@targets]
 	tol <- as.integer(tol)
 	stopifnot(tol>=0L) # Minimum overlap not supported.
 	upper <- as.integer(upper)
@@ -25,10 +26,10 @@ clusterPairs <- function(data, tol, upper=1e6)
 	upnext <- c(is.new[-1]-1L, n)
 	
 	# Setting up the starts and ends.
-	astarts <- start(region[data@anchor.id[ro]])
-	aends <- end(region[data@anchor.id[ro]])+1L
-	tstarts <- start(region[data@target.id[ro]])
-	tends <- end(region[data@target.id[ro]])+1L
+	astarts <- start(region[data@anchors[ro]])
+	aends <- end(region[data@anchors[ro]])+1L
+	tstarts <- start(region[data@targets[ro]])
+	tends <- end(region[data@targets[ro]])+1L
 
 	# Now, running through.
 	all.ids <- integer(n)

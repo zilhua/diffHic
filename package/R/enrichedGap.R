@@ -5,8 +5,8 @@ enrichedGap <- function(data, flank=5, trend=c("global", "none", "chr"), prior.c
 # the effect of distance on abundance when comparing between distances.
 #
 # written by Aaron Lun
-# Created 23 April 2014
-# Modified 18 December 2014
+# created 23 April 2014
+# last modified 3 March 2015
 {
 	flank <- as.integer(flank)
 	if (flank <= 0L) { stop("flank width must be a positive integer") }
@@ -60,8 +60,8 @@ enrichedGap <- function(data, flank=5, trend=c("global", "none", "chr"), prior.c
 
 		for (target in names(next.chr)) {
 			current.pair <- next.chr[[target]]
-			all.a <- data@anchor.id[current.pair] - first.id[[anchor]] 
-			all.t <- data@target.id[current.pair] - first.id[[target]]
+			all.a <- data@anchors[current.pair] - first.id[[anchor]] 
+			all.t <- data@targets[current.pair] - first.id[[target]]
 			t.len <- last.id[[target]] - first.id[[target]] + 1L
 
 			rel.ab <- all.ab[current.pair]

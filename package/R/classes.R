@@ -1,33 +1,33 @@
 # Defines the DIList class, that will be used to hold various information.
 
 setClass("DIList", representation(counts="matrix", 
-			anchor.id="integer", target.id="integer", region="GRanges",
-			coldata="DataFrame", exptdata="List"))
+			anchors="integer", targets="integer", regions="GRanges",
+			colData="DataFrame", exptData="List"))
 
 setValidity("DIList", function(object) {
-	if (nrow(object@counts)!=length(object@anchor.id)) {
+	if (nrow(object@counts)!=length(object@anchors)) {
 		return('rows in count matrix not equal to length of anchor vector')
 	} 
-	if (nrow(object@counts)!=length(object@target.id)) { 
+	if (nrow(object@counts)!=length(object@targets)) { 
 		return('rows in count matrix not equal to length of target vector')
 	}
-	if (ncol(object@counts)!=nrow(object@coldata)) {
+	if (ncol(object@counts)!=nrow(object@colData)) {
 		return('columns of count matrix not equal to rows of column data frame')
 	}
 
-	if (!all(object@anchor.id >= 1L)) { 
+	if (!all(object@anchors >= 1L)) { 
 		return('not all anchors are positive integers')
 	} 
-	if (!all(object@target.id >= 1L)) {
+	if (!all(object@targets >= 1L)) {
 		return('not all targets are positive integers')
 	}
-	if (!all(object@anchor.id <= length(object@region))) {
+	if (!all(object@anchors <= length(object@regions))) {
 		return('not all anchors refer to valid regions')
 	} 
-	if (!all(object@target.id <= length(object@region))) { 
+	if (!all(object@targets <= length(object@regions))) { 
 		return('not all targets refer to valid regions')
 	}
-	if (!all(object@anchor.id >= object@target.id)) { 
+	if (!all(object@anchors >= object@targets)) { 
 		return('target indices cannot be greater than anchor indices')
 	}
 	return(TRUE)
@@ -41,7 +41,7 @@ setMethod("initialize", signature("DIList"), function(.Object, ...) {
 
 setMethod("show", signature("DIList"), function(object) {
 	total <- nrow(object@counts)
-	nregs <- length(object@region)
+	nregs <- length(object@regions)
 	nlibs <- ncol(object@counts)
 	cat("DIList object for", nlibs, ifelse(nlibs==1L, "library", "libraries"), 
 		"with", total, ifelse(total==1L, "pair", "pairs"), "across", 
@@ -52,36 +52,36 @@ setMethod("show", signature("DIList"), function(object) {
 setMethod("[", "DIList", function(x, i, j, ..., drop=TRUE) {
 	if (missing(i)) {
 		new.counts <- x@counts				
-		new.anchors <- x@anchor.id
-		new.targets <- x@target.id	
+		new.anchors <- x@anchors
+		new.targets <- x@targets	
 	} else {
 		new.counts <- x@counts[i,,drop=FALSE]	
-		new.anchors <- x@anchor.id[i]
-		new.targets <- x@target.id[i]
+		new.anchors <- x@anchors[i]
+		new.targets <- x@targets[i]
 	}
 
 	if (missing(j)) { 
-		new.coldata <- x@coldata
+		new.colData <- x@colData
 	} else {
 		new.counts <- new.counts[,j,drop=FALSE]
-		new.coldata <- x@coldata[j,,drop=FALSE]
+		new.colData <- x@colData[j,,drop=FALSE]
 	}
-	initialize(x, counts=new.counts, coldata=new.coldata, 
-		anchor.id=new.anchors, target.id=new.targets,
-		region=x@region, exptdata=x@exptdata)
+	initialize(x, counts=new.counts, colData=new.colData, 
+		anchors=new.anchors, targets=new.targets,
+		regions=x@regions, exptData=x@exptData)
 })
 
 # Some getters. No need for setters, really.
 setGeneric("anchors", function(object, ...) { standardGeneric("anchors") })
 setMethod("anchors", signature("DIList"), function(object, id=FALSE) {
-	if (id) { return(object@anchor.id) }
-	object@region[object@anchor.id]
+	if (id) { return(object@anchors) }
+	object@regions[object@anchors]
 })
 
 setGeneric("targets", function(object, ...) { standardGeneric("targets") })
 setMethod("targets", signature("DIList"), function(object, id=FALSE) {
-	if (id) { return(object@target.id) }
-	object@region[object@target.id]
+	if (id) { return(object@targets) }
+	object@regions[object@targets]
 })
 
 #setGeneric("counts", function(object) { standardGeneric("counts") })
@@ -91,7 +91,7 @@ setMethod("counts", signature("DIList"), function(object) {
 
 setGeneric("regions", function(object) { standardGeneric("regions") })
 setMethod("regions", signature("DIList"), function(object) {
-	object@region
+	object@regions
 })
 
 setMethod("dim", signature("DIList"), function(x) {
@@ -103,26 +103,26 @@ setMethod("dimnames", signature("DIList"), function(x) {
 })
 
 setMethod("$", signature("DIList"), function(x, name) { 
-	x@coldata[[name]]
+	x@colData[[name]]
 })
 
 # Borrowing these from GenomicRanges.
 setMethod("colData", signature("DIList"), function(x, ...) {
-	x@coldata
+	x@colData
 })
 
 setMethod("exptData", signature("DIList"), function(x, ...) {
-	x@exptdata
+	x@exptData
 })
 
 # Constructor object.
-DIList <- function(counts, totals=colSums(counts), anchors, targets, regions, expt.data=List(), ...) {
+DIList <- function(counts, totals=colSums(counts), anchors, targets, regions, exptData=List(), ...) {
 	if (!is.integer(counts)) { storage.mode(counts) <- "integer" }
 	anchors <- as.integer(anchors)
 	targets <- as.integer(targets)
 	totals <- as.integer(totals)
-	new("DIList", counts=counts, anchor.id=anchors, target.id=targets, region=regions,
-		coldata=DataFrame(totals=totals, ...), exptdata=expt.data)
+	new("DIList", counts=counts, anchors=anchors, targets=targets, regions=regions,
+		colData=DataFrame(totals=totals, ...), exptData=exptData)
 }
 
 setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive=FALSE) {
@@ -155,11 +155,11 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 		ix <- ix + 1L
 	}
 	
-	coldata <- colData(x)
-	coldata$totals <- totality
+	colData <- colData(x)
+	colData$totals <- totality
 	new("DIList", counts=do.call(rbind, output), 
-		anchor.id=unlist(out.a), target.id=unlist(out.t), region=regions(x),
-		exptdata=exptData(x), coldata=coldata)
+		anchors=unlist(out.a), targets=unlist(out.t), regions=regions(x),
+		exptData=exptData(x), colData=colData)
 })
 
 # Setting some methods inspired by equivalents in csaw.

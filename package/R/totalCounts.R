@@ -4,7 +4,7 @@ totalCounts <- function(files, param)
 # count across the interaction space.
 #
 # written by Aaron Lun
-# 17 September 2014
+# created 17 September 2014
 {
 	nlibs <- length(files)
 	if (nlibs==0) { 
