@@ -50,6 +50,7 @@ SEXP report_hic_pairs(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP
 
 SEXP pair_stats (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
+SEXP get_missing_dist(SEXP, SEXP, SEXP, SEXP);
 }
 
 #endif

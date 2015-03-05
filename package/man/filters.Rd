@@ -2,6 +2,9 @@
 \alias{filterDirect}
 \alias{filterTrended}
 
+\title{Filtering strategies for bin pairs}
+\description{Implementations of the direct and trended filtering strategies for bin pair abundances.}
+
 \usage{
 filterDirect(data, ...)
 filterTrended(data, span=0.25, ...)
@@ -17,15 +20,17 @@ filterTrended(data, span=0.25, ...)
 The \code{filterDirect} function implements the direct filtering strategy.
 The rate of non-specific ligation is estimated as the median of average abundances from inter-chromosomal bin pairs.
 This rate or some multiple thereof can be used as a minimum threshold for filtering, to keep only high-abundance bin pairs.
-Some finesse is necessary when calculating the median, to consider empty parts of the interaction space that are not represented by bin pairs.
+When calculating the median, some finesse is required to consider empty parts of the interaction space, i.e., areas that are not represented by bin pairs.
 
 The \code{filterTrended} function implements the trended filtering strategy.
 The rate of non-specific compaction is estimated by fitting a trend to the average abundances against the log-distance for all intra-chromosomal bin pairs.
 This rate can then be used as a minimum threshold for filtering.
 For inter-chromosomal bin pairs, the threshold is the same as that from the direct filter.
 
-Curve fitting in \code{filterTrended} is done using \code{\link{loessFit}} with a span of \code{span}.
+Curve fitting in \code{filterTrended} is done using \code{\link{loessFit}} with a bandwidth of \code{span}.
+Lower values may need to be used for a more accurate fit when the trend is highly non-linear.
 The bin size is also added to the distance prior to log-transformation, to avoid problems with undefined values when distances are equal to zero.
+Empty parts of the interaction space are considered by inferring the abundances and distances of the corresponding bin pairs (though this is skipped if too much of the space is empty).
 
 The \code{scale} argument can be passed to \code{\link{scaledAverage}}, in order to handle comparisons between bin pairs of different sizes.
 Check out the user's guide for more details.
@@ -56,14 +61,14 @@ fout <- "output.h5"
 invisible(preparePairs(hic.file, param, fout))
 y <- squareCounts(fout, param, width=10, filter=-1)
 
-# Requiring at least 3-fold change.
+# Requiring at least 1.5-fold change.
 direct <- filterDirect(y)
-keep <- direct$abundances > direct$threshold + log2(3)
+keep <- direct$abundances > direct$threshold + log2(1.5)
 y[keep,]
 
 # Requiring to be above the threshold.
-trended <- filterDirect(y)
-keep <- filter$abundances > filter$threshold 
+trended <- filterTrended(y)
+keep <- trended$abundances > trended$threshold 
 y[keep,]
 
 \dontshow{
