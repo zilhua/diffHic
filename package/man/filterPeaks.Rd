@@ -1,11 +1,11 @@
-\alias{enrichedGap}
-\name{enrichedGap}
+\alias{filterPeaks}
+\name{filterPeaks}
 
 \title{Compute local enrichment}
 \description{Calculate the log-fold increase in abundance for each bin pair against its local neighbourhood.}
 
 \usage{
-enrichedGap(data, flank=5, trend=c("global", "none", "chr"), 
+filterPeaks(data, flank=5, trend=c("global", "none", "chr"), 
     prior.count=2, span=0.3)
 }
 
@@ -92,14 +92,14 @@ invisible(preparePairs(hic.file, param, file=fout))
 
 # Collating to count combinations.
 data <-	squareCounts(fout, param, filter=1, width=40)
-head(enrichedGap(data))
+head(filterPeaks(data))
 
-head(enrichedGap(data))
+head(filterPeaks(data))
 
-head(enrichedGap(data, flank=5))
-head(enrichedGap(data, flank=1))
+head(filterPeaks(data, flank=5))
+head(filterPeaks(data, flank=1))
 
-head(enrichedGap(data, trend="none"))
+head(filterPeaks(data, trend="none"))
 }
 
 \references{
