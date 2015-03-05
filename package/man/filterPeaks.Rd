@@ -1,7 +1,7 @@
 \alias{filterPeaks}
 \name{filterPeaks}
 
-\title{Compute local enrichment}
+\title{Compute local enrichment for peaks}
 \description{Calculate the log-fold increase in abundance for each bin pair against its local neighbourhood.}
 
 \usage{
