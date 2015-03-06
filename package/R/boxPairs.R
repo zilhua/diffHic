@@ -1,4 +1,4 @@
-boxPairs <- function(..., param, reference)
+boxPairs <- function(..., reference)
 # This function reports bin pairs that are nested within other bin pairs.  The
 # idea is to consolidate smaller bin pairs into their larger counterparts for
 # summarization of analyses involving multiple bin sizes.
@@ -7,11 +7,16 @@ boxPairs <- function(..., param, reference)
 # created 3 June 2014
 # last modified 3 March 2015
 {
-	fragments <- param$fragments
 	all.hits <- list(...)
 	nk <- length(all.hits)
 	if (missing(reference)) { 
 		reference <- max(sapply(all.hits, FUN=function(x) { exptData(x)$width }))
+	}
+	fragments <- exptData(all.hits[[1]])$param$fragments
+	for (x in all.hits[-1]) { 
+		if (!identical(exptData(x)$param$fragments, fragments)) {
+			stop("fragment boundaries should be the same between DIList objects")
+		}
 	}
 	parents <- .getBinID(fragments, reference)$region
 
