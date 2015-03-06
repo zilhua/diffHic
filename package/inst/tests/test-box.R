@@ -17,10 +17,11 @@ comp <- function(reference, widths) {
 
 		oname <- paste0("w", w)
 		collected[[oname]] <- DIList(counts=matrix(0, nrow=n, ncol=1), totals=0, 
-			anchors=all.a, targets=all.t, region=bindata$region)
+			anchors=all.a, targets=all.t, regions=bindata$region, 
+			exptData=List(param=pairParam(fragments=cutted)))
 	}	
 
-	output<- do.call(boxPairs, c(collected, param=pairParam(fragments=cutted), reference=reference))
+	output<- do.call(boxPairs, c(collected, reference=reference))
 	stopifnot(length(output$indices)==length(widths))
 	for (x in 1:length(output$indices)) { 
 		curdex <- output$indices[[x]]

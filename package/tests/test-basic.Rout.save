@@ -178,13 +178,13 @@ Sample1     1       17            1
 [1]        NA 0.6123523 0.6123523        NA 0.2041633 0.2041633
 > 
 > data.large <- squareCounts(fout, param, width=100, filter=1)
-> boxed <- boxPairs(larger=data.large, smaller=data, param=param)
+> boxed <- boxPairs(larger=data.large, smaller=data)
 > head(boxed$indices$larger)
 [1] 1 2 3 4 5 6
 > head(boxed$indices$smaller)
 [1] 1 2 2 3 4 4
 > 
-> head(enrichedGap(data))
+> head(filterPeaks(data))
 [1]  1.174363e-05  5.049399e-06  5.049399e-06  1.323528e-06 -2.895066e-01
 [6]  2.630344e-01
 > head(clusterPairs(data, tol=10))
@@ -196,4 +196,4 @@ Sample1     1       17            1
 > 
 > proc.time()
    user  system elapsed 
- 10.122   0.150  10.301 
+  9.807   0.154   9.961 

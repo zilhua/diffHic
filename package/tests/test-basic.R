@@ -45,11 +45,11 @@ stuff <- correctedContact(data)
 head(stuff$truth)
 
 data.large <- squareCounts(fout, param, width=100, filter=1)
-boxed <- boxPairs(larger=data.large, smaller=data, param=param)
+boxed <- boxPairs(larger=data.large, smaller=data)
 head(boxed$indices$larger)
 head(boxed$indices$smaller)
 
-head(enrichedGap(data))
+head(filterPeaks(data))
 head(clusterPairs(data, tol=10))
 
 # End.
