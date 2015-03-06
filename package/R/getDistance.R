@@ -15,9 +15,9 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 
 	type <- match.arg(type)
 	if (type=="gap") {
-		output[is.same] <- pmax(start(all.as), start(all.ts)) - pmin(end(all.as), end(all.ts)) + 1
+		output[is.same] <- pmax(start(all.as), start(all.ts)) - pmin(end(all.as), end(all.ts)) - 1L
 	} else if (type=="span") {
-		output[is.same] <- pmax(end(all.as), end(all.ts)) - pmin(start(all.as), start(all.ts)) + 1
+		output[is.same] <- pmax(end(all.as), end(all.ts)) - pmin(start(all.as), start(all.ts)) + 1L
 	} else if (type=="mid") {
 		output[is.same] <- mid(ranges(all.as)) - mid(ranges(all.ts))
 	}
@@ -46,7 +46,7 @@ getArea <- function(data, bp=TRUE)
 		# you'll have to double every other (unreflected) area.
 		overlap <- getDistance(data, type="gap")
 		is.olap <- !is.na(overlap) & overlap < -0.5
-		lap.dist <- abs(overlap)[is.olap]
+		lap.dist <- -overlap[is.olap]
 		self.lap.area <- lap.dist * (lap.dist - 1)/2		
 		returned[is.olap] <- returned[is.olap] - self.lap.area
 	} else {
