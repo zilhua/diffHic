@@ -44,31 +44,22 @@ Aaron Lun
 }
 
 \examples{
-hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
-cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
-param <- pairParam(cuts)
+# Setting up the object.
+a <- 10
+b <- 20
+regions <- GRanges(rep(c("chrA", "chrB"), c(a, b)), IRanges(c(1:a, 1:b), c(1:a, 1:b)))
 
-# Setting up the parameters (low filter is just to get more bin pairs)
-fout <- "output.h5"
-invisible(preparePairs(hic.file, param, fout))
-y <- squareCounts(fout, param, width=50, filter=1)
+set.seed(3423)
+all.anchors <- sample(length(regions), 50, replace=TRUE)
+all.targets <- as.integer(runif(50, 1, all.anchors+1))
+y <- DIList(matrix(0, 50, 1), anchors=all.anchors, targets=all.targets, 
+    regions=regions, exptData=List(width=1))
 
-# Clustering.
-clusterPairs(y, tol=10)
-clusterPairs(y, tol=50)
-clusterPairs(y, tol=100)
-clusterPairs(y, tol=100, upper=50)
-
-# Repeating with a more stringent filter.
-y <- squareCounts(fout, param, width=50)
-clusterPairs(y, tol=10)
-clusterPairs(y, tol=50)
-clusterPairs(y, tol=100)
-clusterPairs(y, tol=100, upper=50)
-
-\dontshow{
-unlink(fout, recursive=TRUE)
-}
+# Clustering; note, small tolerances are used in this toy example.
+clusterPairs(y, tol=1)
+clusterPairs(y, tol=3)
+clusterPairs(y, tol=5)
+clusterPairs(y, tol=5, upper=5)
 }
 
 \keyword{clustering}

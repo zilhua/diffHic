@@ -82,23 +82,21 @@ Aaron Lun
 }
 
 \examples{
-hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
-cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
-param <- pairParam(fragments=cuts)
+# Setting up the object.
+a <- 10
+b <- 20
+regions <- GRanges(rep(c("chrA", "chrB"), c(a, b)), IRanges(c(1:a, 1:b), c(1:a, 1:b)))
 
-# Setting up the parameters
-fout <- "output.h5"
-invisible(preparePairs(hic.file, param, file=fout))
+set.seed(23943)
+all.anchors <- sample(length(regions), 50, replace=TRUE)
+all.targets <- as.integer(runif(50, 1, all.anchors+1))
+data <- DIList(matrix(rnbinom(200, mu=10, size=10), 50, 4), anchors=all.anchors, 
+    targets=all.targets, regions=regions, exptData=List(width=1))
 
-# Collating to count combinations.
-data <-	squareCounts(fout, param, filter=1, width=40)
+# Getting peaks.
 head(filterPeaks(data))
-
-head(filterPeaks(data))
-
-head(filterPeaks(data, flank=5))
+head(filterPeaks(data, flank=3))
 head(filterPeaks(data, flank=1))
-
 head(filterPeaks(data, trend="none"))
 }
 

@@ -52,14 +52,17 @@ Aaron Lun
 }
 
 \examples{
-hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
-cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
-param <- pairParam(cuts)
+# Setting up the object.
+a <- 10
+b <- 20
+regions <- GRanges(rep(c("chrA", "chrB"), c(a, b)), IRanges(c(1:a, 1:b), c(1:a, 1:b)))
 
-# Setting up the parameters
-fout <- "output.h5"
-invisible(preparePairs(hic.file, param, fout))
-y <- squareCounts(fout, param, width=10, filter=-1)
+set.seed(138153)
+npairs <- 500
+all.anchors <- sample(length(regions), npairs, replace=TRUE)
+all.targets <- as.integer(runif(npairs, 1, all.anchors+1))
+y <- DIList(matrix(rnbinom(npairs*4, mu=10, size=10), npairs, 4), anchors=all.anchors, 
+    targets=all.targets, regions=regions, exptData=List(width=1))
 
 # Requiring at least 1.5-fold change.
 direct <- filterDirect(y)
@@ -70,12 +73,10 @@ y[keep,]
 trended <- filterTrended(y)
 keep <- trended$abundances > trended$threshold 
 y[keep,]
-
-\dontshow{
-unlink(fout, recursive=TRUE)
-}
 }
 
 \references{
 Lin, YC et al. (2012) Global changes in the nuclear positioning of genes and intra- and interdomain genomic interactions that orchestrate B cell fate. \emph{Nat. Immunol.} 13. 1196-1204
 }
+
+\keyword{filtering}

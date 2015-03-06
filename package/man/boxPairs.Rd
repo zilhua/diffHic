@@ -5,12 +5,11 @@
 \description{Match smaller bin pairs to the larger bin pairs in which they are nested.}
 
 \usage{
-boxPairs(..., param, reference)
+boxPairs(..., reference)
 }
 
 \arguments{
 \item{...}{one or more named \code{DIList} objects produced by \code{\link{squareCounts}}, with smaller bin sizes than \code{reference}}
-\item{param}{a \code{pairParam} object containing read extraction parameters}
 \item{reference}{an integer scalar specifying the reference bin size}
 }
 
@@ -59,24 +58,28 @@ Aaron Lun
 }
 
 \examples{
-hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
-cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
+# Setting up the objects.
+a <- 10
+b <- 20
+cuts <- GRanges(rep(c("chrA", "chrB"), c(a, b)), IRanges(c(1:a, 1:b), c(1:a, 1:b)))
 param <- pairParam(cuts)
 
-# Setting up the parameters (low filter is just to get more bin pairs)
-fout <- "output.h5"
-invisible(preparePairs(hic.file, param, fout))
-y <- squareCounts(fout, param, width=50, filter=1)
-y2 <- squareCounts(fout, param, width=25, filter=1)
+all.combos <- combn(length(cuts), 2) # Bin size of 1.
+y <- DIList(matrix(0, ncol(all.combos), 1), anchors=all.combos[2,],
+    targets=all.combos[1,], regions=cuts, exptData=List(param=param, width=1))
+
+a5 <- a/5
+b5 <- b/5
+all.combos2 <- combn(length(cuts)/5, 2) # Bin size of 5.
+y2 <- DIList(matrix(0, ncol(all.combos2), 1), anchors=all.combos2[2,],
+    targets=all.combos2[1,], exptData=List(param=param, width=5),
+	regions=GRanges(rep(c("chrA", "chrB"), c(a5, b5)), 
+		IRanges(c((1:a5-1)*5+1, (1:b5-1)*5+1), c(1:a5*5, 1:b5*5))))
 
 # Clustering.
-boxPairs(reference=100, larger=y, smaller=y2, param=param)
-boxPairs(reference=50, larger=y, smaller=y2, param=param)
-boxPairs(larger=y, smaller=y2, param=param)
-
-\dontshow{
-unlink(fout, recursive=TRUE)
-}
+boxPairs(reference=5, larger=y2, smaller=y)
+boxPairs(reference=10, larger=y2, smaller=y)
+boxPairs(larger=y2, smaller=y)
 }
 
 \keyword{clustering}

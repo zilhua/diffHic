@@ -57,40 +57,38 @@ This is useful for coordinating the colors, e.g., when constructing a separate c
 \author{Aaron Lun}
 
 \examples{
-hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
-originals <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
-param <- pairParam(originals)
+# Setting up the objects.
+a <- 10
+b <- 20
+regions <- GRanges(rep(c("chrA", "chrB"), c(a, b)), IRanges(c(1:a, 1:b), c(1:a, 1:b)),
+    seqinfo=Seqinfo(seqlengths=c(chrA=a, chrB=b), seqnames=c("chrA", "chrB")))
 
-# Setting up parameters
-fout <- "temp_saved.h5"
-invisible(preparePairs(hic.file, param, fout))
-out <- squareCounts(fout, param, width=50, filter=1)
+set.seed(3423)
+all.anchors <- sample(length(regions), 500, replace=TRUE)
+all.targets <- as.integer(runif(500, 1, all.anchors+1))
+out <- DIList(matrix(0, 500, 1), anchors=all.anchors, targets=all.targets, 
+    regions=regions, exptData=List(width=1))
 fc <- runif(nrow(out), -2, 2)
 
 # Constructing intra-chromosomal DI plots around various regions
-plotDI(out, fc, anchor=GRanges("chrA", IRanges(1, 100)), 
-    target=GRanges("chrA", IRanges(1, 200)), diag=TRUE)
-plotDI(out, fc, anchor=GRanges("chrA", IRanges(1, 100)), 
-    target=GRanges("chrA", IRanges(1, 200)), diag=FALSE)
+plotDI(out, fc, anchor=GRanges("chrA", IRanges(1, 10)), 
+    target=GRanges("chrA", IRanges(1, 10)), diag=TRUE)
+plotDI(out, fc, anchor=GRanges("chrA", IRanges(1, 10)), 
+    target=GRanges("chrA", IRanges(1, 10)), diag=FALSE)
 
-# Constructing inter=chromosomal DI plots around various regions
-xxx <- plotDI(out, fc, anchor=GRanges("chrB", IRanges(1, 100)), 
-    target=GRanges("chrA", IRanges(1, 200)), diag=TRUE)
-xxx(-1)
-xxx(-0.5)
-xxx(0)
-xxx(0.5)
-xxx(1)
+# Constructing inter-chromosomal DI plots around various regions
+xxx <- plotDI(out, fc, anchor=GRanges("chrB", IRanges(1, 10)), 
+    target=GRanges("chrA", IRanges(1, 20)), diag=TRUE)
 plotDI(out, fc, anchor=GRanges("chrB", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), diag=TRUE, zlim=5)
+
+# Making colorbars.
+xxx((-10):10/10)
+xxx((-20):20/20)
 
 # Rotated.
 rotDI(out, fc, region=GRanges("chrA", IRanges(1, 200)))
 rotDI(out, fc, region=GRanges("chrB", IRanges(1, 200)))
-
-\dontshow{
-unlink(fout, recursive=TRUE)
-}
 }
 
 \seealso{

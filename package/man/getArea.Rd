@@ -42,33 +42,36 @@ This is because bins will not partially overlap in any significant manner when c
 }
 
 \examples{
-hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
-cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
-param <- pairParam(cuts)
+# Making up a DIList for binned data.
+nfrags <- 50
+frag.sizes <- as.integer(runif(nfrags, 5, 10))
+ends <- cumsum(frag.sizes)
+cuts <- GRanges("chrA", IRanges(c(1, ends[-nfrags]+1), ends))
+param <- pairParam(cuts) 
 
-# Setting up the parameters
-fout <- "output.h5"
-invisible(preparePairs(hic.file, param, fout))
+regions <- diffHic:::.getBinID(cuts, 20)$region
+all.combos <- combn(length(regions), 2)
+y <- DIList(matrix(0, ncol(all.combos), 1), anchors=all.combos[2,],
+    targets=all.combos[1,], regions=regions, exptData=List(param=param, width=20))
 
-# Collating to count combinations.
-y <- squareCounts(fout, param, width=10)
+# Generating partially overlapping regions.
+set.seed(3424)
+re <- sample(nfrags, 20)
+rs <- as.integer(runif(20, 1, re+1))
+regions <- GRanges("chrA", IRanges(start(cuts)[rs], end(cuts)[re]))
+regions$nfrags <- re - rs + 1L
+regions <- sort(regions)
+all.combos <- combn(length(regions), 2)
+y2 <- DIList(matrix(0, ncol(all.combos), 1), anchors=all.combos[2,],
+    targets=all.combos[1,], regions=regions, exptData=List(param=param))
+
+#### Getting areas. ####
+
 getArea(y)
 getArea(y, bp=FALSE)
 
-y <- squareCounts(fout, param, width=50)
-getArea(y)
-getArea(y, bp=FALSE)
-
-# Doing some extra work with arbitrary regions.
-regions <- GRanges("chrA", IRanges(c(1, 100, 150), c(120, 140, 160)))
-regions <- suppressWarnings(c(regions, GRanges("chrB", IRanges(50, 100))))
-y2 <- connectCounts(fout, param, regions=regions, filter=1L)
 getArea(y2)
 getArea(y2, bp=FALSE)
-
-\dontshow{
-unlink(fout, recursive=TRUE)
-}
 }
 
 \keyword{filtering}
