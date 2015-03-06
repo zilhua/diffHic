@@ -99,7 +99,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 .plotDiag <- function(anchors, targets, colors, diag=FALSE, do.label=FALSE, labels=NULL, label.args=list()) {
 	for (it in 1:2) {
 		# Adding boxes (and text in those boxes, if desired).
-		rect(xleft=start(anchors), xright=end(anchors), ybottom=start(targets), ytop=end(targets), border=NA, col=colors)
+		rect(xleft=start(anchors)-0.5, xright=end(anchors)+0.5, ybottom=start(targets)-0.5, ytop=end(targets)+0.5, border=NA, col=colors)
 		if (!is.null(labels)) { do.call(text, c(list(x=mid(ranges(anchors)), y=mid(ranges(targets)), labels=labels), label.args)) }
 
 		# If we want to show elements past the diagonal for intra-chromosomal plots, we do so.

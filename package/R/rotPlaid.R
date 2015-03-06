@@ -68,14 +68,14 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	counter <- 1L
 	for (mode in list(c(1,1), c(1,2), c(2,2), c(2,1))) {
 		if (mode[1]==1L) { 
-			cur.x <- start(anchors)
+			cur.x <- start(anchors) - 0.5
 		} else {
-			cur.x <- end(anchors)
+			cur.x <- end(anchors) + 0.5
 		} 
 		if (mode[2]==1L) { 
-			cur.y <- start(targets)
+			cur.y <- start(targets) - 0.5
 		} else {
-			cur.y <- end(targets)
+			cur.y <- end(targets) + 0.5
 		}
 		all.x[counter+hits] <- (cur.x + cur.y)/2
 		all.y[counter+hits] <- cur.x - cur.y
