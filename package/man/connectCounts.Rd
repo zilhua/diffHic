@@ -60,20 +60,24 @@ param <- pairParam(cuts)
 # Setting up the parameters
 fout <- "output"
 invisible(preparePairs(hic.file, param, fout))
-regions <- GRanges("chrA", IRanges(c(1, 100, 150), c(20, 140, 160)))
-regions2 <- suppressWarnings(c(regions, GRanges("chrB", IRanges(50, 100))))
+regions <- c(GRanges("chrA", IRanges(c(1, 100, 150), c(20, 140, 160))), 
+    GRanges("chrB", IRanges(50, 100)))
 
 # Collating to count combinations.
-connectCounts(fout, param, regions=regions, filter=1L)
-connectCounts(fout, param, regions=regions2, filter=1L)
-connectCounts(fout, param, regions=regions2, filter=1L, type="within")
+con <- connectCounts(fout, param, regions=regions, filter=1L)
+head(counts(con))
+con <- connectCounts(fout, param, regions=regions, filter=1L, type="within")
+head(counts(con))
 
 # Still works with restriction and other parameters.
-connectCounts(fout, param=reform(param, restrict="chrA"), 
-    regions=regions2, filter=1L)
-connectCounts(fout, param=reform(param, discard=GRanges("chrA", IRanges(1, 50))),
-    regions=regions2, filter=1L)
-connectCounts(fout, param=reform(param, cap=1), regions=regions2, filter=1L)
+con <- connectCounts(fout, param=reform(param, restrict="chrA"), 
+    regions=regions, filter=1L)
+head(counts(con))
+con <- connectCounts(fout, param=reform(param, discard=GRanges("chrA", IRanges(1, 50))),
+    regions=regions, filter=1L)
+head(counts(con))
+con <- connectCounts(fout, param=reform(param, cap=1), regions=regions, filter=1L)
+head(counts(con))
 
 \dontshow{
 unlink(fout)

@@ -65,16 +65,24 @@ fout <- "output.h5"
 invisible(preparePairs(hic.file, param, file=fout))
 
 # Collating to count combinations.
-squareCounts(fout, param)
-squareCounts(fout, param, filter=1)
-squareCounts(fout, param, width=50, filter=1)
-squareCounts(fout, param, width=100, filter=1)
+y <- squareCounts(fout, param)
+head(counts(y))
+y <- squareCounts(fout, param, filter=1)
+head(counts(y))
+y <- squareCounts(fout, param, width=50, filter=1)
+head(counts(y))
+y <- squareCounts(fout, param, width=100, filter=1)
+head(counts(y))
 
 # Attempting with other parameters.
-squareCounts(fout, reform(param, restrict="chrA"), width=100, filter=1)
-squareCounts(fout, reform(param, restrict=cbind("chrA", "chrB")), filter=1)
-squareCounts(fout, reform(param, cap=1), width=100, filter=1)
-squareCounts(fout, reform(param, discard=GRanges("chrA", IRanges(1, 50))), width=100, filter=1)
+y <- squareCounts(fout, reform(param, restrict="chrA"), width=100, filter=1)
+head(counts(y))
+y <- squareCounts(fout, reform(param, restrict=cbind("chrA", "chrB")), filter=1)
+head(counts(y))
+y <- squareCounts(fout, reform(param, cap=1), width=100, filter=1)
+head(counts(y))
+y <- squareCounts(fout, reform(param, discard=GRanges("chrA", IRanges(1, 50))), width=100, filter=1)
+head(counts(y))
 
 \dontshow{
 unlink(fout, recursive=TRUE)

@@ -49,14 +49,20 @@ fout <- "output.h5"
 invisible(preparePairs(hic.file, param, fout))
 
 # Collating to count combinations.
-marginCounts(fout, param, width=10)
-marginCounts(fout, param, width=50)
-marginCounts(fout, param, width=100)
+mar <- marginCounts(fout, param, width=10)
+head(counts(mar))
+mar <- marginCounts(fout, param, width=50)
+head(counts(mar))
+mar <- marginCounts(fout, param, width=100)
+head(counts(mar))
 
 # Attempting with other parameters.
-marginCounts(fout, reform(param, restrict="chrA"), width=50)
-marginCounts(fout, reform(param, cap=1), width=50)
-marginCounts(fout, reform(param, discard=GRanges("chrA", IRanges(1, 50))), width=50)
+mar <- marginCounts(fout, reform(param, restrict="chrA"), width=50)
+head(counts(mar))
+mar <- marginCounts(fout, reform(param, cap=1), width=50)
+head(counts(mar))
+mar <- marginCounts(fout, reform(param, discard=GRanges("chrA", IRanges(1, 50))), width=50)
+head(counts(mar))
 
 \dontshow{
 unlink(fout, recursive=TRUE)
