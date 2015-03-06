@@ -7,8 +7,9 @@ filterDirect <- function(data, ...)
 {
 	all.chrs <- seqnames(regions(data))
 	is.inter <- as.logical(all.chrs[anchors(data, id=TRUE)]!=all.chrs[targets(data, id=TRUE)])
-	ave.ab <- scaledAverage(asDGEList(data[is.inter,]), ...)
-	threshold <- .getInterThreshold(all.chrs, ave.ab, empty=.makeEmpty(data, ...))
+	ave.ab <- scaledAverage(asDGEList(data), ...)
+
+	threshold <- .getInterThreshold(all.chrs, ave.ab[is.inter], empty=.makeEmpty(data, ...))
 	return(list(abundances=ave.ab, threshold=threshold))
 }
 
