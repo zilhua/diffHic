@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 3 March 2015}
+Last revised 6 March 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -492,6 +492,10 @@ require(TxDb.Mmusculus.UCSC.mm10.knownGene)
 gene.body <- genes(TxDb.Mmusculus.UCSC.mm10.knownGene)
 @
 
+<<echo=FALSE,results=hide>>=
+strand(gene.body) <- "*"
+@
+
 Counting can be directly performed for these defined regions using the \code{connectCounts} function.
 Interactions are defined between each pair of regions in the pre-specified set.
 This may be easier to interpret than pairs of bins as the interacting regions have some biological significance.
@@ -705,12 +709,12 @@ In particular, the filter threshold can be defined by mandating some minimum fol
 The magnitude of non-specific ligation can be empirically estimated by assuming that most inter-chromosomal contacts are not genuine. 
 This is reasonable given that most chromosomes are arranged in self-interacting territories \citep{bickmore2013spatial}.
 The median abundance across inter-chromosomal bin pairs is used as the estimate of the non-specific ligation rate. 
-Here, the threshold is defined as a minimum fold change of 3 above this estimate.
+Here, the threshold is defined as a minimum fold change of 5 above this estimate.
 
 <<>>=
 direct <- filterDirect(data)
 direct$threshold
-direct.keep <- direct$abundances > log2(3) + direct$threshold
+direct.keep <- direct$abundances > log2(5) + direct$threshold
 dummy <- data[direct.keep,]
 summary(direct.keep)
 @
@@ -899,9 +903,9 @@ summary(smaller.ab)
 @
 
 The \code{scaledAverage} function from \csaw{} is applied internally to compute the average abundance for each of the 1 Mbp bin pairs. 
-This adjusts for the area of the interaction space used for read pair counting, and is necessary for a valid comparison between small and large bin pairs.
-The resulting values are used to obtain a direct filter threshold, as described.
-Filtering can then be performed based on a minimum fold change over this threshold (in this case, 10-fold).
+This adjusts for the area of the interaction space used in counting, and is necessary for a valid comparison between small and large bin pairs.
+The adjusted abundances can then be used to obtain a threshold for direct filtering.
+A minimum 5-fold change over this threshold is required for retention of each 100 Mbp bin pair.
 
 % Technically, we should do it in terms of restriction fragment pairs.
 % However, this makes it difficult to choose an appropriate prior count, as a value of 2 is way to big for a single restriction fragment.
@@ -910,7 +914,7 @@ Filtering can then be performed based on a minimum fold change over this thresho
 <<>>=
 direct <- filterDirect(data, scale=(bin.size/new.bin.size)^2)
 direct$threshold
-small.keep <- smaller.ab > direct$threshold + log2(10)
+small.keep <- smaller.ab > direct$threshold + log2(5)
 smaller.filtered <- smaller.data[small.keep,]
 summary(small.keep)
 @
@@ -990,6 +994,7 @@ Such irregularities cannot be smoothly normalized and should be removed prior to
 Removal can be achieved by applying the \code{diag.keep} object alongside other filters, as shown below for the direct filter.
 
 <<>>=
+dist <- getDistance(data)
 diag.keep <- is.na(dist) | dist > 0L  
 dummy <- data[diag.keep & direct.keep2,]
 summary(diag.keep)
@@ -1565,7 +1570,7 @@ write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALS
 %Identification of these clusters can be achieved with the \code{boxPairs} function, as shown below.
 %
 %<<>>=
-%matched <- boxPairs(reference=bin.size, smaller=smaller.data, param=mm.param)
+%matched <- boxPairs(reference=bin.size, smaller=smaller.data)
 %tabcom <- combineTests(matched$indices$smaller, result.small$table)
 %head(tabcom)
 %sum(tabcom$FDR <= 0.05)
@@ -1600,8 +1605,7 @@ This yields identifiers for each bin pair where \code{smaller} bin pairs are nes
 Note that the larger bin size \textit{must} be a multiple of the smaller bin size, to simplify later interpretation.
 
 <<>>=
-matched <- boxPairs(larger=data, smaller=smaller.data, 
-    param=mm.param, reference=bin.size)
+matched <- boxPairs(larger=data, smaller=smaller.data, reference=bin.size)
 ldex <- matched$indices$larger
 sdex <- matched$indices$smaller
 @
@@ -1625,6 +1629,7 @@ Weighted calculation of the combined $p$-value is then performed using the \code
 The BH method is also applied to the combined $p$-values.
 
 <<>>=
+require(csaw)
 result.com <- combineTests(ids=c(sdex, ldex), 
     tab=rbind(result.small$table, result$table), weight=weight)
 head(result.com)
@@ -1821,7 +1826,7 @@ rotPlaid(input[3], mm.param, region=example, width=2e4,
 @
 
 <<eval=TRUE,echo=FALSE,label=rotset>>=
-chosen <- o2[5]
+chosen <- o2[3]
 example <- tx.2[chosen]
 end(example) <- end(ax.2[chosen])
 nest.mid.a <- (ax.3$start[chosen]+ax.3$end[chosen])/2
