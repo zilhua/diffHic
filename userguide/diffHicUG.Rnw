@@ -654,7 +654,7 @@ The aim is to enrich for false nulls without affecting type I error for the true
 
 Assume that the counts for each bin pair are sampled from the negative binomial (NB) distribution.
 In this model, the overall NB mean across all libraries is (probably) an independent filter statistic.
-This is trivially transformed into the average abundance, which can be computed using the \code{aveLogCPM} function in \edgeR{} \citep{mccarthy2012glm}.
+The log-mean-per-million is known as the average abundance and can be computed with the \code{aveLogCPM} function in \edgeR{} \citep{mccarthy2012glm}.
 
 <<eval=FALSE,label=avehistplot>>=
 require(edgeR)
@@ -695,58 +695,6 @@ dummy <- data[count.keep,]
 dummy
 @
 
-\subsection{Computing the interaction distance}
-The linear distance between each pair of the interacting bins is worth mentioning as it can also be used in filtering.
-This is obtained using the \code{getDistance} function, which computes the distance between the midpoints of the bins in each bin pair.
-
-<<eval=FALSE,label=distplot>>=
-dist <- getDistance(data, type="mid")
-hist(dist/1e6, xlab="Distance (Mbp)")
-@
-
-\setkeys{Gin}{width=0.5\textwidth}
-\begin{center}
-<<echo=FALSE,fig=TRUE>>=
-<<distplot>>
-@
-\end{center}
-\setkeys{Gin}{width=0.8\textwidth}
-
-Inter-chromosomal bin pairs are marked here as \code{NA} for completeness.
-These tend to dominate the output as they constitute most of the interaction space.
-Of course, the majority of these bin pairs will have low counts due to the sparseness of the data.
-
-<<>>=
-summary(is.na(dist))
-@
-
-%The second statistic is the area of the interaction space that is covered by each bin pair.
-%This can be easily computed with the \code{getArea} function.
-%Each area is returned in terms of pairs of restriction fragments, in keeping with the resolution limits of the Hi-C protocol.
-%Larger areas should be associated with greater counts as more restriction fragments are available for ligation.
-%
-%<<eval=FALSE,label=areaplot>>=
-%area <-getArea(data)
-%hist(area, xlab="Pairs of restriction fragments")
-%@
-%
-%\setkeys{Gin}{width=0.5\textwidth}
-%\begin{center}
-%<<echo=FALSE,fig=TRUE>>=
-%<<areaplot>>
-%@
-%\end{center}
-%\setkeys{Gin}{width=0.8\textwidth}
-%
-%Differences in areas can be roughly normalized between bin pairs by dividing each average count with its corresponding area.
-%This produces a normalized abundance that can be compared between bin pairs.
-%Of course, this does not account for other differences between bins, e.g., in mappability or sequenceability.
-%The same caveat applies for area-based divisions elsewhere in the chapter.
-%
-%<<>>=
-%norm.ab <- ave.ab - log2(area)
-%@
-
 \section{Directly removing low-abundance interactions}
 \label{sec:direct}
 The simplest definition of an ``uninteresting'' interaction is that resulting from non-specific ligation. 
@@ -757,21 +705,15 @@ In particular, the filter threshold can be defined by mandating some minimum fol
 The magnitude of non-specific ligation can be empirically estimated by assuming that most inter-chromosomal contacts are not genuine. 
 This is reasonable given that most chromosomes are arranged in self-interacting territories \citep{bickmore2013spatial}.
 The median abundance across inter-chromosomal bin pairs is used as the estimate of the non-specific ligation rate. 
-Here, the threshold is defined as a minimum fold change of 10 above this estimate.
+Here, the threshold is defined as a minimum fold change of 3 above this estimate.
 
 <<>>=
-direct.threshold <- median(ave.ab[is.na(dist)], na.rm=TRUE)
-direct.threshold
-direct.keep <- ave.ab > log2(10) + direct.threshold
+direct <- filterDirect(data)
+direct$threshold
+direct.keep <- direct$abundances > log2(3) + direct$threshold
 dummy <- data[direct.keep,]
 summary(direct.keep)
 @
-
-% Technically, we should include the empty bin pairs that we don't count.
-% However, the direct.threshold here passes through the mode of the histogram of abundances anyway, so it looks pretty good.
-% It doesn't seem that adding those guys would help.
-% You'd only get a benefit if a lot of them were zeros (e.g., for smaller bins); but then, the median would be imprecise if the counts were so low.
-% Similarly, for the trended filter, zeros would get ignored by the robustness routines.
 
 The \code{direct.keep} vector can then be used to filter \code{data}, as shown above.
 This approach is named here as ``direct'' filtering, as the average abundance for each bin pair is directly compared against a fixed threshold value.
@@ -792,15 +734,13 @@ In typical Hi-C datasets, larger counts are observed at lower interaction distan
 This is probably driven by non-specific compaction of chromatin into a 3D ``globule'' conformation.
 If such compaction is uninteresting, a concomitantly higher threshold is necessary to offset the increase in counts for these local interactions \citep{lin2012global}.
 
-In the trended strategy, a trend is fitted to the average abundance for all intra-chromosomal bin pairs using the log-distance as the covariate. 
-Half of the bin size is added to the distance as a prior, to avoid undefined values when distances are zero.
-Inter-chromosomal bin pairs will not be involved in trend fitting as the distance will be \code{NA}.
-Nonetheless, the fitted value for these bin pairs is set to the fitted value of the largest intra-chromosomal distance.
+In the trended strategy, a trend is fitted to the abundances for all intra-chromosomal bin pairs using the log-distance as the covariate. 
+The bin size is added to the distance as a prior, to avoid undefined values upon log-transformation when distances are zero.
+The fitted value is then used as the threshold for each bin pair.
+For inter-chromosomal bin pairs, the threshold is set to that from the direct filtering approach, for completeness.
 
 <<>>=
-log.dist <- log10(dist + bin.size/2)
-trend.threshold <- loessFit(x=log.dist, y=ave.ab)$fitted
-trend.threshold[is.na(log.dist)] <- trend.threshold[which.max(log.dist)]
+trended <- filterTrended(data)
 @
 
 The effect of this strategy can be visualized by plotting the interaction distance against the normalized abundance.
@@ -808,9 +748,10 @@ A power-law relationship between distance and abundance is usually observed in H
 The average abundance (and thus, the filter threshold) decreases as the distance between the interacting loci increases.
 
 <<eval=FALSE,label=avedistplot>>=
-smoothScatter(log.dist, ave.ab, xlab="Log-Distance", ylab="Normalized abundance")
-o <- order(log.dist)
-lines(log.dist[o], trend.threshold[o], col="red", lwd=2)
+smoothScatter(trended$log.distance, trended$abundances, 
+    xlab="Log-Distance", ylab="Normalized abundance")
+o <- order(trended$log.distance)
+lines(trended$log.distance[o], trended$threshold[o], col="red", lwd=2)
 @
 
 \setkeys{Gin}{width=0.5\textwidth}
@@ -826,7 +767,7 @@ Each bin pair is only retained if its abundance is greater than the correspondin
 This favours selection of longer-range interactions, compared to the direct filter.
 
 <<>>=
-trend.keep <- ave.ab > trend.threshold
+trend.keep <- trended$abundances > trended$threshold
 dummy <- data[trend.keep,]
 summary(trend.keep)
 @
@@ -845,9 +786,14 @@ trend.keep2 <- trend.keep & count.keep
 summary(trend.keep2)
 @
 
+Note that the distance between bins can also be obtained directly with the \code{getDistance} function.
+Distances for inter-chromosomal bin pairs are marked as \code{NA}.
+These tend to dominate the output as they constitute most of the interaction space.
+Of course, the majority of these bin pairs will have low counts due to the sparseness of the data.
+
 \section{Peak-calling in the interaction space}
 Peaks in the interaction space refer to those bin pairs that have substantially more reads than their neighbours.
-The \code{enrichedGap} function computes an enrichment value for each bin pair, defined as the log-fold change of its abundance against its neighbours.
+The \code{filterPeaks} function computes an enrichment value for each bin pair, defined as the log-fold change of its abundance against its neighbours.
 Those bin pairs with high enrichment values can then be retained.
 The example below uses a smaller bin size to detect potential peaks at higher resolution.
 Note that the function requires unfiltered bin pairs, i.e., counting in \code{squareCounts} with \code{filter=1}.
@@ -855,7 +801,7 @@ Thus, to avoid overloading the machine memory, it may be prudent to analyze each
 
 <<>>=
 chr1.data <- squareCounts(input, reform(mm.param, restrict="chr1"), width=1e5, filter=1)
-enrich.chr1 <- enrichedGap(chr1.data)
+enrich.chr1 <- filterPeaks(chr1.data)
 summary(enrich.chr1)   
 @
 
@@ -952,28 +898,19 @@ smaller.ab <- aveLogCPM(asDGEList(smaller.data))
 summary(smaller.ab)
 @
 
-The \code{scaledAverage} function from the \csaw{} package is applied to recompute the average abundance for each of the 1 Mbp bin pairs. 
+The \code{scaledAverage} function from \csaw{} is applied internally to compute the average abundance for each of the 1 Mbp bin pairs. 
 This adjusts for the area of the interaction space used for read pair counting, and is necessary for a valid comparison between small and large bin pairs.
 The resulting values are used to obtain a direct filter threshold, as described.
+Filtering can then be performed based on a minimum fold change over this threshold (in this case, 10-fold).
 
 % Technically, we should do it in terms of restriction fragment pairs.
 % However, this makes it difficult to choose an appropriate prior count, as a value of 2 is way to big for a single restriction fragment.
 % Adjustment by the area in terms of restriction fragments will also tend to select for the wrong things, e.g., bin pairs involving low-complexity sequences like telomeres and centromeres.
 
 <<>>=
-require(csaw)
-larger.ab <- scaledAverage(asDGEList(data), scale=(bin.size/new.bin.size)^2)
-new.threshold <- median(larger.ab[is.na(dist)], na.rm=TRUE)
-new.threshold
-@
-
-Finally, filtering is performed by mandating a minimum fold change for the abundances of the smaller bin pairs over the adjusted threshold (in this case, 10-fold).
-More bin pairs are retained here, as the total number of bin pairs is greater when the bin sizes are smaller.
-Also recall that a large \code{filter} is used in \code{squareCounts} to generate \code{smaller.data}.
-This means that no additional filtering is necessary to enforce a minimum count size.
-
-<<>>=
-small.keep <- smaller.ab > new.threshold + log2(10)
+direct <- filterDirect(data, scale=(bin.size/new.bin.size)^2)
+direct$threshold
+small.keep <- smaller.ab > direct$threshold + log2(10)
 smaller.filtered <- smaller.data[small.keep,]
 summary(small.keep)
 @
@@ -984,11 +921,11 @@ This is done by performing interpolation (and, if necessary, extrapolation) of t
 The computed \code{new.threshold2} can then be used to filter on the abundances of the smaller bin pairs, as described above.
 
 <<>>=
-new.log.dist <- log10(getDistance(smaller.data) + new.bin.size/2)
-larger.fit <- loessFit(x=log.dist, y=larger.ab)$fitted
-new.threshold2 <- approx(x=log.dist, y=larger.fit, xout=new.log.dist, rule=2)$y
-new.threshold2[is.na(new.log.dist)] <- larger.fit[which.max(log.dist)]
-summary(smaller.ab > new.threshold2)
+trended <- filterTrended(data, scale=(bin.size/new.bin.size)^2)
+s.dist <- log10(getDistance(smaller.data) + new.bin.size)
+s.threshold <- approx(x=trended$log.distance, y=trended$threshold, xout=s.dist, rule=2)$y
+s.threshold[is.na(s.dist)] <- trended$threshold[is.na(trended$log.distance)][1]
+summary(smaller.ab > s.threshold)
 @
 
 Another advantage is that estimation of the threshold is also more precise when the counts are larger.
