@@ -75,17 +75,17 @@ param <- pairParam(originals)
 fout <- "temp_saved.h5"
 invisible(preparePairs(hic.file, param, fout))
 
-# Constructing intra-chromosomal plaid plots around various regions
+# Constructing intra-chromosomal plaid plots around various regions.
 plotPlaid(fout, param, anchor=GRanges("chrA", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50, diag=TRUE)
 box()
 xxx <- plotPlaid(fout, param, anchor=GRanges("chrA", IRanges(1, 100)), 
     target=GRanges("chrA", IRanges(1, 200)), width=50, diag=FALSE)
-xxx(1)
-xxx(5)
-xxx(10)
-xxx(20)
-xxx(100)
+
+# Making colorbars.
+xxx(1:2)
+xxx(1:5)
+xxx(1:10)
 
 # Constructing inter-chromosomal plaid plots around various regions
 plotPlaid(fout, param, anchor=GRanges("chrB", IRanges(1, 100)), 
