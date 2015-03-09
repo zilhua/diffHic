@@ -12,7 +12,7 @@ export(diffHicUsersGuide,
     correctedContact, normalizeCNV, matchMargins,
     getDistance, getArea,
 	filterDirect, filterTrended, filterPeaks,
-    boxPairs, clusterPairs,
+    boxPairs, clusterPairs, consolidatePairs,
     plotPlaid, rotPlaid, plotDI, rotDI)
 
 # Exporting the DIList class.

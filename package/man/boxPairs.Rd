@@ -33,7 +33,7 @@ Otherwise, the behaviour of the function will not be clearly defined.
 Some users may wish to identify bin pairs in one \code{DIList} that are nested within bin pairs in another \code{DIList}.
 This can be done by supplying both \code{DIList} objects in the ellipsis, and leaving \code{reference} unspecified.
 The value of \code{reference} will be automatically selected as the largest width of the supplied \code{DIList} objects.
-It is then a trivial matter to \code{\link{match}} the output indices for the smaller bin pairs to the output indices of the larger bin pairs.
+Nesting can be identified by \code{\link{match}}ing the output indices for the smaller bin pairs to those of the larger bin pairs.
 }
 
 \section{Explaining the return value}{
