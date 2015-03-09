@@ -1590,6 +1590,7 @@ write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALS
 The choice of bin size is not clear when there are both sharp and diffuse changes in the interaction space.
 Comprehensive detection of differential interactions can be achieved by combining the differential analyses from both small and large bin pairs.
 Smaller bins provide greater spatial resolution and can identify sharp differential interactions that would otherwise be lost within larger bin pairs.
+Conversely, larger bin pairs provide larger counts and greater power to detect diffuse events.
 To demonstrate, a quick-and-dirty differential analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
 
 <<>>=
@@ -1611,9 +1612,8 @@ sdex <- matched$indices$smaller
 @
 
 Each larger bin pair is associated with its own $p$-value and those of the smaller nested bin pairs.
-All of these $p$-values can then be combined.
-The idea is to provide a compromise between larger counts and spatial resolution in the final combined $p$-value.
-In practice, a weighted version of Simes' method is used to compute the combined $p$-value \citep{benjamini1997multiple}.
+All of these $p$-values can then be combined into a single representative $p$-value.
+Here, a weighted version of Simes' method is used to compute the combined $p$-value \citep{benjamini1997multiple}.
 For each larger bin pair, the weight of the $p$-value for that bin pair is the same as the combined weight of all the smaller nested bin pairs.
 This means that the analysis with the larger bin pair has the same contribution to the final combined value as that for the smaller bin pairs.
 The aim is to avoid increasing the contribution of the latter simply because there are more smaller bin pairs covering the interaction space.
