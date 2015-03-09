@@ -1588,9 +1588,9 @@ write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALS
 \subsection{Merging results from different bin widths}
 \label{sec:mergebins}
 The choice of bin size is not clear when there are both sharp and diffuse changes in the interaction space.
-Comprehensive detection of differential interactions can be achieved by combining the differential analyses from both small and large bin pairs.
 Smaller bins provide greater spatial resolution and can identify sharp differential interactions that would otherwise be lost within larger bin pairs.
 Conversely, larger bin pairs provide larger counts and greater power to detect diffuse events.
+Comprehensive detection of differential interactions can be achieved by combining the differential analyses from both small and large bin pairs.
 To demonstrate, a quick-and-dirty differential analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
 
 <<>>=
@@ -1601,39 +1601,28 @@ fit.small <- glmQLFit(y.small, design, robust=TRUE)
 result.small <- glmQLFTest(fit.small)
 @
 
-To consolidate these results, all smaller bin pairs that are nested within each of the larger bin pairs are identified using the \code{boxPairs} function.
-This yields identifiers for each bin pair where \code{smaller} bin pairs are nested in \code{larger} bin pairs with the same ID.
-Note that the larger bin size \textit{must} be a multiple of the smaller bin size, to simplify later interpretation.
+To consolidate these results, the \code{consolidatePairs} function is used to identify all smaller bin pairs that are nested within each of the larger ``parent'' bin pairs.
+Specifically, smaller bin pairs are nested in larger bin pairs with the same ID in \code{cons\$id}.
+Note that the larger bin size \textit{must} be an integer multiple of the smaller bin size(s).
+This is necessary to simplify the interpretation of the nestprocedure.
 
 <<>>=
-matched <- boxPairs(larger=data, smaller=smaller.data, reference=bin.size)
-ldex <- matched$indices$larger
-sdex <- matched$indices$smaller
+cons <- consolidatePairs(list(larger=data, smaller=smaller.data), 
+    list(result$table, result.small$table))
+head(cons$id$larger)
+head(cons$id$smaller)
 @
 
-Each larger bin pair is associated with its own $p$-value and those of the smaller nested bin pairs.
-All of these $p$-values can then be combined into a single representative $p$-value.
-Here, a weighted version of Simes' method is used to compute the combined $p$-value \citep{benjamini1997multiple}.
-For each larger bin pair, the weight of the $p$-value for that bin pair is the same as the combined weight of all the smaller nested bin pairs.
-This means that the analysis with the larger bin pair has the same contribution to the final combined value as that for the smaller bin pairs.
-The aim is to avoid increasing the contribution of the latter simply because there are more smaller bin pairs covering the interaction space.
+Each parent bin pair is associated with its own $p$-value and those of the smaller nested bin pairs.
+All of these $p$-values can then be combined into a single $p$-value for the parent.
+This is done using a weighted version of Simes' method \citep{benjamini1997multiple}.
+For each bin pair, the weight of the $p$-value is inversely proportional to the number of bin pairs of the same size nested in the same parent.
+This ensures that the combined $p$-value calculation is not dominated by smaller, more numerous bin pairs.
+The BH method is then applied to the combined $p$-values to control the FDR across all parents.
 
 <<>>=
-weight <- c(1/counts(matched$pairs)[sdex,"smaller"],
-    1/counts(matched$pairs)[ldex,"larger"])
-@
-
-The code snippet above uses the fact that the count matrix from the \code{DIList} in \code{boxPairs} records the number of nested bin pairs at each bin size.
-So, as the number of nested bin pairs increases, the weight assigned to each bin pair decreases.
-Weighted calculation of the combined $p$-value is then performed using the \code{combineTests} function in the \csaw{} package.
-The BH method is also applied to the combined $p$-values.
-
-<<>>=
-require(csaw)
-result.com <- combineTests(ids=c(sdex, ldex), 
-    tab=rbind(result.small$table, result$table), weight=weight)
-head(result.com)
-sum(result.com$FDR <= 0.05)
+head(cons$table)
+sum(cons$table$FDR <= 0.05)
 @
 
 % In other cases, decreased power may be observed if either - but not both- sharp or diffuse interactions are observed.
@@ -1645,11 +1634,11 @@ Statistics for each of the larger bin pairs can then be stored to file.
 Reordering is performed using the combined $p$-value to promote the strongest changes.
 
 <<>>=
-ax.2 <- anchors(matched$pairs)
-tx.2 <- targets(matched$pairs)
+ax.2 <- anchors(cons$pairs)
+tx.2 <- targets(cons$pairs)
 final.2 <- data.frame(anchor.chr=seqnames(ax.2), anchor.start=start(ax.2), 
     anchor.end=end(ax.2), target.chr=seqnames(tx.2), target.start=start(tx.2), 
-    target.end=end(tx.2), result.com)
+    target.end=end(tx.2), cons$table)
 o2 <- order(final.2$PValue)
 write.table(final.2[o2,], file="results.2.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
@@ -1669,7 +1658,7 @@ However, users should always keep in mind that the FDR is computed with respect 
 
 <<>>=
 inside <- getBestTest(sdex, result.small$table)
-best.vec <- rep(NA, nrow(matched$pairs))
+best.vec <- rep(NA, nrow(cons$pairs))
 best.vec[as.integer(rownames(inside))] <- inside$best
 head(best.vec)
 ax.3 <- as.data.frame(anchors(smaller.data))[best.vec,]
@@ -1684,7 +1673,7 @@ write.table(final.3[o2,], file="results.3.tsv", sep="\t", quote=FALSE, row.names
 
 The above code only reports the top-ranked nested bin pair for each parent.
 This may not be sufficient when many internal changes are occurring.
-An alternative approach is to store the entirety of the \code{smaller.data} in a \R{} save file, along with \code{matched} and \code{data}.
+An alternative approach is to store the entirety of the \code{smaller.data} in a \R{} save file, along with \code{cons} and \code{data}.
 Any interesting nested changes can then be interactively identified for a given parent.
 
 \section{Visualization with plaid plots}
