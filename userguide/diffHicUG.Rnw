@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 6 March 2015}
+Last revised 10 March 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -1494,7 +1494,6 @@ This chapter brings everything together.
 We need the \code{fit} object from the last chapter, along with the \code{data} object (as usual).
 We also require the \code{smaller.data} object from Chapter~\ref{chap:filter}.
 The \code{bin.size} and \code{mm.param} objects are required from Chapter~\ref{chap:counting}.
-Finally, we need to make sure that the \csaw{} package is loaded, e.g., with \code{library(csaw)}.
 \end{combox}
 
 \section{Using the quasi-likelihood F-test}
@@ -1657,7 +1656,7 @@ This means that any high-resolution changes nested within a parent bin pair can 
 However, users should always keep in mind that the FDR is computed with respect to the parent bin pairs.
 
 <<>>=
-inside <- getBestTest(sdex, result.small$table)
+inside <- csaw::getBestTest(cons$id$smaller, result.small$table)
 best.vec <- rep(NA, nrow(cons$pairs))
 best.vec[as.integer(rownames(inside))] <- inside$best
 head(best.vec)
