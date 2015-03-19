@@ -93,7 +93,9 @@ head(normalizeCNV(data, margins, prior.count=1))
 head(normalizeCNV(data, margins, span=0.5))
 
 # Occasionally locfit will complain; increase maxk to compensate.
-data@counts <- matrix(as.integer(rpois(npairs*nlibs, 20)), nrow=npairs)
+data <- DIList(counts=matrix(rpois(npairs*nlibs, 20), nrow=npairs),
+	totals=runif(nlibs, 1e6, 2e6), anchors=pmax(anchors, targets), targets=pmin(anchors, targets),
+	regions=GRanges("chrA", IRanges(1:npts, 1:npts)))
 tryCatch(head(normalizeCNV(data, margins, maxk=100)), error=function(e) e)
 head(normalizeCNV(data, margins, maxk=1000))
 
