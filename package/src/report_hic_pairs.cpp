@@ -249,7 +249,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 		if (ischimera) { ++total_chim; }
 		if (isdup) { ++dupped; }
 		if (isunmap) { ++filtered; }
-		if (isunmap || isdup || read1.front().offset || read2.front().offset) { continue;  }
+		if (isunmap || isdup || read1.empty() || read2.empty() || read1.front().offset || read2.front().offset) { continue;  }
 		++mapped;
 		
 		// Pulling out chimera diagnostics.
