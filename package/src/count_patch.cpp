@@ -105,7 +105,7 @@ SEXP count_patch(SEXP all, SEXP bin, SEXP filter) try {
 		SET_VECTOR_ELT(output, 1, allocVector(INTSXP, ncombos));
 		int* toptr=INTEGER(VECTOR_ELT(output, 1));
 		SET_VECTOR_ELT(output, 2, allocMatrix(INTSXP, ncombos, nlibs));
-		std::deque<int*> coptrs;
+		std::deque<int*> coptrs(nlibs);
 		for (int i=0; i<nlibs; ++i) {
 			if (i==0) { coptrs[i]=INTEGER(VECTOR_ELT(output, 2)); }
 			else { coptrs[i]=coptrs[i-1]+ncombos; }
