@@ -27,6 +27,7 @@ parser.add_argument("-P", type=int, dest="phred", help="phred offset for the qua
 parser.add_argument("--sig", type=str, dest="ligation", help="sequence of ligation signature (i.e. after blunt-end ligation of filled-in overhangs)", required=True)
 parser.add_argument("-o", type=str, dest="output", help="path to the output BAM file", required=True)
 parser.add_argument("--cmd", type=str, dest="cmd", help="path to/command for bowtie2 executable, with or without flags", default="bowtie2")
+parser.add_argument("--cut", type=str, dest="cut", help="path to/command for cutadapt executable, with or without flags", default="cutadapt")
 args = parser.parse_args()
 
 ## Setting up odds and ends which might be necessary.
@@ -45,6 +46,7 @@ if liglen%2!=0:
 ## Assembling the bowtie2 command. 
 import re
 bwtcmd=re.split("\s+", args.cmd)+["--phred"+str(args.phred), "-x", args.genome]
+cutcmd=re.split("\s+", args.cut)
 	
 ####################################################################################################
 ## Writing a function which decides where to add the hard clipping (passes by reference).
@@ -77,7 +79,7 @@ for x, curf in enumerate([args.fq1, args.fq2]):
 			
 	# Trimming the FASTQ file prior to input.
 	init_split=os.path.join(tmpdir, "splitted_temp.fq")
-	if call(["cutadapt", "-o", init_split, "-a", ligseq, curf], stdout=dumpf, stderr=dumpf):
+	if call(cutcmd+["-o", init_split, "-a", ligseq, curf], stdout=dumpf, stderr=dumpf):
 		raise SystemError, "cutadapt failed to trim reads"
 
 	# Runs through the temporary and the original, and adds back half the ligation signature length.
