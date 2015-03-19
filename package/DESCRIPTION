@@ -1,10 +1,10 @@
 Package: diffHic
-Version: 0.99.1
-Date: 2015/03/05
+Version: 0.99.2
+Date: 2015/03/19
 Title: Differential analyis of Hi-C data
 Author: Aaron Lun <alun@wehi.edu.au>
 Maintainer: Aaron Lun <alun@wehi.edu.au>
-Depends: R (>= 2.15.0), GenomicRanges
+Depends: R (>= 3.2.0), GenomicRanges
 Imports: Rsamtools, Biostrings, BSgenome, rhdf5, 
 	edgeR, limma, csaw, locfit, methods, 
 	IRanges, S4Vectors, GenomeInfoDb,
