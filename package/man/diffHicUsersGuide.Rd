@@ -1,5 +1,6 @@
 \name{diffHicUsersGuide}
 \alias{diffHicUsersGuide}
+\alias{diffHic}
 
 \title{View diffHic user's guide}
 \description{Finds the location of the user's guide and opens it for viewing.}
@@ -18,14 +19,16 @@ If \code{view=TRUE}, the system's default PDF document reader is started and the
 }
 
 \details{
-The user guide for the diffHic package can be obtained with this function. 
-The user's guide is not a true vignette as it is not generated using \code{\link{Sweave}} when the package is built. 
-This is due to the time-consuming nature of the code when run on realistic case studies.
+The diffHic package is designed for the detection of differential interactions from Hi-C data.
+It provides methods for read pair counting, normalization, filtering and statistical analysis via edgeR.
+As the name suggests, the diffHic user's guide for can be obtained by running this function.
 
 For non-Windows operating systems, the PDF viewer is taken from \code{Sys.getenv("R_PDFVIEWER")}. 
 This can be changed to \code{x} by using \code{Sys.putenv(R_PDFVIEWER=x)}. 
 For Windows, the default viewer will be selected to open the file. 
-Note that for Windows, the user's guide can also be accessed from the `Vignettes' drop-down menu in the R GUI.
+
+Note that this guide is not a true vignette as it is not generated using \code{\link{Sweave}} when the package is built. 
+This is due to the time-consuming nature of the code when run on realistic case studies.
 }
 
 \seealso{
