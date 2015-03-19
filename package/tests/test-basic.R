@@ -1,6 +1,6 @@
 # These are just placeholders for the real things in inst/tests.
 
-suppressPackageStartupMessages(require(diffHic))
+suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 
 hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))

@@ -19,10 +19,7 @@ Type 'q()' to quit R.
 
 > # These are just placeholders for the real things in inst/tests.
 > 
-> suppressPackageStartupMessages(require(diffHic))
-Warning messages:
-1: multiple methods tables found for ‘score’ 
-2: multiple methods tables found for ‘score’ 
+> suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
 > 
 > hic.file <- system.file("exdata", "hic_sort.bam", package="diffHic")
 > cuts <- readRDS(system.file("exdata", "cuts.rds", package="diffHic"))
@@ -196,4 +193,4 @@ Sample1     1       17            1
 > 
 > proc.time()
    user  system elapsed 
-  9.807   0.154   9.961 
+  9.392   0.200  11.322 
