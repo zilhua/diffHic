@@ -26,9 +26,9 @@ for (i in 1:2) {
 
 	# Merging technical replicates.
 	if (i==1L) { 
-		mergePairs(c("SRR493820.h5", "SRR493821.h5", "SRR493822.h5", "SRR493823.h5"), "counts/merged_erg.h5")
-		mergePairs(c("SRR493824.h5", "SRR493825.h5", "SRR493826.h5", "SRR493827.h5"), "counts/merged_gfp.h5")
-	} else if (i==1L) {
+		mergePairs(c("SRR493820.h5", "SRR493821.h5", "SRR493822.h5", "SRR493823.h5"), "merged_erg.h5")
+		mergePairs(c("SRR493824.h5", "SRR493825.h5", "SRR493826.h5", "SRR493827.h5"), "merged_gfp.h5")
+	} else if (i==2L) {
 		mergePairs(c("SRR941267.h5", "SRR941268.h5", "SRR941269.h5", "SRR941270.h5"), "merged_flox_1.h5")
 		mergePairs(c("SRR941271.h5", "SRR941272.h5", "SRR941273.h5", "SRR941274.h5"), "merged_flox_2.h5")
 		mergePairs(c("SRR941275.h5", "SRR941276.h5", "SRR941277.h5", "SRR941278.h5"), "merged_ko_1.h5")
