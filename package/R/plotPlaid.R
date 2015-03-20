@@ -153,13 +153,13 @@ plotDI <- function(data, fc, anchor, target=anchor, col.up="red", col.down="blue
 
 	# Identifying the region pairs in our ranges of interest (some stretch, to allow for partial overlaps).
 	a.keep <- overlapsAny(regions(data), anchor, maxgap=width(anchor)/2)
-	t.keep <- overlapsAny(regions(data), target, maxgap=width(target)/2)
 	aid <- anchors(data, id=TRUE)
 	tid <- targets(data, id=TRUE)
-	keep <- a.keep[aid] & t.keep[tid]
 	if (achr!=tchr || astart!=tstart || aend!=tend) {
-		alt.keep <- a.keep[tid] & t.keep[aid]
-		keep <- keep | alt.keep
+		t.keep <- overlapsAny(regions(data), target, maxgap=width(target)/2)
+		keep <- (a.keep[aid] & t.keep[tid]) | (a.keep[tid] & t.keep[aid])
+	} else {
+		keep <- a.keep[aid] & a.keep[tid]
 	}
 
 	if (is.null(xlab)) { xlab <- achr }
