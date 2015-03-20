@@ -11,8 +11,11 @@ clusterPairs <- function(data, tol, upper=1e6)
 {
 	region <- regions(data)
 	allchrs <- as.character(seqnames(region))
-	achrs <- allchrs[data@anchors]
-	tchrs <- allchrs[data@targets]
+	aid <- anchors(data, id=TRUE)
+	tid <- targets(data, id=TRUE)
+
+	achrs <- allchrs[aid]
+	tchrs <- allchrs[tid]
 	tol <- as.integer(tol)
 	stopifnot(tol>=0L) # Minimum overlap not supported.
 	upper <- as.integer(upper)
@@ -26,10 +29,10 @@ clusterPairs <- function(data, tol, upper=1e6)
 	upnext <- c(is.new[-1]-1L, n)
 	
 	# Setting up the starts and ends.
-	astarts <- start(region[data@anchors[ro]])
-	aends <- end(region[data@anchors[ro]])+1L
-	tstarts <- start(region[data@targets[ro]])
-	tends <- end(region[data@targets[ro]])+1L
+	astarts <- start(region[aid[ro]])
+	aends <- end(region[aid[ro]])+1L
+	tstarts <- start(region[tid[ro]])
+	tends <- end(region[tid[ro]])+1L
 
 	# Now, running through.
 	all.ids <- integer(n)

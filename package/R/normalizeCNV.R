@@ -72,11 +72,12 @@ matchMargins <- function(data, margins)
 	if (!identical(regions(data), regions(margins))) {
 		stop("regions must be the same for bin pair and marginal counts") 
 	}
-	all.indices <- integer(length(data@regions))
-	all.indices[margins@anchors] <- 1:length(margins@anchors)
-	amatch <- all.indices[data@anchors]
+	all.indices <- integer(length(regions(data)))
+	id <- anchors(margins, id=TRUE)
+	all.indices[id] <- 1:length(id)
+	amatch <- all.indices[anchors(data, id=TRUE)]
 	if (any(amatch==0L)) { stop("non-empty anchor in data that is not in margins") }
-	tmatch <- all.indices[data@targets]
+	tmatch <- all.indices[targets(data, id=TRUE)]
 	if (any(tmatch==0L)) { stop("non-empty target in data that is not in margins") }
 	
 	return(data.frame(amatch, tmatch))

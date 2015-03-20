@@ -52,7 +52,10 @@ filterPeaks <- function(data, flank=5, trend=c("global", "none", "chr"), prior.c
 	# Running through each pair of chromosomes.
 	np <- nrow(data)
 	by.chr <- split(1:np, as.character(seqnames(anchors(data))))
+	aid <- anchors(data, id=TRUE)
+	tid <- targets(data, id=TRUE)
 	output <- numeric(np)
+
 	for (anchor in names(by.chr)) {
 		next.chr <- by.chr[[anchor]]
 		next.chr <- split(next.chr, as.character(seqnames(targets(data[next.chr,]))))
@@ -60,8 +63,8 @@ filterPeaks <- function(data, flank=5, trend=c("global", "none", "chr"), prior.c
 
 		for (target in names(next.chr)) {
 			current.pair <- next.chr[[target]]
-			all.a <- data@anchors[current.pair] - first.id[[anchor]] 
-			all.t <- data@targets[current.pair] - first.id[[target]]
+			all.a <- aid[current.pair] - first.id[[anchor]] 
+			all.t <- tid[current.pair] - first.id[[target]]
 			t.len <- last.id[[target]] - first.id[[target]] + 1L
 
 			rel.ab <- all.ab[current.pair]

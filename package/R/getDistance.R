@@ -35,11 +35,12 @@ getArea <- function(data, bp=TRUE)
 # created 30 July 2014
 # last modified 5 March 2015
 {
-	ax <- data@anchors
-	tx <- data@targets
+	ax <- anchors(data, id=TRUE)
+	tx <- targets(data, id=TRUE)
+	reg <- regions(data)
 
 	if (bp) {
-		cur.width <- as.double(width(data@regions))
+		cur.width <- as.double(width(reg))
 		returned <- cur.width[ax] * cur.width[tx]
 
 		# Accounting for special behaviour around the diagonal.	It you don't halve,
@@ -51,20 +52,20 @@ getArea <- function(data, bp=TRUE)
 		returned[is.olap] <- returned[is.olap] - self.lap.area
 	} else {
 		is.same <- ax==tx
-		curnfrag <- as.double(data@regions$nfrags[ax])
-		returned <- curnfrag * data@regions$nfrags[tx]
+		curnfrag <- as.double(reg$nfrags[ax])
+		returned <- curnfrag * reg$nfrags[tx]
 		returned[is.same] <- curnfrag[is.same]*(curnfrag[is.same]+1)/2
 
 		# Detour to protect against overlapping regions.
-		left.edge <- pmax(start(data@regions)[ax], start(data@regions)[tx])
-		right.edge <- pmin(end(data@regions)[ax], end(data@regions)[tx])
+		left.edge <- pmax(start(reg)[ax], start(reg)[tx])
+		right.edge <- pmin(end(reg)[ax], end(reg)[tx])
 		is.partial <- !is.same & right.edge >= left.edge & 
-			as.logical(seqnames(data@regions)[ax]==seqnames(data@regions)[tx]) 
+			as.logical(seqnames(reg)[ax]==seqnames(reg)[tx]) 
 
 		if (any(is.partial)) { 
 			right.edge <- right.edge[is.partial]
 			left.edge <- left.edge[is.partial]
-			by.chr <- split(1:sum(is.partial), as.character(seqnames(data@regions)[ax][is.partial]))
+			by.chr <- split(1:sum(is.partial), as.character(seqnames(reg)[ax][is.partial]))
 			fragments <- exptData(data)$param$fragments
 			fdata <- .delimitFragments(fragments)
 

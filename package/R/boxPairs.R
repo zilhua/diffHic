@@ -29,8 +29,8 @@ boxPairs <- function(..., reference)
 		olap <- findOverlaps(regions(current), parents, type="within", select="first")
 		if (any(is.na(olap))) { stop("smaller bins must be fully contained within larger bins") }
 		
-		all.a[[x]] <- olap[current@anchors]
-		all.t[[x]] <- olap[current@targets]
+		all.a[[x]] <- olap[anchors(current, id=TRUE)]
+		all.t[[x]] <- olap[targets(current, id=TRUE)]
 		all.mode[[x]] <- rep(x, ncur)
 		all.idx[[x]] <- 1:ncur
 		num.pairs[[x]] <- ncur
