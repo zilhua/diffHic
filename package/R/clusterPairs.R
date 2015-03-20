@@ -7,7 +7,7 @@ clusterPairs <- function(data, tol, upper=1e6)
 #
 # written by Aaron Lun
 # created 6 December 2013
-# last modified 3 March 2015
+# last modified 20 March 2015
 {
 	region <- regions(data)
 	allchrs <- as.character(seqnames(region))

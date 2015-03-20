@@ -5,6 +5,8 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 # nearest inside restriction site, depending).
 #
 # written by Aaron Lun
+# a long time ago.
+# last modified 20 March 2015
 {
 	nlibs <- length(files)
 	if (nlibs==0L) { stop("number of libraries must be positive") } 

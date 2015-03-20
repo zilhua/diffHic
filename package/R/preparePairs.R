@@ -5,6 +5,7 @@ preparePairs<-function(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE, minq
 #
 # written by Aaron Lun
 # created 30 May 2013
+# last modified 20 March 2015
 {
 	# Preparing cuts; start positions, end positions, index in 'fragments', segmented by chromosome.
 	# Anchor/target order is defined by the order of chromosomes in 'fragments'; earlier chromosomes

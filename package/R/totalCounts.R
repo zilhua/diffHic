@@ -5,6 +5,7 @@ totalCounts <- function(files, param)
 #
 # written by Aaron Lun
 # created 17 September 2014
+# last modified 20 March 2015
 {
 	nlibs <- length(files)
 	if (nlibs==0) { 

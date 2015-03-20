@@ -5,6 +5,7 @@ marginCounts <- function(files, param, width=50000)
 #
 # written by Aaron Lun
 # Some time ago.
+# last modified 20 March 2015
 {
 	nlibs <- length(files)
 	width <- as.integer(width)

@@ -9,7 +9,7 @@ plotPlaid <- function(file, param, anchor, target=anchor,
 #
 # written by Aaron Lun
 # sometime in 2012.
-# last modified 3 March 2015.
+# last modified 20 March 2015
 {
 	width<-as.integer(width) 
 	achr <- as.character(seqnames(anchor))
@@ -129,7 +129,7 @@ plotDI <- function(data, fc, anchor, target=anchor, col.up="red", col.down="blue
 #
 # written by Aaron Lun
 # created 21 November 2014
-# last modified 3 March 2015
+# last modified 2 March 2015
 {
 	achr <- as.character(seqnames(anchor))
 	tchr <- as.character(seqnames(target))

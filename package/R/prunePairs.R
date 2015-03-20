@@ -4,7 +4,9 @@ prunePairs <- function(file.in, param, file.out=file.in, max.frag=NA, min.inward
 # If the fragment size is too big then we filter it out. We also filter out pairs which are too
 # close together (min.*ward) with the difference between the two specifying inward/outward facing pairs.
 #
-# writtn by Aaron Lun
+# written by Aaron Lun
+# created 9 September 2014
+# last modified 20 March 2015
 {
     # Use a temporary file as a placeholder, in case file.out==file.in.
 	tmpf <- tempfile(tmpdir=".")

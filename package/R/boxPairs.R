@@ -5,7 +5,7 @@ boxPairs <- function(..., reference)
 #
 # written by Aaron Lun
 # created 3 June 2014
-# last modified 3 March 2015
+# last modified 20 March 2015
 {
 	all.hits <- list(...)
 	nk <- length(all.hits)

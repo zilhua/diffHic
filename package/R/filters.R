@@ -4,6 +4,7 @@ filterDirect <- function(data, ...)
 #
 # written by Aaron Lun
 # created 5 March 2015
+# last modified 20 March 2015
 {
 	all.chrs <- seqnames(regions(data))
 	is.inter <- as.logical(all.chrs[anchors(data, id=TRUE)]!=all.chrs[targets(data, id=TRUE)])
@@ -40,6 +41,7 @@ filterTrended <- function(data, span=0.25, ...)
 #
 # written by Aaron Lun
 # created 5 March 2015
+# last modified 20 March 2015
 {
 	dist <- getDistance(data, type="mid")
 	log.dist <- log10(dist + exptData(data)$width)

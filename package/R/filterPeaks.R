@@ -6,7 +6,7 @@ filterPeaks <- function(data, flank=5, trend=c("global", "none", "chr"), prior.c
 #
 # written by Aaron Lun
 # created 23 April 2014
-# last modified 5 March 2015
+# last modified 20 March 2015
 {
 	flank <- as.integer(flank)
 	if (flank <= 0L) { stop("flank width must be a positive integer") }

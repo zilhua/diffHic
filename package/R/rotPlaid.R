@@ -4,7 +4,8 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 # on the x-axis, extended from the diagonal.
 #
 # written by Aaron Lun
-# 18 September 2014
+# created 18 September 2014
+# last modified 20 March 2015
 {
 	if (!is.integer(width)) { width<-as.integer(width) }
 	xchr <- as.character(seqnames(region))
@@ -93,7 +94,8 @@ rotDI <- function(data, fc, region, col.up="red", col.down="blue",
 # on the x-axis, extended from the diagonal.
 #
 # written by Aaron Lun
-# 18 September 2014
+# created 18 September 2014
+# last modified 20 March 2015
 {
 	xchr <- as.character(seqnames(region))
 	xstart <- start(region)

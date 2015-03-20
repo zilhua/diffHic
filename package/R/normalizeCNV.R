@@ -66,7 +66,7 @@ matchMargins <- function(data, margins)
 #
 # written by Aaron Lun
 # created 17 September 2014	
-# last modified 3 March 2015 
+# last modified 20 March 2015 
 {
 	# Checking to ensure that the regions are the same.
 	if (!identical(regions(data), regions(margins))) {

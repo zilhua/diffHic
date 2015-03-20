@@ -254,10 +254,7 @@ SEXP split_clusters (SEXP id, SEXP start_a, SEXP start_t, SEXP end_a, SEXP end_t
 		* teptr=INTEGER(end_t),
 		* iptr=INTEGER(id);
 
-	/* Getting the maximum ID, and constructing holding cells 
- 	 * specifying the cluster starts and ends. We need to add 
- 	 * 1 to account for 1-based indexing.
- 	 */
+	// Getting the maximum ID, and constructing holding cells specifying the cluster starts and ends. 
 	int maxid=0;	
 	for (int i=0; i<npts; ++i) { 
 		if (maxid < iptr[i]) { maxid=iptr[i]; }

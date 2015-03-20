@@ -33,7 +33,7 @@ getArea <- function(data, bp=TRUE)
 # 
 # written by Aaron Lun
 # created 30 July 2014
-# last modified 5 March 2015
+# last modified 20 March 2015
 {
 	ax <- anchors(data, id=TRUE)
 	tx <- targets(data, id=TRUE)

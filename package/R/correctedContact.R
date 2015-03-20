@@ -9,7 +9,7 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
 #
 # written by Aaron Lun
 # some time ago	
-# modified 3 March 2015
+# last modified 20 March 2015
 {
 	if (!average & ncol(data)>1L) {
 		collected.truth <- collected.bias <- collected.max <- list()

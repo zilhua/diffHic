@@ -5,7 +5,8 @@ cutGenome <- function(bs, pattern, overhang=4L)
 # strand as well.
 #
 # written by Aaron Lun
-# a long time ago. Modified 2 Nov 2014.	
+# a long time ago. 
+# last modified 2 November 2014
 {
 	if (nchar(pattern)%%2L!=0) { stop("recognition site must be even in size") }
 	ps <- DNAString(pattern)
