@@ -27,7 +27,22 @@ Type 'q()' to quit R.
 > 
 > # Setting up the parameters
 > fout <- "output.h5"
-> invisible(preparePairs(hic.file, param, file=fout))
+> preparePairs(hic.file, param, file=fout)
+$pairs
+   total   marked filtered   mapped 
+      30        7        3       20 
+
+$same.id
+   dangling self.circle 
+          2           1 
+
+$singles
+[1] 2
+
+$chimeras
+  total  mapped   multi invalid 
+     12       8       7       5 
+
 > head(getPairData(fout, param))
   length orientation insert
 1     40           1     40
@@ -193,4 +208,4 @@ Sample1     1       17            1
 > 
 > proc.time()
    user  system elapsed 
-  9.392   0.200  11.322 
+  9.708   0.181   9.944 

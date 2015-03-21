@@ -8,7 +8,7 @@ param <- pairParam(fragments=cuts)
 
 # Setting up the parameters
 fout <- "output.h5"
-invisible(preparePairs(hic.file, param, file=fout))
+preparePairs(hic.file, param, file=fout)
 head(getPairData(fout, param))
 
 loadChromos(fout)
