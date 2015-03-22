@@ -185,9 +185,10 @@ setValidity("pairParam", function(object) {
 		}
 		
 		unsort <-  diff(start(object@fragments)) <= 0L | diff(end(object@fragments)) <= 0L 
-		unsort[head(cumsum(runLength(seqnames(object@fragments))),-1L)] <- FALSE 
+
 		# Should be +1, to get to the first element of each chromosome; but, unsort 
 		# is missing the first element (because of diff), so no need to add 1.
+		unsort[head(cumsum(runLength(seqnames(object@fragments))),-1L)] <- FALSE 
 
 		if (any(unsort)) {
 			return('restriction fragments should be sorted by start and end coordinates')
