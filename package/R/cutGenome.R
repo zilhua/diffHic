@@ -29,26 +29,18 @@ cutGenome <- function(bs, pattern, overhang=4L)
        	x <- matchPattern(pattern, bs[[chr]])
 		match.start <- start(x)
 		if (is.unsorted(match.start)) { match.start <- sort(match.start) }
-       	starts <- c(1L, match.start+remainder)
 		chrlen <- length(bs[[chr]])
-       	ends <- c(match.start+remainder-1L+overhang, chrlen)
 
-		# Eliminating fragments formed by consecutive matches at the start or end.
-		# These will be ssDNA, so there's nothing to prime the fill-in. 
-		if (remainder==0L) {
-			keep <- NULL
-			if (ends[1]==nchar(pattern)) { keep <- -1L }
-			N <- length(ends)
-			if (starts[N]==chrlen-nchar(pattern)+1L) { keep <- c(keep, -N) }
-
-			if (length(keep)) { 
-				starts <- starts[keep]
-				ends <- ends[keep]
-			} 
-			if (length(starts)==0L) { 
-				starts <- 1L
-				ends <- chrlen
-			}
+		if (remainder) { 
+       		starts <- c(1L, match.start+remainder)
+       		ends <- c(match.start+remainder-1L+overhang, chrlen)
+		} else {
+			# Eliminating matches at the start or end, to avoid nested fragments.
+			if (match.start[1]==1L) { match.start <- match.start[-1] }
+			ncuts <- length(match.start)
+			if (match.start[ncuts]==chrlen - overhang + 1L) { match.start <- match.start[-ncuts] }
+			starts <- c(1L, match.start)
+			ends <- c(match.start+overhang-1L, chrlen)
 		}
 
 		original[[chr]] <- GRanges(chr, IRanges(starts, ends))
@@ -61,10 +53,10 @@ cutGenome <- function(bs, pattern, overhang=4L)
 	return(original)
 }
 
-# We completely ignore tricky interpretations of consecutive sites.
+# Interpretations of consecutive sites is generally tricky.
 # For starters, the 'remainder' is so low that the strands are unlikely to stay stuck together until the fill-in step.
-# It's also unclear whether cleavage is even possible when the recognition site is at the very end of the DNA fragment.
-# This is far too much technical detail to be relevant in non-pathological cases.
-# Consideration is only given to the start and end, above, to pass pairParam ordering checks and avoid redundancies.
-
-
+# This becomes an impossibility if remainder is zero, such that ssDNA is formed after cleavage of consecutive sites.
+# It's also unclear whether cleavage is even possible when the recognition site is at the very end of the fragment (e.g., after one cleavage).
+# That's not even considering the grief that's possible when a site overlaps with itself.
+# In short, the fragments that will be reported by cutGenome might be a bit silly in such cases; but, in many respects, it doesn't matter.
+# Fragment-level resolution is never used, and those formed between consecutive sites will be so small that they'll have no effect on read assignment.
