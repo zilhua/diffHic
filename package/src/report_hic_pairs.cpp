@@ -48,7 +48,7 @@ int fragment_finder::find_fragment(const int& c, const int& p, const bool& r, co
 			warning("read aligned off end of chromosome");
 			--index;
 		} else if (pos[c].start_ptr[index] > pos5) {
-			warning("read aligned into spacer region");
+			warning("read aligned into spacer region for a filled-in genome");
 			--index;
 		}
 	} else {
@@ -122,6 +122,7 @@ void parse_cigar (const char* cigar, int& alen, int& offset, const bool& reverse
  ***********************************************/
 
 enum status { is_pet, is_mate, neither };
+
 struct segment { 
 	int offset, alen, fragid, chrid, pos;
 	bool reverse;
@@ -391,3 +392,45 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 } catch (std::exception& e) {	
 	return mkString(e.what());
 }
+
+/********************
+ * Testing functions.
+ *******************/
+
+SEXP test_parse_cigar (SEXP incoming, SEXP reverse) try {
+	if (!isString(incoming) || LENGTH(incoming)!=1) { throw std::runtime_error("need one cigar string"); }
+	if (!isLogical(reverse) || LENGTH(reverse)!=1) { throw std::runtime_error("need a reverse specifier"); }
+	SEXP output=PROTECT(allocVector(INTSXP, 2));
+	int* optr=INTEGER(output);
+	int& alen=*optr;
+	int& offset=*(optr+1);
+	parse_cigar(CHAR(STRING_ELT(incoming, 0)), alen, offset, asLogical(reverse));
+	UNPROTECT(1);
+	return(output);
+} catch (std::exception& e) {
+	return mkString(e.what());
+}
+
+SEXP test_fragment_assign(SEXP starts, SEXP ends, SEXP chrs, SEXP pos, SEXP rev, SEXP len) try {
+	fragment_finder ff(starts, ends);
+	if (!isInteger(chrs) || !isInteger(pos) || !isLogical(rev) || !isInteger(len)) { throw std::runtime_error("data types are wrong"); }
+	const int n=LENGTH(chrs);
+	if (n!=LENGTH(pos) || n!=LENGTH(rev) || n!=LENGTH(len)) { throw std::runtime_error("length of data vectors are not consistent"); }
+	
+	const int* cptr=INTEGER(chrs);
+	const int* pptr=INTEGER(pos);
+	const int* rptr=LOGICAL(rev);
+	const int* lptr=INTEGER(len);
+
+	SEXP output=PROTECT(allocVector(INTSXP, n));
+	int *optr=INTEGER(output);
+	for (int i=0; i<n; ++i) {
+		optr[i]=ff.find_fragment(cptr[i], pptr[i], rptr[i], lptr[i])+1;
+	}
+	
+	UNPROTECT(1);
+	return output;
+} catch (std::exception& e) {
+	return mkString(e.what());
+}
+

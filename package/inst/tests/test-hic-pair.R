@@ -1,8 +1,107 @@
 ###################################################################################################
-# This script is designed to test the pair-identifying capabilities of the hiC machinery i.e.
-# preparePairs. It also checks countPairs and getPairData as well.
+# This script is designed to test the pair-identifying capabilities of the hiC machinery i.e. preparePairs. 
+# We start with unit tests for individual components of the preparePairs C++ code.
 
 suppressWarnings(suppressPackageStartupMessages(require(diffHic)))
+
+# Checking CIGAR.
+
+checkCIGAR <- function(cigar, rstrand) {
+	out <- .Call(diffHic:::cxx_test_parse_cigar, cigar, rstrand)
+	if (is.character(out)) { stop(out) }
+	
+	true.alen <- GenomicAlignments::cigarWidthAlongReferenceSpace(cigar)
+	if (out[1]!=true.alen) { stop("mismatch in alignment length") }
+
+	offset <- 0
+	as.rle <- GenomicAlignments::cigarToRleList(cigar)[[1]]
+	if (rstrand) { as.rle <- rev(as.rle) }
+	if (runValue(as.rle)[1]=="H") { offset <- runLength(as.rle)[1] } 
+	if (out[2]!=offset) { stop("mismatch in offsets") }
+
+	return(c(alen=true.alen, offset=offset))
+}
+
+checkCIGAR("5H20M", TRUE)
+checkCIGAR("5H20M", FALSE)
+
+checkCIGAR("5H20M6H", TRUE)
+checkCIGAR("5H20M6H", FALSE)
+
+checkCIGAR("5H20M6S", TRUE)
+checkCIGAR("5H20M6S", FALSE)
+
+checkCIGAR("20M5I30M", TRUE)
+checkCIGAR("20M5D30M", TRUE)
+checkCIGAR("20M5N30M", TRUE)
+checkCIGAR("20M5P30M", TRUE)
+
+checkCIGAR("20M5X30M", TRUE)
+checkCIGAR("20M5=30M", TRUE)
+
+checkCIGAR("10M2I5M3D20M", TRUE)
+checkCIGAR("10M2I3D5N20M", TRUE)
+checkCIGAR("10M2P5M3D20I", TRUE)
+checkCIGAR("10M2I3D5N20D", TRUE)
+
+checkCIGAR("5H11M5D8I9X6=6H", TRUE)
+checkCIGAR("5H20X5D8P9N72M", FALSE)
+checkCIGAR("5S19M34=55D8X20M6S", TRUE)
+checkCIGAR("5S1M3=5D18X2M6S", FALSE)
+
+# Checking fragment assignment.
+
+assign2fragment <- function(starts, ends, chr, pos, rstrand, len) {
+	out <- .Call(diffHic:::cxx_test_fragment_assign, starts, ends, chr, pos, rstrand, len)
+	if (is.character(out)) { stop(out) }
+
+	chr <- chr + 1L
+	if (rstrand) { 
+		fiveprime <- min(pos + len -1L, tail(ends[[chr]], 1))
+		stopifnot(ends[[chr]][out] >= fiveprime && (out==1L || ends[[chr]][out-1] < fiveprime))
+	} else { 
+		fiveprime <- pos 
+		stopifnot(starts[[chr]][out] <= fiveprime && (out==length(starts[[chr]]) || starts[[chr]][out+1] > fiveprime))
+	}
+	
+	out
+}
+
+starts <- list( c(1L, 100L, 200L, 300L, 400L, 500L), # chr1
+                c(1L, 100L, 200L, 300L, 400L, 500L)) # chr2
+ends <- list( c(103L, 203L, 303L, 403L, 503L, 1000L), # chr1
+              c(103L, 203L, 303L, 403L, 503L, 1000L)) # chr2
+
+assign2fragment(starts, ends, 0L, 94L, TRUE, 10L)
+assign2fragment(starts, ends, 0L, 95L, TRUE, 10L)
+assign2fragment(starts, ends, 0L, 99L, FALSE, 10L)
+assign2fragment(starts, ends, 0L, 100L, FALSE, 10L)
+
+assign2fragment(starts, ends, 0L, 203L, TRUE, 1L)
+assign2fragment(starts, ends, 0L, 204L, TRUE, 1L)
+assign2fragment(starts, ends, 0L, 209L, FALSE, 1L)
+assign2fragment(starts, ends, 0L, 300L, FALSE, 1L)
+
+assign2fragment(starts, ends, 1L, 1L, FALSE, 10L)
+assign2fragment(starts, ends, 1L, 991L, FALSE, 10L)
+assign2fragment(starts, ends, 1L, 992L, FALSE, 10L)
+assign2fragment(starts, ends, 1L, 991L, TRUE, 10L)
+assign2fragment(starts, ends, 1L, 992L, TRUE, 10L)
+
+starts <- list( c(1L, 1L, 100L, 200L, 300L, 400L, 500L, 997L), # chr1, with nesting at the start and end.
+                c(1L, 1L, 100L, 200L, 300L, 400L, 500L, 997L)) # chr2
+ends <- list( c(4L, 103L, 203L, 303L, 403L, 503L, 1000L, 1000L), # chr1
+              c(4L, 103L, 203L, 303L, 403L, 503L, 1000L, 1000L)) # chr2
+
+assign2fragment(starts, ends, 0L, 1L, FALSE, 10L)
+assign2fragment(starts, ends, 0L, 1L, TRUE, 10L)
+assign2fragment(starts, ends, 0L, 991L, FALSE, 10L)
+assign2fragment(starts, ends, 0L, 991L, TRUE, 10L)
+try(assign2fragment(starts, ends, 0L, 1000L, TRUE, 10L)) # This should fail, as it gets assigned into the nested fragment.
+
+###################################################################################################
+# We also set up a full simulation for the entire function.
+
 suppressPackageStartupMessages(require("rhdf5"))
 source("simsam.R")
 
