@@ -27,7 +27,19 @@ No support is currently provided for searching the reverse strand, so the recogn
 The genome should be specified as a \code{BSgenome} object.
 However, a character string can also be provided, specifying a FASTA file containing all the reference sequences in a genome.
 The latter may be necessary to synchronise the fragments with the genome used for alignment.
+
+Note that some of the reported fragments may be physically impossible to form, e.g., for overlapping sites or consecutive sites when \code{overhang==nchar(pattern)}.
+Nonetheless, they are still reported to maintain the correspondence between fragments and cut sites.
+Cleavage sites on the forward strand can be obtained as the \code{start} locations of all fragments (excepting the first fragment on each chromosome).
 }
+
+% Interpretations of consecutive sites is generally tricky.
+% For starters, the 'remainder' is so low that the strands are unlikely to stay stuck together until the fill-in step.
+% This becomes an impossibility if remainder is zero, such that ssDNA is formed after cleavage of consecutive sites.
+% It's also unclear whether cleavage is even possible when the recognition site is at the very end of the fragment (e.g., after one cleavage).
+% That's not even considering the grief that's possible when a site overlaps with itself.
+% In short, the fragments that will be reported by cutGenome might be a bit silly in such cases; but, in many respects, it doesn't matter.
+% Fragment-level resolution is never used, and those formed between consecutive sites will be so small that they'll have no effect on read assignment.
 
 \author{Aaron Lun}
 

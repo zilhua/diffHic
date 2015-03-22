@@ -183,8 +183,9 @@ setValidity("pairParam", function(object) {
 		if (anyDuplicated(runValue(seqnames(object@fragments)))) { 
 			return('restriction fragments should be sorted by chromosome name')	
 		}
-		
-		unsort <-  diff(start(object@fragments)) <= 0L | diff(end(object@fragments)) <= 0L 
+	
+		# <, not <=, to allow nested fragments at start and end of the chromosome when remainder=0.	
+		unsort <- diff(start(object@fragments)) < 0L | diff(end(object@fragments)) < 0L 
 
 		# Should be +1, to get to the first element of each chromosome; but, unsort 
 		# is missing the first element (because of diff), so no need to add 1.
