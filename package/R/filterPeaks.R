@@ -1,4 +1,4 @@
-filterPeaks <- function(data, flank=5, prior.count=2, abundances=NULL)
+enrichedPairs <- function(data, flank=5, prior.count=2, abundances=NULL)
 # This function identifies the highest-abundance neighbour in the interaction space
 # for each bin pair in `data`. The aim is to compare the abundance of each element
 # with the abundance of its neighbour. 
@@ -13,9 +13,7 @@ filterPeaks <- function(data, flank=5, prior.count=2, abundances=NULL)
 	last.id <- rdata$end
 	first.id <- rdata$start
 	names(last.id) <- names(first.id) <- rdata$chr
-
-	all.ab <- abundances
-	if (is.null(all.ab)) { all.ab <- aveLogCPM(asDGEList(data), prior.count=0) }
+	if (is.null(abundances)) { abundances <- aveLogCPM(asDGEList(data), prior.count=0) }
 
 	# Rescaling to count-level data with at least 6 dp, for stable calculations with integers.
 	# This should be enough precision while avoiding overrun of the integer type.
@@ -46,7 +44,7 @@ filterPeaks <- function(data, flank=5, prior.count=2, abundances=NULL)
 			all.t <- tid[current.pair] - first.id[[target]]
 			t.len <- last.id[[target]] - first.id[[target]] + 1L
 
-			rel.ab <- all.ab[current.pair]
+			rel.ab <- abundances[current.pair]
 			converted <- back2count(rel.ab) 
 
 			# Using the quadrant with the maximum average.
@@ -65,10 +63,20 @@ filterPeaks <- function(data, flank=5, prior.count=2, abundances=NULL)
 	return(output)
 }
 
-# Note that, when trend!="none" and we're looking on the same chromosome,
-# rescaled distance-adjusted values won't be on the same scale as the original
-# counts. This isn't a major problem as we're calculating the relative
-# enrichment anyway. However, there mightn't be enough decimal places to cover
-# distance-adjusted values that are very low. Hopefully, more values should be
-# around 1, so it shouldn't be a problem.
-
+filterPeaks <- function(data, enrichment, min.enrich=1, min.count=5, min.diag=2L, ...)
+# This is a wrapper function that takes the enrichment values from filterPeaks and 
+# identifies those bin pairs that satisfy the enrichment threshold, and other cut-offs.
+# 
+# written by Aaron Lun
+# created 23 March 2015
+{
+	keep <- enrichment > min.enrich 
+	if (!is.null(min.count)) { 
+		ab <- aveLogCPM(asDGEList(data), ...)
+		keep <- keep & ab > aveLogCPM(min.count, lib.size=mean(data$totals), ...)
+	} 
+	if (!is.null(min.diag)) { 
+		keep <- keep & anchors(data, id=TRUE) - targets(data, id=TRUE) >= min.diag 
+	}
+	return(keep)
+}
