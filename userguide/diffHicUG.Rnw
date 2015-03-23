@@ -1554,24 +1554,49 @@ o <- order(final$PValue)
 write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
-%\subsection{Aggregating results for small bin pairs}
-%The code below demonstrates the potential for loss of FDR control in real data.
-%Significant bin pairs that are adjacent in the interaction space are clustered together.
-%Each cluster can be treated as a representative of a single underlying interaction.
-%A substantial proportion of clusters consist of multiple bin pairs, which suggests that controlling the FDR across bin pairs may not be equivalent to controlling that across clusters/interactions. 
-%
-%<<>>=
-%small.de <- p.adjust(result.small$table$PValue, method="BH") <= 0.05
-%clustered <- clusterPairs(smaller.data[small.de], tol=1)
-%table(tabulate(clustered))[1:10]
-%@
-%
-%One solution might be to cluster bin pairs in the interaction space to identify the underlying true interaction.
-%One can then combine $p$-values across all bin pairs in the cluster using Simes' method \citep{simes1986}, to obtain a single combined $p$-value for the cluster.
-%This approach avoids misinterpretation for diffuse interactions as each cluster (and thus interaction) has one $p$-value.
-%However, this is confounded by the density of the interaction space, particularly at short distances and/or in TADs.
-%The boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
-%
+\subsection{Aggregating results for small bin pairs}
+For small bin sizes, adjacent bin pairs can be aggregated into larger clusters.
+This avoids redundancy in the interpretation of the results.
+To demonstrate, a quick-and-dirty differential analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
+
+<<>>=
+y.small <- asDGEList(smaller.data)
+y.small$offset <- normalize(smaller.data, type="loess")
+y.small <- estimateDisp(y.small, design)
+fit.small <- glmQLFit(y.small, design, robust=TRUE)
+result.small <- glmQLFTest(fit.small)
+@
+
+The \code{clusterPairs} function puts two bin pairs in the same cluster if they are no more than \code{tol} bp apart.
+Cluster-level $p$-values are obtained by combining $p$-values across all bin pairs in the cluster using Simes' method \citep{simes1986}.
+Clusters can then be reported instead of individual bin pairs.
+Misinterpretation of the FDR is also avoided as each interaction is represented by one cluster with one combined $p$-value (see Section~\ref{sec:mergebins}).
+
+<<>>=
+clustered <- clusterPairs(smaller.data, tol=1, max.width=1e6)
+head(clustered)
+tabcluster <- csaw::combineTests(clustered, result.small$table)
+head(tabcluster)
+@
+
+In practice, this approach requires aggressive filtering to avoid chaining effects.
+Otherwise, clustering will be confounded by the density of the interaction space, particularly at short distances and/or in TADs.
+Some protection is provided by setting \code{max.width} to limit the maximum dimensions of each cluster.
+Even so, the boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
+
+Reporting the cluster is also non-trivial, as there is no guarantee that it will form a regular shape in the interaction space.
+One solution is to report bin pairs as a clustered set in the result table.
+This ensures that each cluster can be easily identified while preserving all information about the cluster composition.
+Here, results are also ranked so the most significant clusters are reported first.
+Bin pairs within each cluster are also sorted.
+
+<<>>=
+o <- order(tabcluster$PValue[clustered], clustered, result.small$table$PValue)
+tab.all <- data.frame(result.small$table, PValue=tabcluster$PValue, FDR=tabcluster$FDR)
+write.table(tab.all[o,], file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+head(tab.all)
+@
+
 %This problem can be avoided by performing pre-defined clustering based on large bin pairs.
 %Specifically, a large bin pair is defined and the set of all smaller bin pairs nested therein is defined as a cluster.
 %This is robust to high-density space as the definition of the cluster does not depend on the neighbouring bin pairs.
@@ -1597,21 +1622,12 @@ write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALS
 \subsection{Merging results from different bin widths}
 \label{sec:mergebins}
 The choice of bin size is not clear when there are both sharp and diffuse changes in the interaction space.
-Smaller bins provide greater spatial resolution and can identify sharp differential interactions that would otherwise be lost within larger bin pairs.
+Smaller bins provide greater spatial resolution and can identify sharp differential interactions that would be lost within larger bin pairs.
 Conversely, larger bin pairs provide larger counts and greater power to detect diffuse events.
-Comprehensive detection of differential interactions can be achieved by combining the differential analyses from both small and large bin pairs.
-To demonstrate, a quick-and-dirty differential analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
+Comprehensive detection of differential interactions can be achieved by combining analyses from several bin sizes.
 
-<<>>=
-y.small <- asDGEList(smaller.data)
-y.small$offset <- normalize(smaller.data, type="loess")
-y.small <- estimateDisp(y.small, design)
-fit.small <- glmQLFit(y.small, design, robust=TRUE)
-result.small <- glmQLFTest(fit.small)
-@
-
-To consolidate these results, the \code{consolidatePairs} function is used to identify all smaller bin pairs that are nested within each of the larger ``parent'' bin pairs.
-Specifically, smaller bin pairs are nested in larger bin pairs with the same ID in \code{cons\$id}.
+To combine the results, the \code{consolidatePairs} function is used to identify all smaller bin pairs that are nested within each of the larger ``parent'' bin pairs.
+Specifically, smaller bin pairs are nested in a large bin pair if the former has the same ID as the latter in their respective \code{cons\$id} vectors.
 Note that the larger bin size \textit{must} be an integer multiple of the smaller bin size(s).
 This is necessary to simplify the interpretation of the nestprocedure.
 
