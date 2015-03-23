@@ -196,7 +196,7 @@ Sample1     1       17            1
 > head(boxed$indices$smaller)
 [1] 1 2 2 3 4 4
 > 
-> head(filterPeaks(data))
+> head(enrichedPairs(data))
 [1]  1.0324215  0.0000000  0.5849625  0.0000000 -0.2895066  0.2630344
 > head(clusterPairs(data, tol=10))
 [1] 1 2 2 2 3 3

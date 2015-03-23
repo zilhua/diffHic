@@ -49,7 +49,7 @@ boxed <- boxPairs(larger=data.large, smaller=data)
 head(boxed$indices$larger)
 head(boxed$indices$smaller)
 
-head(filterPeaks(data))
+head(enrichedPairs(data))
 head(clusterPairs(data, tol=10))
 
 # End.

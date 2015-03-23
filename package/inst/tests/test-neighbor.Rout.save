@@ -81,7 +81,7 @@ Type 'q()' to quit R.
 + 	data@regions$nfrags <- rep(1:3, length.out=nbins)
 + 	
 + 	# Computing the reference enrichment value.
-+ 	bg <- filterPeaks(data, flank=flanking, prior.count=prior)
++ 	bg <- enrichedPairs(data, flank=flanking, prior.count=prior)
 + 	final.ref <- numeric(length(bg))
 + 
 + 	# Sorting them by chromosome pairs.
