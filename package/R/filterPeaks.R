@@ -63,12 +63,13 @@ enrichedPairs <- function(data, flank=5, prior.count=2, abundances=NULL)
 	return(output)
 }
 
-filterPeaks <- function(data, enrichment, min.enrich=1, min.count=5, min.diag=2L, ...)
+filterPeaks <- function(data, enrichment, min.enrich=log2(1.5), min.count=5, min.diag=2L, ...)
 # This is a wrapper function that takes the enrichment values from filterPeaks and 
 # identifies those bin pairs that satisfy the enrichment threshold, and other cut-offs.
 # 
 # written by Aaron Lun
 # created 23 March 2015
+# last modified 24 March 2015
 {
 	keep <- enrichment > min.enrich 
 	if (!is.null(min.count)) { 

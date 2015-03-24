@@ -5,7 +5,7 @@
 \description{Identify bin pairs that are likely to represent punctate peaks in the interaction space.}
 
 \usage{
-filterPeaks(data, enrichment, min.enrich=1, min.count=5, min.diag=2L, ...)
+filterPeaks(data, enrichment, min.enrich=log2(1.5), min.count=5, min.diag=2L, ...)
 }
 
 \arguments{

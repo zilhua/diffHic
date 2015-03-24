@@ -817,15 +817,16 @@ The neighbourhood regions are designed to capture high-intensity structural feat
 Any bin pair lying within one of these features will be compared to other high-abundance bin pairs from the same feature.
 This avoids spuriously high enrichments when a bin pair within a feature is compared to those outside the feature.
 
-In this particular case, an enrichment value of 1 is required for retention.
-This means that the average counts for each retained bin pair are at least two-fold higher than those of its neighbourhood.
+In this example, an enrichment value of $\log_2(1.5)$ is required for retention.
+This is a modest threshold that errs on the side of caution, as weak peaks may be DB and should be retained for testing.
 In practice, filtering of enrichment values should be combined with filtering on absolute abundances.
 This eliminates low-abundance bin pairs with high enrichment values, e.g., when the neighbourhood is empty.
 Near-diagonal elements should also be removed, as these tend to have high enrichment scores without actually being peaks.
 All of these steps can be conveniently applied through the \code{filterPeaks} wrapper function.
 
 <<>>=
-keep <- filterPeaks(chr1.data, enrich.chr1, min.enrich=1, min.count=5, min.diag=2L)
+keep <- filterPeaks(chr1.data, enrich.chr1, min.enrich=log2(1.5), 
+    min.count=5, min.diag=2L)
 sum(keep)
 @
 
