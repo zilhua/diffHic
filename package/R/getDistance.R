@@ -4,22 +4,28 @@ getDistance <- function(data, type=c("mid", "gap", "span"))
 #
 # written by Aaron Lun
 # created 22 April 2014
-# last modified 3 March 2015
+# last modified 24 March 2015
 {
-	all.as <- anchors(data)
-	all.ts <- targets(data)
-	is.same <- as.logical(seqnames(all.as)==seqnames(all.ts))
-	all.as <- all.as[is.same]
-	all.ts <- all.ts[is.same]
-	output <- rep(NA, nrow(data))
+	aid <- anchors(data, id=TRUE)
+	tid <- targets(data, id=TRUE)
+	st <- start(regions(data))
+	en <- end(regions(data))
+	chr <- as.character(seqnames(regions(data)))
 
+	is.same <- chr[aid]==chr[tid]
+	all.as <- st[aid[is.same]]
+	all.ae <- en[aid[is.same]]
+	all.ts <- st[tid[is.same]]
+	all.te <- en[tid[is.same]]
+
+	output <- rep(NA, nrow(data))
 	type <- match.arg(type)
 	if (type=="gap") {
-		output[is.same] <- pmax(start(all.as), start(all.ts)) - pmin(end(all.as), end(all.ts)) - 1L
+		output[is.same] <- pmax(all.as, all.ts) - pmin(all.ae, all.te) - 1L
 	} else if (type=="span") {
-		output[is.same] <- pmax(end(all.as), end(all.ts)) - pmin(start(all.as), start(all.ts)) + 1L
+		output[is.same] <- pmax(all.ae, all.te) - pmin(all.as, all.ts) + 1L
 	} else if (type=="mid") {
-		output[is.same] <- mid(ranges(all.as)) - mid(ranges(all.ts))
+		output[is.same] <- as.integer(floor((all.as + all.ae)/2) - floor((all.ts + all.te)/2))
 	}
 	return(output)
 }
