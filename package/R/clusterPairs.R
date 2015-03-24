@@ -7,7 +7,7 @@ clusterPairs <- function(data, tol, upper=1e6)
 #
 # written by Aaron Lun
 # created 6 December 2013
-# last modified 20 March 2015
+# last modified 24 March 2015
 {
 	region <- regions(data)
 	allchrs <- as.character(seqnames(region))
@@ -70,3 +70,9 @@ clusterPairs <- function(data, tol, upper=1e6)
 	all.ids[ro] <- all.ids
 	return(list(id=all.ids, anchors=anchor.bounds, targets=target.bounds))
 }
+
+# No need to consider special behaviour beyond the diagonal.
+# If a bin pair is within Chebyshev distance of a target bin pair but beyond the diagonal,
+# then its reflection will also be within that distance to the target bin pair.
+# It's like trying to reflect a corner of a square around the diagonal, the reflection will just lie in the square itself.
+
