@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 21 March 2015}
+Last revised 24 March 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -1573,7 +1573,7 @@ Clusters can then be reported instead of individual bin pairs.
 Misinterpretation of the FDR is also avoided as each interaction is represented by one cluster with one combined $p$-value (see Section~\ref{sec:mergebins}).
 
 <<>>=
-clustered <- clusterPairs(smaller.data, tol=1, max.width=1e6)
+clustered <- clusterPairs(smaller.data, tol=1, upper=1e6)
 head(clustered)
 tabcluster <- csaw::combineTests(clustered, result.small$table)
 head(tabcluster)
@@ -1591,10 +1591,14 @@ Here, results are also ranked so the most significant clusters are reported firs
 Bin pairs within each cluster are also sorted.
 
 <<>>=
+ax <- anchors(smaller.data)
+tx <- targets(smaller.data)
 o <- order(tabcluster$PValue[clustered], clustered, result.small$table$PValue)
-tab.all <- data.frame(result.small$table, PValue=tabcluster$PValue, FDR=tabcluster$FDR)
-write.table(tab.all[o,], file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
-head(tab.all)
+final <- data.frame(clusterId=clustered, anchor.chr=seqnames(ax), anchor.start=start(ax), 
+    anchor.end=end(ax), target.chr=seqnames(tx), target.start=start(tx), 
+    target.end=end(tx), result.small$table, PValue.cluster=tabcluster$PValue[clustered], 
+    FDR.cluster=tabcluster$FDR[clustered])[o,]
+write.table(final, file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
 %This problem can be avoided by performing pre-defined clustering based on large bin pairs.
