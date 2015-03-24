@@ -344,3 +344,66 @@ SEXP split_clusters (SEXP id, SEXP start_a, SEXP start_t, SEXP end_a, SEXP end_t
 } catch (std::exception& e) {
 	return mkString(e.what());
 }
+
+/*************************************************************
+ * This function performs the calculation of the bounding box
+ * for each cluster.
+ *************************************************************/
+
+SEXP get_bounding_box (SEXP ids, SEXP starts, SEXP ends) try {
+	if (!isInteger(ids)) { throw std::runtime_error("ID vector should be integer"); }
+	if (!isInteger(starts)) { throw std::runtime_error("start vector should be integer"); }
+	if (!isInteger(ends)) { throw std::runtime_error("end vector should be integer"); }
+	
+	const int npts=LENGTH(ids);
+	if (LENGTH(starts)!=npts || LENGTH(ends)!=npts) { throw std::runtime_error("vectors are not of same length"); }
+	const int * iptr=INTEGER(ids);
+	const int * sptr=INTEGER(starts);
+	const int * eptr=INTEGER(ends);
+
+	int maxid=0;
+	for (int i=0; i<npts; ++i) { 
+		if (iptr[i] > maxid) { maxid=iptr[i]; }
+	}
+
+	SEXP output=PROTECT(allocVector(VECSXP, 3));
+try {
+	SET_VECTOR_ELT(output, 0, allocVector(INTSXP, maxid));	
+	int* first_ptr=INTEGER(VECTOR_ELT(output, 0));
+	for (int i=0; i<maxid; ++i) { first_ptr[i] = -1; }
+	SET_VECTOR_ELT(output, 1, allocVector(INTSXP, maxid));	
+	int* start_ptr=INTEGER(VECTOR_ELT(output, 1));
+	SET_VECTOR_ELT(output, 2, allocVector(INTSXP, maxid));	
+	int* end_ptr=INTEGER(VECTOR_ELT(output, 2));
+
+	// To deal with 1-based indexing.
+	--start_ptr;
+	--end_ptr;
+	--first_ptr;
+	for (int i=0; i<npts; ++i) { 
+		const int& current=iptr[i];
+		if (first_ptr[current]==-1) {
+			first_ptr[current]=i+1;
+			start_ptr[current]=sptr[i];
+			end_ptr[current]=eptr[i];
+		} else if (start_ptr[current] > sptr[i]) { 
+			start_ptr[current]=sptr[i];
+		} else if (end_ptr[current] < eptr[i]) {
+			end_ptr[current]=eptr[i];
+		}
+	}	
+
+	++first_ptr;
+	for (int i=0; i<maxid; ++i) { 
+		if (first_ptr[i]==-1) { throw std::runtime_error("missing entries in the ID vector"); }
+	}
+} catch (std::exception& e) {
+	UNPROTECT(1);
+	throw;
+}
+	UNPROTECT(1);
+	return output;
+} catch (std::exception &e) {
+	return mkString(e.what());
+}
+

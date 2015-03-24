@@ -34,11 +34,11 @@ simgen <- function(alln, chromos, width, min.space, max.space) {
 
 crisscross <- function(id1, id2) {
 	out <- split(id1, id2)
-	if (!all(sapply(out, FUN=function(x) { length(unique(x))==1 }))) {
+	if (!all(sapply(out, FUN=function(x) { length(unique(x))==1L }))) {
 		return(FALSE)
 	}
 	out <- split(id2, id1)
-	if (!all(sapply(out, FUN=function(x) { length(unique(x))==1 }))) {
+	if (!all(sapply(out, FUN=function(x) { length(unique(x))==1L }))) {
 		return(FALSE)
 	}
 	return(TRUE)
@@ -77,7 +77,7 @@ clustercomp <- function(data, tol, maxw, debug=FALSE) {
 		myids[partners]	<- chosen
 	}
 
-	comp <- clusterPairs(data, tol=tol, upper=NULL)
+	comp <- clusterPairs(data, tol=tol, upper=NULL)$id
 	if (!crisscross(comp, myids)) { stop("mismatches in cluster IDs without bin size restriction") }
 
 # Some error checking functions; just define 'current' as the pairs of interest.
@@ -121,7 +121,16 @@ clustercomp <- function(data, tol, maxw, debug=FALSE) {
 
 	# Comparing it to the actual clustering.
 	comp2 <- clusterPairs(data, tol=tol, upper=maxw)
-	if (!crisscross(comp2, myid2)) { stop("mismatches in cluster IDs when a maximum bin size is applied") }
+	if (!crisscross(comp2$id, myid2)) { stop("mismatches in cluster IDs when a maximum bin size is applied") }
+
+	# Checking the bounding boxes.
+	arange <- range(split(anchors(data), comp2$id))
+	trange <- range(split(targets(data), comp2$id))
+	names(arange) <- names(trange) <- NULL
+	if (!identical(comp2$anchors, unlist(arange)) || !identical(comp2$targets, unlist(trange))) {
+		stop("mismatches in anchor/target bounding box coordinates")
+	}
+
 	return(summary(tabulate(comp)))
 }
 

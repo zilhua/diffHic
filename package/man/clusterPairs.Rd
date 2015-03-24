@@ -15,7 +15,10 @@ clusterPairs(data, tol, upper=1e6)
 }
 
 \value{
-An integer vector of length containing a cluster ID for each anchor/index combination in \code{pairs}.
+A list containing \code{id}, an integer vector of length containing a cluster ID for each anchor/index combination in \code{pairs};
+\code{anchors}, a \code{GRanges} object containing the dimensions of the bounding box of each cluster on the anchor chromosome;
+and \code{targets}, a \code{GRanges} object containing the corresponding dimensions on the target chromosome;
+
 }
 
 \details{
@@ -33,6 +36,10 @@ This aims to improve the spatial interpretability of the clustering result.
 
 % Having evenly sized clusters provides best spatial resolution and interpretability, e.g., much like binary searching.
 % However, it's not clear how you can provide an even size while enforcing a strict upper bound of `upper`.
+
+There is no guarantee that each cluster forms a regular shape in the interaction space.
+Instead, a minimum bounding box is reported containing all bin pairs in each cluster.
+The coordinates of the box for each cluster is stored in each row of the output \code{anchors} and \code{targets}, where the cluster ID represents the row index.
 }
 
 \seealso{

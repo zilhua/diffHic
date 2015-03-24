@@ -59,6 +59,14 @@ clusterPairs <- function(data, tol, upper=1e6)
 		bonus <- bonus + max(out)
 	}
 
+	# Getting the bounding box for each cluster.
+	a.out <- .Call(cxx_get_bounding_box, all.ids, astarts, aends)
+	if (is.character(a.out)) { stop(a.out) }
+	anchor.bounds <- GRanges(achrs[a.out[[1]]], IRanges(a.out[[2]], a.out[[3]] - 1L), seqinfo=seqinfo(region))
+	t.out <- .Call(cxx_get_bounding_box, all.ids, tstarts, tends)
+	if (is.character(t.out)) { stop(t.out) }
+	target.bounds <- GRanges(tchrs[t.out[[1]]], IRanges(t.out[[2]], t.out[[3]] - 1L), seqinfo=seqinfo(region))
+	
 	all.ids[ro] <- all.ids
-	return(all.ids)
+	return(list(id=all.ids, anchors=anchor.bounds, targets=target.bounds))
 }

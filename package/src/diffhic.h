@@ -34,6 +34,8 @@ SEXP cluster_2d (SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP split_clusters (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
+SEXP get_bounding_box (SEXP, SEXP, SEXP);
+
 SEXP quadrant_bg (SEXP, SEXP, 
 	SEXP, SEXP, SEXP, 
 	SEXP, SEXP, SEXP, SEXP);
