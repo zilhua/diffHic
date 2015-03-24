@@ -76,7 +76,8 @@ filterPeaks <- function(data, enrichment, min.enrich=1, min.count=5, min.diag=2L
 		keep <- keep & ab > aveLogCPM(min.count, lib.size=mean(data$totals), ...)
 	} 
 	if (!is.null(min.diag)) { 
-		keep <- keep & anchors(data, id=TRUE) - targets(data, id=TRUE) >= min.diag 
+		keep <- keep & (is.na(getDistance(data))  |
+			anchors(data, id=TRUE) - targets(data, id=TRUE) >= min.diag)
 	}
 	return(keep)
 }
