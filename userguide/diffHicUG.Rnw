@@ -1571,12 +1571,11 @@ result.small <- glmQLFTest(fit.small)
 The \code{clusterPairs} function puts two bin pairs in the same cluster if they are no more than \code{tol} bp apart.
 Cluster-level $p$-values are obtained by combining $p$-values across all bin pairs in the cluster using Simes' method \citep{simes1986}.
 Clusters can then be reported instead of individual bin pairs.
-Misinterpretation of the FDR is also avoided as each interaction is represented by one cluster with one combined $p$-value (see Section~\ref{sec:mergebins}).
+Misinterpretation of the FDR is also mitigated as each interaction is represented by one cluster with one combined $p$-value (see Section~\ref{sec:mergebins}).
 
 <<>>=
 clustered <- clusterPairs(smaller.data, tol=1, upper=1e6)
-head(clustered)
-tabcluster <- csaw::combineTests(clustered, result.small$table)
+tabcluster <- csaw::combineTests(clustered$id, result.small$table)
 head(tabcluster)
 @
 
@@ -1585,20 +1584,18 @@ Otherwise, clustering will be confounded by the density of the interaction space
 Some protection is provided by setting \code{max.width} to limit the maximum dimensions of each cluster.
 Even so, the boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
 
-Reporting the cluster is also non-trivial, as there is no guarantee that it will form a regular shape in the interaction space.
-One solution is to report bin pairs as a clustered set in the result table.
-This ensures that each cluster can be easily identified while preserving all information about the cluster composition.
-Here, results are also ranked so the most significant clusters are reported first.
-Bin pairs within each cluster are also sorted.
+There is no guarantee that the cluster will form a regular shape in the interaction space.
+In \code{clusterPairs}, an approximate solution is used whereby the minimum bounding box for each cluster is reported.
+This refers to the smallest rectangle in the interaction space that contains all bin pairs in the cluster.
+The coordinates of this rectangle can be easily recorded, whereas it is more difficult to store the detailed shape of the cluster.
+Identification of the top-ranking bin pair within each cluster may also be desirable (see Section~\ref{sec:nesting}).
 
 <<>>=
-ax <- anchors(smaller.data)
-tx <- targets(smaller.data)
-o <- order(tabcluster$PValue[clustered], clustered, result.small$table$PValue)
-final <- data.frame(clusterId=clustered, anchor.chr=seqnames(ax), anchor.start=start(ax), 
-    anchor.end=end(ax), target.chr=seqnames(tx), target.start=start(tx), 
-    target.end=end(tx), result.small$table, PValue.cluster=tabcluster$PValue[clustered], 
-    FDR.cluster=tabcluster$FDR[clustered])[o,]
+ax.c <- clustered$anchors
+tx.c <- clustered$targets
+final <- data.frame(anchor.chr=seqnames(ax.c), anchor.start=start(ax.c), 
+    anchor.end=end(ax.c), target.chr=seqnames(tx.c), target.start=start(tx.c), 
+    target.end=end(tx.c), tabcluster)
 write.table(final, file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
