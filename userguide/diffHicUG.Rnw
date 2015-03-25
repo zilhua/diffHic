@@ -1631,7 +1631,7 @@ Comprehensive detection of differential interactions can be achieved by combinin
 To combine the results, the \code{consolidatePairs} function is used to identify all smaller bin pairs that are nested within each of the larger ``parent'' bin pairs.
 Specifically, smaller bin pairs are nested in a large bin pair if the former has the same ID as the latter in their respective \code{cons\$id} vectors.
 Note that the larger bin size \textit{must} be an integer multiple of the smaller bin size(s).
-This is necessary to simplify the interpretation of the nestprocedure.
+This is necessary to simplify the interpretation of the nesting procedure.
 
 <<>>=
 cons <- consolidatePairs(list(larger=data, smaller=smaller.data), 
@@ -1678,30 +1678,31 @@ Misinterpreting one FDR as the other may result in loss of control \citep{lun201
 Nesting ensures that the FDR is computed over large bin pairs, even when detection is driven by small bin pairs.
 
 \subsection{Reporting nested bin pairs}
-It is often convenient to identify the top-ranked (smaller) nested bin pair within each of the (larger) parent bin pairs.
+\label{sec:nesting}
+It is often convenient to identify the top-ranked bin pair nested within each of the larger features, i.e., parent bin pairs or clusters.
 Here, the top-ranked bin pair is identified as \code{getBestTest} as the one with the smallest individual $p$-value.
-This means that any high-resolution changes nested within a parent bin pair can be easily identified.
-However, users should always keep in mind that the FDR is computed with respect to the parent bin pairs.
+This means that any high-resolution changes nested within a large feature can be easily identified.
+However, users should always keep in mind that the FDR is computed with respect to features, not bin pairs.
 
 <<>>=
-inside <- csaw::getBestTest(cons$id$smaller, result.small$table)
-best.vec <- rep(NA, nrow(cons$pairs))
-best.vec[as.integer(rownames(inside))] <- inside$best
-head(best.vec)
-ax.3 <- as.data.frame(anchors(smaller.data))[best.vec,]
-tx.3 <- as.data.frame(targets(smaller.data))[best.vec,]
+small.ids <- cons$id$smaller
+inside <- csaw::getBestTest(small.ids, result.small$table)
+ax.3 <- as.data.frame(anchors(smaller.data))[inside$best,]
+tx.3 <- as.data.frame(targets(smaller.data))[inside$best,]
 nested <- data.frame(anchor.start=ax.3$start, anchor.end=ax.3$end, 
     target.start=tx.3$start, target.end=tx.3$end, 
-    result.small$table[best.vec,c("logFC", "F")])
+    result.small$table[inside$best,c("logFC", "F")])
 head(nested)
-final.3 <- data.frame(final.2, nest=nested)
+expanded <- rep(NA, nrow(final.2)) # As some parents do not have nested elements.
+expanded[as.integer(rownames(inside))] <- 1:nrow(inside)
+final.3 <- data.frame(final.2, nest=nested[expanded,])
 write.table(final.3[o2,], file="results.3.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
-The above code only reports the top-ranked nested bin pair for each parent.
+The above code only reports the top-ranked nested bin pair within each large feature.
 This may not be sufficient when many internal changes are occurring.
 An alternative approach is to store the entirety of the \code{smaller.data} in a \R{} save file, along with \code{cons} and \code{data}.
-Any interesting nested changes can then be interactively identified for a given parent.
+Any interesting nested changes can then be interactively identified for a given feature.
 
 \section{Visualization with plaid plots}
 \label{chap:plaid}
