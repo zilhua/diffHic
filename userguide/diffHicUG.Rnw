@@ -863,16 +863,20 @@ for (chosen in 1:length(a.list)) {
 @
 \end{center}
 
-The density of bin pairs around the retained peaks is another useful diagnostic.
+Another diagnostic is based on the sparsity of putative peaks.
 Bin pairs nested within larger ``parent'' bin pairs are identified using the \code{boxPairs} function.
 Most of these parents should contain low numbers (i.e., less than 5) of nested bin pairs.
 This is because each peak, by definition, should be isolated in its neighbourhood.
-Large numbers of nested bin pairs suggest that more aggressive filtering on the enrichment score is required. 
+Larger numbers suggest that more aggressive filtering on the enrichment score is required, e.g., in the second example. 
 
 <<>>=
 neighbourhood <- (2*flank.width + 1) * exptData(chr1.data)$width
 boxed <- boxPairs(chr1.data[keep], reference=neighbourhood)
 table(tabulate(boxed$indices[[1]]))
+keep2 <- filterPeaks(chr1.data, enrich.chr1, min.enrich=0, min.count=5, min.diag=2L)
+boxed <- boxPairs(chr1.data[keep2], reference=neighbourhood)
+out <- tabulate(tabulate(boxed$indices[[1]]))
+setNames(c(out[1:10], sum(out[10:length(out)])), c(1:10, ">10"))
 @
 
 Obviously, peak calling assumes that changes in intensity of broad interactions are not interesting.
