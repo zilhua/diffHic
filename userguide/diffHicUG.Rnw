@@ -805,12 +805,13 @@ Thus, to avoid overloading the machine memory, it may be prudent to analyze each
 
 <<>>=
 chr1.data <- squareCounts(input, reform(mm.param, restrict="chr1"), width=1e5, filter=1)
-enrich.chr1 <- enrichedPairs(chr1.data, flank=5)
+flank.width <- 5
+enrich.chr1 <- enrichedPairs(chr1.data, flank=flank.width)
 summary(enrich.chr1)   
 @
 
 More specifically, the function partitions the neighbourhood into several different regions around the target bin pair.
-The size of the neighbourhood is set by \code{flank}, and is defined in terms of bins (actual distance of 500 kbp, in this case).
+The size of the neighbourhood is set by \code{flank}, and is defined in terms of bins (actual distance of $\sim$500 kbp, in this case).
 The average abundance across each region is computed, and the region with the largest abundance is chosen.
 The enrichment value is defined as the log-fold change between the abundances of the target bin pair and the chosen region.
 Peaks are then defined as those bin pairs with high enrichment values.
@@ -863,25 +864,21 @@ for (chosen in 1:length(a.list)) {
 \end{center}
 
 The density of bin pairs around the retained peaks is another useful diagnostic.
-Retained bin pairs are nested within larger ``parent'' bin pairs, using the \code{boxPairs} function.
-The density can then be computed as the proportion of parent's interaction space that is covered by the retained bin pairs.
-High densities suggest that whole structural features are being retained, which means that a larger enrichment threshold is required.
-In this case, most parents have low densities ($< 10$\%), indicating that the chosen threshold is generally appropriate.
+Bin pairs nested within larger ``parent'' bin pairs are identified using the \code{boxPairs} function.
+Most of these parents should contain low numbers (i.e., less than 5) of nested bin pairs.
+This is because each peak, by definition, should be isolated in its neighbourhood.
+Large numbers of nested bin pairs suggest that more aggressive filtering on the enrichment score is required. 
 
 <<>>=
-fwidth <- 5e5 # set at fraction of width of structural feature, like TADs
-boxed <- boxPairs(chr1.data[keep], reference=fwidth)
-area.per.bin <- getArea(chr1.data[keep])
-densities <- by(area.per.bin, boxed$indices[[1]], FUN=sum)/getArea(boxed$pairs)
-c(summary(densities), "Below 10%"=sum(densities < 0.1)/length(densities))
+neighbourhood <- (2*flank.width + 1) * exptData(chr1.data)$width
+boxed <- boxPairs(chr1.data[keep], reference=neighbourhood)
+table(tabulate(boxed$indices[[1]]))
 @
 
-% You want a fraction, so that you don't get spuriously low densities when your parent doesn't cover the TAD perfectly. 
-
-Obviously, peak-calling assumes that changes in intensity of broad interactions are not interesting.
+Obviously, peak calling assumes that changes in intensity of broad interactions are not interesting.
 This may not be appropriate for every study.
-Indeed, the definition of ``broad'' depends on the bin size, such that a peak called at large bin sizes may be discarded at lower bin sizes.
-Users are advised to try out the other general filters before proceeding to peak calling, to check that potentially interesting differences are not discarded in the latter step.
+Indeed, the definition of ``broad'' depends on the bin size, whereby a peak called at large bin sizes may be discarded at smaller sizes.
+Users should try out the other general filters before proceeding to peak calling, to check that potentially interesting differences are not discarded by the latter.
 
 % I would just do direct filtering, and then consolidate across bin sizes.
 % It's less aggressive, I avoid having to cluster my output, and I still get decent resolution if the parents aren't too big.
