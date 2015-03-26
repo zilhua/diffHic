@@ -805,19 +805,20 @@ Thus, to avoid overloading the machine memory, it may be prudent to analyze each
 
 <<>>=
 chr1.data <- squareCounts(input, reform(mm.param, restrict="chr1"), width=1e5, filter=1)
-enrich.chr1 <- enrichedPairs(chr1.data)
+enrich.chr1 <- enrichedPairs(chr1.data, flank=5)
 summary(enrich.chr1)   
 @
 
 More specifically, the function partitions the neighbourhood into several different regions around the target bin pair.
+The size of the neighbourhood is set by \code{flank}, and is defined in terms of bins (actual distance of 500 kbp, in this case).
 The average abundance across each region is computed, and the region with the largest abundance is chosen.
 The enrichment value is defined as the log-fold change between the abundances of the target bin pair and the chosen region.
 Peaks are then defined as those bin pairs with high enrichment values.
-The neighbourhood regions are designed to capture high-intensity structural features like TADs, compartments or banding patterns \citep{rao2014kilobase}.
-Any bin pair lying within one of these features will be compared to other high-abundance bin pairs from the same feature.
-This avoids spuriously high enrichments when a bin pair within a feature is compared to those outside the feature.
+The neighbourhood regions are designed to capture high-intensity structural features like TADs or banding patterns \citep{rao2014kilobase}.
+Any bin pair inside a feature will be compared to other high-abundance bin pairs from the same feature.
+This avoids spuriously high enrichments if a bin pair within a feature was compared to those outside the feature.
 
-In this example, an enrichment value of $\log_2(1.5)$ is required for retention.
+In this example, an enrichment value above 0.5 is required for retention.
 This is a modest threshold that errs on the side of caution, as weak peaks may be DB and should be retained for testing.
 In practice, filtering of enrichment values should be combined with filtering on absolute abundances.
 This eliminates low-abundance bin pairs with high enrichment values, e.g., when the neighbourhood is empty.
@@ -825,8 +826,7 @@ Near-diagonal elements should also be removed, as these tend to have high enrich
 All of these steps can be conveniently applied through the \code{filterPeaks} wrapper function.
 
 <<>>=
-keep <- filterPeaks(chr1.data, enrich.chr1, min.enrich=log2(1.5), 
-    min.count=5, min.diag=2L)
+keep <- filterPeaks(chr1.data, enrich.chr1, min.enrich=0.5, min.count=5, min.diag=2L)
 sum(keep)
 @
 
@@ -862,10 +862,27 @@ for (chosen in 1:length(a.list)) {
 @
 \end{center}
 
+The density of bin pairs around the retained peaks is another useful diagnostic.
+Retained bin pairs are nested within larger ``parent'' bin pairs, using the \code{boxPairs} function.
+The density can then be computed as the proportion of parent's interaction space that is covered by the retained bin pairs.
+High densities suggest that whole structural features are being retained, which means that a larger enrichment threshold is required.
+In this case, most parents have low densities ($< 10$\%), indicating that the chosen threshold is generally appropriate.
+
+<<>>=
+feature.width <- 5e5 # Expected width of TADs.
+boxed <- boxPairs(chr1.data[keep], reference=feature.width)
+area.per.bin <- getArea(chr1.data[keep])
+densities <- by(area.per.bin, boxed$indices[[1]], FUN=sum)/getArea(boxed$pairs)
+c(summary(densities), "Above 10%"=sum(densities > 0.1)/length(densities))
+@
+
 Obviously, peak-calling assumes that changes in intensity of broad interactions are not interesting.
 This may not be appropriate for every study.
 Indeed, the definition of ``broad'' depends on the bin size, such that a peak called at large bin sizes may be discarded at lower bin sizes.
 Users are advised to try out the other general filters before proceeding to peak calling, to check that potentially interesting differences are not discarded in the latter step.
+
+% I would just do direct filtering, and then consolidate across bin sizes.
+% It's less aggressive, I avoid having to cluster my output, and I still get decent resolution if the parents aren't too big.
 
 As an aside, no adjustment is done for the effect of distance on abundance for intra-chromosomal pairs.
 This assumes that the distance effect is uninteresting bias, which may not be the case.
