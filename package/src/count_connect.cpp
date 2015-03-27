@@ -1,9 +1,9 @@
 #include "diffhic.h"
 #include "coord.h"
 
-SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter) try {		
+SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter, SEXP is_second) try {		
 	if (!isInteger(start) || !isInteger(end) || !isInteger(region)) { throw std::runtime_error("fragment/indices for first regionion must be integer vectors"); }
-	const int ni=LENGTH(start), nr=LENGTH(region)+1; // +1 for 1-based indexing.
+	const int ni=LENGTH(start), nrp1=LENGTH(region)+1; // As 'end' refers to one-past-the-end. 
 	if (LENGTH(end)!=ni) { throw std::runtime_error("start/end index vectors should be the same length"); }
 
 	// Setting up pointers (-1 for 1-based indexing).
@@ -14,6 +14,18 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter) try
 	// Checking scalars.
 	if (!isInteger(filter) || LENGTH(filter)!=1) { throw std::runtime_error("filter value must be an integer scalar"); }
 	const int filtval=asInteger(filter);
+
+	// Checking second specifier.
+	const bool check_second=(is_second!=R_NilValue);
+	const int* iptr=NULL;
+	if (check_second) {
+ 	   if (!isLogical(is_second)) { throw std::runtime_error("secondary specifier should be a logical vector or NULL"); }
+	   iptr=LOGICAL(is_second)-1;
+	   const int nseconds=LENGTH(is_second);
+	   for (int it=1; it<nrp1; ++it) {
+		   if (rptr[it] <= 0 || rptr[it] > nseconds) { throw std::runtime_error("region indices out of range for secondary specifier vector"); }
+	   }
+	}
 
 	// Setting up other structures, including pointers. We assume it's sorted on R's side.
    	if (!isNewList(all)) { throw std::runtime_error("data on interacting PETs must be contained within a list"); }
@@ -81,7 +93,7 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter) try
 		const int& e2x=eptr[curtb];
 	
 		if (s1x!=e1x && s2x!=e2x) { 
-			if (s1x <= 0 || s2x <= 0 || e1x > nr || e2x > nr) { throw std::runtime_error("invalid start/endpoints for region indices"); }
+			if (s1x <= 0 || s2x <= 0 || e1x > nrp1 || e2x > nrp1) { throw std::runtime_error("invalid start/endpoints for region indices"); }
 			for (int x1=s1x; x1<e1x; ++x1) {
 				for (int x2=s2x; x2<e2x; ++x2) { 
 					if (rptr[x1] > rptr[x2]) {
@@ -92,7 +104,10 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter) try
 						temp.first=rptr[x2];
 						temp.second=rptr[x1];
 					}
-					
+
+					// Checking secondary; i.e., one read in second ranges, other region outside.
+					if (check_second && iptr[temp.first]==iptr[temp.second]) { continue; }
+
 					itb=bins.lower_bound(temp);
 					if (itb==bins.end() || bins.key_comp()(temp, itb->first)) {
 						itb = bins.insert(itb, std::make_pair(temp, std::make_pair(counts.size(), counter)));
@@ -111,39 +126,6 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter) try
 			}
 		}
 
-//		/* Okay, now flipping and adding the ones where anchor goes to region2, and target goes to region1.
-//		 * This is necessary if there are two ranges, in which case we don't know how they'll react.
-//		 */
-//		if (!issame) {
-//			if (curtb>ni1) { throw std::runtime_error("invalid target index for supplied fragments"); } 
-//			const int& s1y=s1ptr[curtb];
-//			const int& e1y=e1ptr[curtb];
-//			if (curab>ni2) { throw std::runtime_error("invalid anchor index for supplied fragments"); }
-//			const int& s2y=s2ptr[curab];
-//			const int& e2y=e2ptr[curab];
-//
-//			if (s1y!=e1y && s2x!=e2y) {
-//				// Running through, and skipping if there are clashes. 
-//				for (int y1=s1y; y1<e1y; ++y1) {
-//					temp.first=r1ptr[y1];
-//					for (int y2=s2y; y2<e2y; ++y2) { 
-//						temp.second=r2ptr[y2];
-//						
-//						itb=bins.lower_bound(temp);
-//						if (itb==bins.end() || bins.key_comp()(temp, itb->first)) {
-//							itb = bins.insert(itb, std::make_pair(temp, std::make_pair(counts.size(), counter)));
-//							counts.resize(counts.size()+nlibs);
-//						} else if ((itb->second).second==counter) { // Don't add the same range twice. 
-//							continue;
-//						}
-//						(itb->second).second=counter;
-//						const int& index=(itb->second).first;
-//						for (int lib=0; lib<nlibs; ++lib) { counts[index+lib] += curcounts[lib]; }
-//					}
-//				}
-//			}
-//		}
-		
 		// Resetting.
 		for (int i=0; i<nlibs; ++i) { curcounts[i]=0; }
 	}

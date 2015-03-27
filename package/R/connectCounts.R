@@ -1,4 +1,4 @@
-connectCounts <- function(files, param, regions, filter=1L, type="any")
+connectCounts <- function(files, param, regions, filter=1L, type="any", second.regions=NULL)
 # This counts the number of connections between specified regions in the genome (i.e. between regions
 # in 'anchor' and regions in 'target'). This is designed to make it easier to analyze results in terms
 # of genes. Note that everything is rounded up to the nearest outside restriction site (or to the
@@ -6,7 +6,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 #
 # written by Aaron Lun
 # a long time ago.
-# last modified 20 March 2015
+# last modified 27 March 2015
 {
 	nlibs <- length(files)
 	if (nlibs==0L) { stop("number of libraries must be positive") } 
@@ -18,13 +18,6 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 	discard <- .splitDiscards(param$discard)
 	cap <- param$cap
 
-	# Figuring out which regions are anchor or targets.
-	fdata <- .delimitFragments(fragments)
-	matched <- match(as.character(seqnames(regions)), fdata$chr)
-	if (any(is.na(matched))) { stop("chromosome present in regions and not in fragments") }
-	o <- order(matched, start(regions), end(regions))
-	regions <- regions[o]
-
 	# Checking out which regions overlap with each fragment.
 	if (any(strand(regions)!="*")) { 
 		warning("stranded region ranges have no interpretation, coercing unstrandedness") 
@@ -35,7 +28,60 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 		strand(fragments) <- "*"
 	}
 	olaps <- suppressWarnings(findOverlaps(fragments, regions, type=type))
-	by.frag <- .retrieveHits(olaps)
+	frag.ids <- queryHits(olaps)
+	reg.ids <- subjectHits(olaps)
+	regions <- .redefineRegions(olaps, fragments, regions)
+
+	# Including second region information.
+	if (!is.null(second.regions)) { 
+		if (is(second.regions, "GRanges")) {
+			if (any(strand(second.regions)!="*")) { 
+				warning("stranded region ranges have no interpretation, coercing unstrandedness") 
+				strand(second.regions) <- "*"
+			}
+			lap2 <- suppressWarnings(findOverlaps(fragments, second.regions, type=type))
+			to.add.query <- queryHits(lap2)
+			to.add.subject <- subjectHits(lap2)
+			second.regions <- .redefineRegions(lap2, fragments, second.regions)
+		} else {
+			second.regions <- as.integer(second.regions)
+			if (second.regions < 0) { stop("bin size must be a positive integer") }
+			binned <- .getBinID(fragments, second.regions)
+			to.add.query <- 1:length(fragments)
+			to.add.subject <- binned$id
+			second.regions <- binned$region
+		}
+
+		n.first <- length(regions)
+		n.second <- length(second.regions)
+		regions <- suppressWarnings(c(regions, second.regions))
+		regions$is.second <- rep(c(FALSE, TRUE), c(n.first, n.second))
+
+		frag.ids <- c(frag.ids, to.add.query)
+		reg.ids <- c(reg.ids, to.add.subject + n.first)
+		o <- order(frag.ids, reg.ids)
+		frag.ids <- frag.ids[o]
+		reg.ids <- reg.ids[o]
+
+		regions$original <- c(1:n.first, 1:n.second)
+	} else {
+		is.second <- NULL
+		regions$original <- 1:length(regions)
+	}
+
+	# Figuring out which regions are anchor or targets.
+	fdata <- .delimitFragments(fragments)
+	matched <- match(as.character(seqnames(regions)), fdata$chr)
+	if (any(is.na(matched))) { stop("chromosome present in regions and not in fragments") }
+
+	nregs <- length(regions)
+	o <- order(matched, start(regions), end(regions), 1:nregs) # Preserve order, if expanded intervals are identical.
+	regions <- regions[o]
+
+	ranked <- integer(nregs)
+	ranked[o] <- 1:length(o)
+	reg.ids <- ranked[reg.ids]
+	by.frag <- .retrieveHits(frag.ids, length(fragments))
 
 	# Setting up output containers.
     full.sizes <- integer(nlibs)
@@ -61,7 +107,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 			if (! (target %in% my.chrs) || ! (anchor %in% my.chrs)) { next }	
 
 			# Extracting counts. Running through the fragments and figuring out what matches where.
-			out <- .Call(cxx_count_connect, pairs, by.frag$start, by.frag$end, by.frag$hits, filter)
+			out <- .Call(cxx_count_connect, pairs, by.frag$start, by.frag$end, reg.ids, filter, regions$is.second)
 			if (is.character(out)) { stop(out) }
 			out.counts[[idex]] <- out[[3]]
 			out.left[[idex]] <- out[[1]]
@@ -75,21 +121,17 @@ connectCounts <- function(files, param, regions, filter=1L, type="any")
 	targets <- unlist(out.right)
 	o.all <- order(anchors, targets)
 
-	# Generating a new set of regions.
-	new.regs <- .redefineRegions(olaps, fragments, regions)
-	new.regs$original <- o
 	return(DIList(counts=out.counts[o.all,,drop=FALSE], totals=full.sizes, 
-		anchors=anchors[o.all], targets=targets[o.all], regions=new.regs,
+		anchors=anchors[o.all], targets=targets[o.all], regions=regions,
 		exptData=List(param=param)))
 }
 
-.retrieveHits <- function(olaps) { 
-	start <- end <- integer(queryLength(olaps))
-	ok.frags <- queryHits(olaps)
-	is.first <- c(TRUE, diff(ok.frags)!=0L)
-	start[ok.frags[is.first]] <- which(is.first)
-	end[ok.frags[is.first]] <- c(which(is.first)[-1], length(ok.frags)+1L)
-	return(list(start=start, end=end, hits=subjectHits(olaps)))
+.retrieveHits <- function(frag.id, nfrags) { 
+	start <- end <- integer(nfrags)
+	is.first <- c(TRUE, diff(frag.id)!=0L)
+	start[frag.id[is.first]] <- which(is.first)
+	end[frag.id[is.first]] <- c(which(is.first)[-1], length(frag.id)+1L)
+	return(list(start=start, end=end))
 }
 
 .redefineRegions <- function(olaps, fragments, regions) {

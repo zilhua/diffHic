@@ -5,7 +5,7 @@
 \description{Count the number of read pairs connecting pairs of user-specified regions}
 
 \usage{ 
-connectCounts(files, param, regions, filter=1L, type="any")
+connectCounts(files, param, regions, filter=1L, type="any", second.regions=NULL)
 }
 
 \arguments{
@@ -14,10 +14,11 @@ connectCounts(files, param, regions, filter=1L, type="any")
    \item{regions}{a \code{GRanges} object specifying the regions between which read pairs should be counted}
    \item{filter}{an integer scalar specifying the minimum count for each interaction}
    \item{type}{a character string specifying how restriction fragments should be assigned to regions}
+   \item{second.regions}{a \code{GRanges} object containing the second regions of interest, or an integer scalar specifying the bin size}
 }
 
 \value{
-A \code{DIList} is returned, specifying the number of read pairs mapped between pairs of \code{regions} for each library.
+A \code{DIList} is returned, specifying the number of read pairs in each library that are mapped between pairs of \code{regions}, or between \code{regions} and \code{second.regions}.
 }
 
 \details{
@@ -44,6 +45,27 @@ Counting will consider the values of \code{restrict}, \code{discard} and \code{c
 See \code{\link{pairParam}} for more details.
 }
 
+\section{Matching to a second set of regions}{
+The \code{second.regions} argument allows specification of a second set of regions, where interactions are only considered between one entry in \code{regions} and one entry in \code{second.regions}.
+This differs from supplying all regions to \code{regions}, which would consider all pairwise interactions between regions regardless of whether they belong in the first or second set.
+If an integer scalar is supplied as \code{second.regions}, this value is used as a width to partition the genome into bins.
+These bins are then used as the set of second regions.
+	
+Specification of \code{second.regions} is useful for efficiently identifying interactions between two sets of regions.
+For example, the first set can be set to several ``viewpoint'' regions of interest.
+This is similar to the bait region in 4C-seq, or the captured regions in Capture Hi-C.
+Interactions between these viewpoints and the rest of the genome can then be examined by setting \code{second.regions} to some appropriate bin size.
+
+The output \code{DIList} will merge all \code{regions} and \code{second.regions} into a single \code{GRanges} object.
+However, those in the second set can be distinguished with the \code{is.second} metadata field.
+Each \code{original} index will also point towards the corresponding entry in the original \code{second.regions} when \code{is.second=TRUE}.
+Similarly, if \code{is.second=FALSE}, the index will point towards the corresponding entry in the original \code{regions}.
+
+Note that this function does \emph{not} guarantee that the second set of regions will be present as the anchor or target regions.
+Those definitions are dependent on the sorting order of the coordinates for all regions.
+Users should use the \code{is.second} field to identify the region from the second set in each interaction.
+}
+
 \seealso{
 \code{\link{squareCounts}},
 \code{\link{findOverlaps}},
@@ -60,8 +82,9 @@ param <- pairParam(cuts)
 # Setting up the parameters
 fout <- "output"
 invisible(preparePairs(hic.file, param, fout))
-regions <- c(GRanges("chrA", IRanges(c(1, 100, 150), c(20, 140, 160))), 
-    GRanges("chrB", IRanges(50, 100)))
+regions <- suppressWarnings(c(
+    GRanges("chrA", IRanges(c(1, 100, 150), c(20, 140, 160))), 
+    GRanges("chrB", IRanges(50, 100))))
 
 # Collating to count combinations.
 con <- connectCounts(fout, param, regions=regions, filter=1L)
@@ -78,6 +101,18 @@ con <- connectCounts(fout, param=reform(param, discard=GRanges("chrA", IRanges(1
 head(counts(con))
 con <- connectCounts(fout, param=reform(param, cap=1), regions=regions, filter=1L)
 head(counts(con))
+
+# Specifying a second region.
+regions2 <- suppressWarnings(c(
+    GRanges("chrA", IRanges(c(50, 100), c(100, 200))), 
+    GRanges("chrB", IRanges(1, 50))))
+
+con <- connectCounts(fout, param, regions=regions, filter=1L, second.region=regions2)
+head(anchors(con))
+head(targets(con))
+con <- connectCounts(fout, param, regions=regions, filter=1L, second.region=50)
+head(anchors(con))
+head(targets(con))
 
 \dontshow{
 unlink(fout)
