@@ -399,6 +399,39 @@ The alignment position refers to the 1-based coordinate of the left-most base of
 The alignment length refers to the span of the alignment relative to the reference, and should be negative for alignments on the reverse strand.
 This information will be used in downstream \pkgname{} functions, such as read counting around blacklisted regions.
 
+\section{Handling DNase Hi-C experiments}
+DNase-based Hi-C is a variant of the standard technique, whereby the DNase~I enzyme is used to cleave the genome instead of restriction enzymes.
+This allows for resolution beyond that of individual restriction fragments.
+However, cleavage sites for DNase cannot be easily predicted, such that \code{param\$fragments} is no longer sensibly defined.
+The formation of index files is also inappropriate, as there are no restriction fragments for reads to be assigned to.
+
+To handle this type of data in \pkgname{}, a workaround is provided using the concept of ``pseudo-fragments''.
+The genome is partitioned into contiguous and non-overlapping pseudo-fragments of constant size, using the \code{segmentGenome} function.
+Reads can then be assigned into each pseudo-fragment in the same manner as that to actual restriction fragments for standard Hi-C.
+This is done using the \code{prepPseudoPairs} function, which is (almost) equivalent to running \code{preparePairs} with the pseudo-fragment coordinates in \code{param\$fragments}.
+
+An example of this approach is shown below.
+For demonstration purposes, the SRR027957 library will be treated as DNase Hi-C sample.
+The hg19 genome is segmented into 500 bp pseudo-fragments, and reads are then assigned to each of these pseudo-fragments.
+
+<<>>=
+seg.frags <- segmentGenome(BSgenome.Hsapiens.UCSC.hg19, size=500)
+prepPseudoPairs("SRR027957.bam", pairParam(seg.frags), file="SRR027957.h5", 
+    dedup=TRUE, minq=10)
+@
+
+Unlike \code{preparePairs}, no diagnostic information regarding self-circles or dangling ends is reported.
+Such metrics are based on restriction fragment coordinates, but these are not experimentally relevant for artificial pseudo-fragments.
+Similarly, the length of the sequencing fragment is computed from artificial fragment boundaries and has little meaning.
+This means that the \code{length} field should be ignored in the output of \code{getPairData}.
+The \code{max.frag} argument should also be set to \code{NA} in \code{prunePairs}.
+Metrics for inward- and outward-facing read pairs are unaffected, as these are computed independently of the fragments.
+
+This pseudo-fragment strategy allows easy passage through the \pkgname{} pipeline.
+While some spatial resolution is lost, this is largely irrelevant in downstream steps.
+For example, counting across the interaction space will use regions much larger than the pseudo-fragments. 
+Any loss of resolution from pseudo-fragment assignment is likely to be negligble.
+
 \chapter{Counting read pairs into interactions}
 \label{chap:counting}
 
