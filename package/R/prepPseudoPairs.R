@@ -8,16 +8,22 @@ prepPseudoPairs <- function(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE,
 # created 27 March 2015
 {
 	fragments <- param$fragments
-	bin.width <- max(width(fragments))
 	n.per.chr <- runLength(seqnames(fragments))
-	first.per.chr <- as.list(c(0L, n.per.chr[-length(n.per.chr)] + 1L))
-	chrs <- as.character(runValue(seqnames(fragments)))
-	names(n.per.chr) <- names(first.per.chr) <- chrs
+	frag.data <- .delimitFragments(fragments)
+
+	chrs <- frag.data$chr
+	last.in.chr <- frag.data$end
+	before.first <- as.list(c(0L, last.in.chr[-length(chrs)]))
+	names(before.first) <- chrs
+
+	bin.width <- max(width(fragments))
+	if (!all(bin.width==width(fragments)[-last.in.chr])) {
+		stop("pseudo-fragments should be constant size") 
+	}
 
 	# Checking consistency between SAM chromosome lengths and the ones in the cuts.
 	chromosomes<-scanBamHeader(bam)[[1]]$targets
 	if (!all(names(chromosomes) %in% chrs)) { stop("missing chromosomes in cut site list") }
-	last.in.chr <- cumsum(n.per.chr)
 	for (x in 1:length(chrs)) {
 		if (chromosomes[[chrs[x]]]!=end(fragments)[last.in.chr[x]]) {
 			stop("length of ", chrs[x], " is not consistent between BAM file and fragment ranges")
@@ -35,7 +41,7 @@ prepPseudoPairs <- function(bam, param, file, dedup=TRUE, yield=1e7, ichim=TRUE,
 	}
 
 	# Cleaning up.
-	output <- .innerPrepLoop(bam=bam, file=file, chrs=chrs, chr.start=first.per.chr, FUN=FUN, yield=yield)
+	output <- .innerPrepLoop(bam=bam, file=file, chrs=chrs, chr.start=before.first, FUN=FUN, yield=yield)
 	output$same.id <- NULL
 	return(output)
 }

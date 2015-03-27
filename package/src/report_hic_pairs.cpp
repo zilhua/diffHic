@@ -457,8 +457,8 @@ struct check_invalid_freed_chimera : public check_invalid_chimera {
 	}
 	bool operator()(const std::deque<segment>& read1, const std::deque<segment>& read2) const {
 		bool invalid=false;
-		if (read1.size()==2) { invalid=is_pet(read2[0], read1[1]); }
-		if (read2.size()==2 && !invalid) { invalid=is_pet(read1[0], read2[1]); }
+		if (read1.size()==2) { invalid=!is_pet(read2[0], read1[1]); }
+		if (read2.size()==2 && !invalid) { invalid=!is_pet(read1[0], read2[1]); }
 		/* Doesn't accout for cases where the 5' end is nested inside the 3' end and the mate.
 		 * These are physically impossible from a single linear DNA molecule. I suppose we can
 		 * forgive this, because it could form from interactions betwen homologous chromosomes.
