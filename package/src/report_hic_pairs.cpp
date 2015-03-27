@@ -121,7 +121,7 @@ void parse_cigar (const char* cigar, int& alen, int& offset, const bool& reverse
  * Something to hold segment, pair information.
  ***********************************************/
 
-enum status { is_pet, is_mate, neither };
+enum status { ISPET, ISMATE, NEITHER };
 
 struct segment { 
 	int offset, alen, fragid, chrid, pos;
@@ -130,15 +130,15 @@ struct segment {
 };
 
 int get_status (const segment& left, const segment& right) {
-	if (right.chrid!=left.chrid || right.fragid!=left.fragid || right.reverse==left.reverse) { return neither; }
+	if (right.chrid!=left.chrid || right.fragid!=left.fragid || right.reverse==left.reverse) { return NEITHER; }
 	const segment& fs=(left.reverse ? right : left);
 	const segment& rs=(left.reverse ? left : right);
 	if (fs.pos <= rs.pos) {
-		if (fs.pos + fs.alen > rs.pos + rs.alen) { return neither; }
-		return is_pet; 
+		if (fs.pos + fs.alen > rs.pos + rs.alen) { return NEITHER; }
+		return ISPET; 
 	} 
-	if (fs.pos < rs.pos+rs.alen) { return neither; }
-	return is_mate;
+	if (fs.pos < rs.pos+rs.alen) { return NEITHER; }
+	return ISMATE;
 }
 
 struct valid_pair { 
@@ -171,7 +171,6 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 	if (!isInteger(minqual) || LENGTH(minqual)!=1) { throw std::runtime_error("minimum mapping quality should be an integer scalar"); }
 
 	// Initializing pointers.
-//	const char* last_name=0, *next_name=0;
 	const int* cptr=INTEGER(chrs);
 	const int* pptr=INTEGER(pos);
 	const int* fptr=INTEGER(flag);
@@ -252,7 +251,19 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 		if (isunmap) { ++filtered; }
 		if (isunmap || isdup || read1.empty() || read2.empty() || read1.front().offset || read2.front().offset) { continue;  }
 		++mapped;
-		
+
+		// Determining the type of construct if they have the same ID.
+		switch (get_status(read1.front(), read2.front())) {
+			case ISPET:
+				++dangling;
+				continue;
+			case ISMATE:
+				++selfie;
+				continue;
+			default:
+				break;
+		}
+
 		// Pulling out chimera diagnostics.
 		if (ischimera) {
 			++mapped_chim;
@@ -263,8 +274,8 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 			} else if (read1.size() > 2 || read2.size() > 2) { 
 				invalid=true; 
 			} else {
-				if (read1.size()==2) { invalid=(is_pet!=get_status(read2[0], read1[1])); }
-				if (read2.size()==2) { invalid=(invalid || get_status(read1[0], read2[1])!=is_pet); }
+				if (read1.size()==2) { invalid=(ISPET!=get_status(read2[0], read1[1])); }
+				if (read2.size()==2) { invalid=(invalid || get_status(read1[0], read2[1])!=ISPET); }
 			}
 			if (invalid) { 
 				++inv_chimeras; 
@@ -272,18 +283,6 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 			}
 		}
 		
-		// Determining the type of construct if they have the same ID.
-		switch (get_status(read1.front(), read2.front())) {
-			case is_pet:
-				++dangling;
-				continue;
-			case is_mate:
-				++selfie;
-				continue;
-			default:
-				break;
-		}
-
 		// Choosing the anchor segment, and reporting it.
 		bool anchor=false;
 		if (read1.front().chrid > read2.front().chrid) {
