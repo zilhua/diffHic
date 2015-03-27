@@ -5,12 +5,12 @@
  * Finds the fragment to which each read (or segment thereof) belongs. 
  ***********************************************************************/
 
-class fragment_finder {
+class base_finder {
 public:
-	fragment_finder(SEXP, SEXP); // Takes a list of vectors of positions and reference names for those vectors.
-	int find_fragment(const int&, const int&, const bool&, const int&) const;
-	size_t nchrs() const;
-private:
+	base_finder() {} 
+	virtual size_t nchrs() const { return pos.size(); }
+	virtual int find_fragment(const int&, const int&, const bool&, const int&) const = 0;
+protected:
 	struct chr_stats {
 		chr_stats(const int* s, const int* e, const int& l) : start_ptr(s), end_ptr(e), num(l) {}
 		const int* start_ptr;
@@ -18,6 +18,12 @@ private:
 		int num;
 	};
 	std::deque<chr_stats> pos;
+};
+
+class fragment_finder : public base_finder {
+public:
+	fragment_finder(SEXP, SEXP); // Takes a list of vectors of positions and reference names for those vectors.
+	int find_fragment(const int&, const int&, const bool&, const int&) const;
 };
 
 fragment_finder::fragment_finder(SEXP starts, SEXP ends) {
@@ -67,8 +73,6 @@ int fragment_finder::find_fragment(const int& c, const int& p, const bool& r, co
 	return index;
 }
 
-size_t fragment_finder::nchrs() const { return pos.size(); }
-	
 /***********************************************************************
  * Parses the CIGAR string to extract the alignment length, offset from 5' end of read.
  ***********************************************************************/
@@ -145,14 +149,21 @@ struct valid_pair {
 	int anchor, target, apos, tpos, alen, tlen;
 };
 
+struct check_invalid_chimera {
+	check_invalid_chimera() {};
+	virtual bool operator()(const std::deque<segment>& read1, const std::deque<segment>& read2) const {
+		if (read1.size()==2 && ISPET!=get_status(read2[0], read1[1])) { return true; }
+		if (read2.size()==2 && ISPET!=get_status(read1[0], read2[1])) { return true; }
+		return false;
+	}
+};
+
 /************************
  * Main loop.
  ************************/
 
-SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, SEXP pos, 
-		SEXP flag, SEXP cigar, SEXP mapqual, SEXP chimera_strict, SEXP minqual, SEXP do_dedup) try {
-	fragment_finder ff(start_list, end_list);
-	const size_t nc=ff.nchrs();
+SEXP internal_loop (const base_finder * const ffptr, int (*check_self_status)(const segment&, const segment&), const check_invalid_chimera * const icptr,
+		SEXP pairlen, SEXP chrs, SEXP pos, SEXP flag, SEXP cigar, SEXP mapqual, SEXP chimera_strict, SEXP minqual, SEXP do_dedup) {
 
 	// Checking input values.
 	if (!isInteger(pairlen)) { throw std::runtime_error("length of pairs must be an integer vector"); }
@@ -180,6 +191,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 	const int minq=asInteger(minqual);
 	const bool rm_min=!ISNA(minq);
 	const int * plptr=INTEGER(pairlen);
+	const size_t nc=ffptr->nchrs();
 
 	// Constructing output containers
 	std::deque<std::deque<std::deque<valid_pair> > > collected(nc);
@@ -229,7 +241,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 
 			// Checking which deque to put it in, if we're going to keep it.
 			if (! skipdup && ! skipunmap) { 
-				current.fragid=ff.find_fragment(current.chrid, current.pos, current.reverse, current.alen);
+				current.fragid=ffptr->find_fragment(current.chrid, current.pos, current.reverse, current.alen);
 				std::deque<segment>& current_reads=(curflag & 0x40 ? read1 : read2); 
 				if (current.offset==0) { 
 					current_reads.push_front(current);
@@ -253,7 +265,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 		++mapped;
 
 		// Determining the type of construct if they have the same ID.
-		switch (get_status(read1.front(), read2.front())) {
+		switch ((*check_self_status)(read1.front(), read2.front())) {
 			case ISPET:
 				++dangling;
 				continue;
@@ -274,8 +286,7 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 			} else if (read1.size() > 2 || read2.size() > 2) { 
 				invalid=true; 
 			} else {
-				if (read1.size()==2) { invalid=(ISPET!=get_status(read2[0], read1[1])); }
-				if (read2.size()==2) { invalid=(invalid || get_status(read1[0], read2[1])!=ISPET); }
+				invalid=(*icptr)(read1, read2);
 			}
 			if (invalid) { 
 				++inv_chimeras; 
@@ -388,7 +399,93 @@ SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, 
 	}
 	UNPROTECT(1);
 	return total_output;
-} catch (std::exception& e) {	
+} 
+
+SEXP report_hic_pairs (SEXP start_list, SEXP end_list, SEXP pairlen, SEXP chrs, SEXP pos, 
+		SEXP flag, SEXP cigar, SEXP mapqual, SEXP chimera_strict, SEXP minqual, SEXP do_dedup) try {
+	fragment_finder ff(start_list, end_list);
+	check_invalid_chimera invchim;
+	return internal_loop(&ff, &get_status, &invchim,
+		pairlen, chrs, pos, flag, cigar, mapqual, chimera_strict, minqual, do_dedup);
+} catch (std::exception& e) {
+	return mkString(e.what());
+}
+
+/************************
+ * Repeated loop for DNase Hi-C.
+ ************************/
+
+class simple_finder : public base_finder {
+public:
+	simple_finder(SEXP, SEXP);
+	int find_fragment(const int&, const int&, const bool&, const int&) const;
+private:
+	int bin_width;
+};
+
+simple_finder::simple_finder(SEXP n_per_chr, SEXP bwidth) { 
+	if (!isInteger(bwidth)|| LENGTH(bwidth)!=1) { throw std::runtime_error("bin width must be an integer scalar"); }
+	bin_width=asInteger(bwidth);
+	if (!isInteger(n_per_chr)) { throw std::runtime_error("number of fragments per chromosome must be an integer vector"); }
+	const int* nptr=INTEGER(n_per_chr);
+	for (int i=0; i<LENGTH(n_per_chr); ++i) { pos.push_back(chr_stats(NULL, NULL, nptr[i])); }
+	return;	
+}
+
+int simple_finder::find_fragment(const int& c, const int& p, const bool& r, const int& l) const {
+	if (r) { 
+		int index=int((p+l-2)/bin_width); // -1, to get position of last base; -1 again, to get into the right bin.
+		if (index >= pos[c].num) { 
+			warning("read aligned off end of chromosome");
+			--index;
+		}
+		return index;
+	}
+	return int((p-1)/bin_width);
+}
+
+int no_status_check (const segment& left, const segment& right) { 
+	(void)left; 
+	(void)right; // Just to avoid unused warnings, but maintain compatibility.
+	return NEITHER; 
+}
+
+struct check_invalid_freed_chimera : public check_invalid_chimera {
+	check_invalid_freed_chimera(SEXP span) {
+		if (!isInteger(span) || LENGTH(span)!=1) { throw std::runtime_error("maximum chimeric span must be a positive integer"); }
+		maxspan=asInteger(span);
+	}
+	bool operator()(const std::deque<segment>& read1, const std::deque<segment>& read2) const {
+		bool invalid=false;
+		if (read1.size()==2) { invalid=is_pet(read2[0], read1[1]); }
+		if (read2.size()==2 && !invalid) { invalid=is_pet(read1[0], read2[1]); }
+		/* Doesn't accout for cases where the 5' end is nested inside the 3' end and the mate.
+		 * These are physically impossible from a single linear DNA molecule. I suppose we can
+		 * forgive this, because it could form from interactions betwen homologous chromosomes.
+ 		 */
+		return invalid;
+	}
+private:
+	int maxspan;
+	int is_pet (const segment& left, const segment& right) const {
+		if (right.chrid!=left.chrid || right.reverse==left.reverse) { return false; }
+		const segment& fs=(left.reverse ? right : left);
+		const segment& rs=(left.reverse ? left : right);
+		if (fs.pos > rs.pos) { return false; }
+		if (fs.pos + fs.alen > rs.pos + rs.alen) { return false; }
+		if (rs.pos + rs.alen - fs.pos > maxspan) { return false; }
+		return true;
+	} 
+};
+
+SEXP report_hic_binned_pairs (SEXP num_in_chrs, SEXP bwidth, SEXP pairlen, SEXP chrs, SEXP pos, 
+		SEXP flag, SEXP cigar, SEXP mapqual, SEXP chimera_strict, SEXP chimera_span, 
+		SEXP minqual, SEXP do_dedup) try {
+	simple_finder ff(num_in_chrs, bwidth);
+	check_invalid_freed_chimera invchim(chimera_span);
+	return internal_loop(&ff, &no_status_check, &invchim,
+		pairlen, chrs, pos, flag, cigar, mapqual, chimera_strict, minqual, do_dedup);
+} catch (std::exception& e) {
 	return mkString(e.what());
 }
 
