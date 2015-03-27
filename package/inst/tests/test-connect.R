@@ -34,17 +34,34 @@ reconstruct <- function(pairs, counts=rep(1L, nrow(pairs))) {
 }
 
 refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
-	everypair <- everycount <- list()
-	o <- order(ranges)
-	ranges <- ranges[o]
-	totals <- integer(length(dirs))
-
-	# Determining which ranges each restriction fragment overlaps.
+	# Redefining regions to account for rounding to fragment boundaries.
 	cur.olap <- findOverlaps(cuts, ranges, type=type)
+	so <- subjectHits(cur.olap)
+	qo <- queryHits(cur.olap)
+	new.starts <- by(start(cuts[qo]), INDICES=so, FUN=min)
+	new.ends <- by(end(cuts[qo]), INDICES=so, FUN=max)
+	new.num <- by(start(cuts[qo]), INDICES=so, FUN=length)
+	acquired <- as.integer(names(new.starts))
+	
+	ranges2 <- ranges
+	start(ranges2)[acquired] <- as.integer(new.starts)
+	end(ranges2)[acquired] <- as.integer(new.ends)
+	full.num <- integer(length(ranges2))
+	full.num[acquired] <- as.integer(new.num)
+	ranges2$nfrags <- full.num
+	o <- order(ranges2)
+	ranges2 <- ranges2[o]
+	ranges2$original <- o
+	ranges <- ranges2
+
+	# Determining the (modified) ranges that each restriction fragment overlaps.
 	cur.rle <- rle(queryHits(cur.olap))
 	cur.end <- cumsum(cur.rle$length)
 	cur.start <- cur.end - cur.rle$length + 1L
-	cur.hits <- subjectHits(cur.olap)
+	cur.hits <- match(subjectHits(cur.olap), o)
+
+	everypair <- everycount <- list()
+	totals <- integer(length(dirs))
 
 	for (d in 1:length(dirs)) {
 		allpairs <- allcounts <- list()
@@ -104,22 +121,6 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 		everycount[[idex+1L]] <- actually
 	}
 
-	# Redefining regions.
-	so <- subjectHits(cur.olap)
-	qo <- queryHits(cur.olap)
-	new.starts <- by(start(cuts[qo]), INDICES=so, FUN=min)
-	new.ends <- by(end(cuts[qo]), INDICES=so, FUN=max)
-	new.num <- by(start(cuts[qo]), INDICES=so, FUN=length)
-	acquired <- as.integer(names(new.starts))
-	
-	ranges2 <- ranges
-	start(ranges2)[acquired] <- as.integer(new.starts)
-	end(ranges2)[acquired] <- as.integer(new.ends)
-	full.num <- integer(length(ranges2))
-	full.num[acquired] <- as.integer(new.num)
-	ranges2$nfrags <- full.num
-	ranges2$original <- o
-
 	# Aggregating results between libraries.
 	everypair <- do.call(rbind, everypair)
 	everycount <- do.call(rbind, everycount)
@@ -151,7 +152,7 @@ refline <- function(dirs, cuts, ranges, filter=20L, type="any", restrict=NULL) {
 	reo <- order(ax, tx)
 	final$pairs <- data.frame(anchor.id=ax, target.id=tx)[reo,]
 	final$counts <- final$counts[keep,,drop=FALSE][reo,,drop=FALSE]
-	final$region <- ranges2
+	final$region <- ranges
 	final$totals <- totals 
 	rownames(final$pairs) <- NULL
 	rownames(final$counts) <- NULL
@@ -240,6 +241,63 @@ samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=1), rest
 samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=2), restrict="chrA")
 samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=5), restrict="chrA")
 samecomp(100, cuts=current.cuts, ranges=simranges(current.cuts, nranges=10), restrict="chrA")
+
+###########################################################################################
+# Repeating the analysis with first and second ranges.
+
+secondcomp <- function(nreads, cuts, ranges1, ranges2, filter=0L, type="any", restrict=NULL) {
+	simgen(dir1, nreads, chromos)
+	simgen(dir2, nreads, chromos)
+
+	param <- pairParam(cuts, restrict=restrict)
+	out <- connectCounts(c(dir1, dir2), regions=ranges1, filter=filter, type=type, param=param, second.regions=ranges2) 
+
+	combined <- regions(out)
+	ref <- connectCounts(c(dir1, dir2), regions=combined, filter=filter, type="within", param=param) # Need within, avoid overlap from fill-in. 
+	keep <- anchors(ref)$is.second!=targets(ref)$is.second
+	ref <- ref[keep,]
+
+	if (!identical(ref@anchors, out@anchors)) { stop("mismatch in anchor identities") }
+	if (!identical(ref@targets, out@targets)) { stop("mismatch in target identities") }
+	if (!identical(counts(ref), counts(out))) { stop("mismatch in counts") }
+	if (!identical(ref$totals, out$totals)) { stop("mismatch in total output") }	
+
+	return(cbind(anchors=head(ref@anchors), targets=head(ref@targets), head(ref@counts)))
+}
+
+set.seed(234872)
+
+current.cuts <- simcuts(chromos, min=50, max=100, overlap=4)
+r1 <- simranges(current.cuts, nranges=20, min=100, max=300)
+r2 <- simranges(current.cuts, nranges=20, min=100, max=300)
+secondcomp(1000, current.cuts, r1, r2)
+secondcomp(1000, current.cuts, r1, r2, filter=3)
+secondcomp(1000, current.cuts, r1, r2, type="within")
+secondcomp(1000, current.cuts, r1, r2, restrict="chrA")
+
+current.cuts <- simcuts(chromos)
+r1 <- simranges(current.cuts, nranges=5, min=1000, max=3000)
+r2 <- simranges(current.cuts, nranges=5, min=1000, max=3000)
+secondcomp(100, current.cuts, r1, r2)
+secondcomp(100, current.cuts, r1, r2, filter=3)
+secondcomp(100, current.cuts, r1, r2, type="within")
+secondcomp(100, current.cuts, r1, r2, restrict="chrA")
+
+current.cuts <- simcuts(chromos)
+r1 <- simranges(current.cuts, nranges=5, min=1000, max=3000)
+r2 <- 3000
+secondcomp(100, current.cuts, r1, r2)
+secondcomp(100, current.cuts, r1, r2, filter=3)
+secondcomp(100, current.cuts, r1, r2, type="within")
+secondcomp(100, current.cuts, r1, r2, restrict="chrA")
+
+current.cuts <- simcuts(chromos, min=50, max=100, overlap=4)
+r1 <- simranges(current.cuts, nranges=30, min=100, max=300)
+r2 <- 500
+secondcomp(100, current.cuts, r1, r2)
+secondcomp(100, current.cuts, r1, r2, filter=3)
+secondcomp(100, current.cuts, r1, r2, type="within")
+secondcomp(100, current.cuts, r1, r2, restrict="chrA")
 
 ###########################################################################################
 # Cleaning up.
