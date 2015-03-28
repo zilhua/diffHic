@@ -522,6 +522,8 @@ Sharp interactions can be detected by pairs of smaller bins while diffuse intera
 See Section~\ref{sec:mergebins} for more information on consolidating results from multiple bin sizes.
 
 \section{Counting with pre-defined regions}
+
+\subsection{Connecting counts between pairs of regions}
 For some studies, prior knowledge about the regions of interest may be available.
 For example, a researcher may be interested in examining interactions between genes.
 The coordinates can be obtained from existing annotation, as shown below for the mouse genome.
@@ -561,6 +563,31 @@ Another issue is that the width of the regions cannot be easily changed.
 This means that the compromise between spatial resolution and count size cannot be tuned.
 For example, interactions will not be detected around smaller genes as the counts will be too small.
 Conversely, interactions between distinct loci within a large gene body will not be resolved.
+
+\subsection{Connecting counts between two sets of regions}
+The \code{connectCounts} function can also be used to identify interactions between two sets of regions, by specifying a value for the \code{second.regions} argument.
+This only considers interactions between one entry in \code{regions} and another in \code{second.regions}.
+This differs from the standard application of the function, which would consider an interaction between any pair of entries in \code{regions}.
+If an integer scalar is supplied as \code{second.regions}, the second set is automatically defined as contiguous bins of that size across the genome.
+
+The use of \code{second.regions} is particularly useful in cases where there are defined ``viewpoints'' of interest, e.g., 4C-seq, Capture-C.
+These viewpoints can be specified in \code{regions}, as shown below for a set of mock probe locations for a hypothetical Capture-C experiment \citep{hughes2014analysis}.
+Specifically, the viewpoint is defined as a 100 kbp bin centred at each capture probe.
+The interaction profile across the rest of the genome can then be extracted by setting \code{second.regions} to some bin size.
+In this case, 100 kbp bins are used.
+
+<<>>=
+probe.loc <- GRanges(c("chr1", "chr2", "chr3"),
+    IRanges(c(1e7, 2e7, 3e7), c(1e7, 2e7, 3e7)))
+viewpoints <- resize(probe.loc, fix="center", width=1e5)
+viewdata <- connectCounts(input, mm.param, regions=viewpoints, second.regions=1e5)
+head(anchors(viewdata))
+head(targets(viewdata))
+@
+
+As these results demonstrate, interactions are only considered if exactly one interacting locus is from the specified \code{regions}.
+The identity of the other locus (i.e., from \code{second.regions}) for each interaction can be determined using on the \code{is.second} field in the \code{GRanges} object.
+This approach avoids loading irrelevant interactions when only specific viewpoints are of interest.
 
 \section{Counting into single bins}
 \label{sec:marginal}
@@ -1010,8 +1037,9 @@ Otherwise, median calculation or trend fitting will be confounded by discretenes
 \subsection{Filtering for pre-specified regions}
 Filtering for pairs of arbitrary regions is complicated by the potential irregularity of the regions.
 In particular, there is no guarantee that the supplied regions will cover the entirety of the interaction space.
-This means that the filter thresholds may be overestimated, e.g., if the regions were specified such that only high-abundance areas are counted.
-Conversely, threshold estimation may be imprecise if the counts for all areas are low.
+Filter thresholds may not be estimated accurately if the covered area is not representative of the rest of the space.
+At worst, genuine interactions between all specified regions would preclude direct or trended filtering, which assume that most interactions are uninteresting.
+That said, threshold estimation from a subset of the interaction space may actually be desirable in some cases, e.g., using only the captured regions to compute a relevant estimate of the non-specific ligation rate in a Capture-C experiment.
 
 Another consideration is that different regions will have different widths.
 The resulting areas used for read pair counting will probably be different between region pairs, such that some will have systematically higher counts than others.
