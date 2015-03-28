@@ -172,6 +172,8 @@ As we're starting out here, we don't really need anything.
 \end{combox}
 
 \section{A comment on aligning Hi-C libraries}
+\label{sec:align}
+
 In a typical Hi-C library, sequencing will occasionally be performed over the ligation junction between two restriction fragments.
 This forms a chimeric read that contains sequences from two distinct genomic loci.
 Here, correct alignment of the $5'$ end of the chimeric read is more important.
@@ -400,10 +402,10 @@ The alignment length refers to the span of the alignment relative to the referen
 This information will be used in downstream \pkgname{} functions, such as read counting around blacklisted regions.
 
 \section{Handling DNase Hi-C experiments}
-DNase-based Hi-C is a variant of the standard technique, whereby the DNase~I enzyme is used to cleave the genome instead of restriction enzymes.
+DNase Hi-C is a variant of the standard technique, whereby the DNase~I enzyme is used to fragment the genome instead of restriction enzymes \citep{ma2015dnase}.
 This allows for resolution beyond that of individual restriction fragments.
-However, cleavage sites for DNase cannot be easily predicted, such that \code{param\$fragments} is no longer sensibly defined.
-The formation of index files is also inappropriate, as there are no restriction fragments for reads to be assigned to.
+However, cleavage sites for DNase~I cannot be easily predicted to construct \code{param\$fragments}.
+Formation of index files is subsequently inappropriate, as there are no restriction fragments for reads to be assigned to.
 
 To handle this type of data in \pkgname{}, a workaround is provided using the concept of ``pseudo-fragments''.
 The genome is partitioned into contiguous and non-overlapping pseudo-fragments of constant size, using the \code{segmentGenome} function.
@@ -431,6 +433,11 @@ This pseudo-fragment strategy allows easy passage through the \pkgname{} pipelin
 While some spatial resolution is lost, this is largely irrelevant in downstream steps.
 For example, counting across the interaction space will use regions much larger than the pseudo-fragments. 
 Any loss of resolution from pseudo-fragment assignment is likely to be negligble.
+
+Users should also note that the alignment script described in Section~\ref{sec:align} is not appropriate for DNase Hi-C experiments.
+This approach is based on splitting chimeric reads at the ligation signature, which is constructed from the recognition site of a restriction enzyme.
+The sequence around the ligation junction is not well-defined when DNase~I is used for cleavage.
+Instead, alignment programs should be used that can directly handle chimeric reads with arbitrary breakpoints in the genome, e.g., BWA \citep{li2010fast}.
 
 \chapter{Counting read pairs into interactions}
 \label{chap:counting}
