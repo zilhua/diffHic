@@ -1130,6 +1130,8 @@ Another human dataset will be loaded here, so \code{hs.frag} from Chapter~\ref{c
 \end{combox}
 
 \section{Normalizing with scaling methods}
+\label{sec:simplenorm}
+
 The simplest approach is to use scaling methods like TMM normalization \citep{oshlack2010tmm}.
 This accounts for composition biases by assuming that most interactions do not change between conditions.
 Normalization factors are computed to scale the library sizes, yielding effective sizes that can be used in the downstream differential analysis.
@@ -1173,9 +1175,9 @@ adj.counts <- cpm(asDGEList(data), log=TRUE)
 
 Trended biases are problematic as they can inflate the variance estimates or fold-changes for some bin pairs. 
 They must be eliminated with non-linear normalization prior to further analysis.
-The example below uses a non-linear method from \csaw{}, adapted from existing methods to handle discrete count data. %\citep{normpaper}. % Coming soon, I hope.
-An offset term is computed for each bin pair in each library, to use in a generalized linear model (GLM). 
-A large offset for an observation is equivalent to downscaling that count relative to the counts of the other libraries. 
+The example below is based on a function from the \csaw{} package, adapted from existing non-linear methods to handle discrete count data. %\citep{normpaper}. % Coming soon, I hope.
+An offset term is computed for each bin pair in each library, for use in a generalized linear model (GLM). 
+A large offset for a count is equivalent to downscaling that count relative to the counts of other libraries. 
 
 <<>>=
 nb.off <- normalize(data, type="loess")
@@ -1183,10 +1185,7 @@ head(nb.off)
 @
 
 The MA plot can be examined after adjusting the log-counts with the offsets.
-Most of the trend is removed, indicating that normalization was successful.
-Of course, this assumes that most bin pairs at each abundance do not represent differential interactions.
-Any systematic differences between libraries are assumed to be technical in origin and are removed.
-If this assumption does not hold, genuine differences may be lost upon normalization.
+Most of the trend is removed, indicating that non-linear normalization was successful.
 
 <<eval=FALSE,label=manorm>>=
 adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
@@ -1201,10 +1200,16 @@ adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
 
-Filtering on average abundance prior to normalization is strongly recommended.
+Filtering on average abundance prior to this normalization step is strongly recommended.
 This removes low counts and avoids problems with discreteness.
 Filtering also improves the sensitivity of span-based fitting algorithms like LOESS at higher abundances.
 Otherwise, the fitted trend will be dominated by the majority of low-abundance bin pairs.
+
+Of course, the non-linear strategy assumes that most bin pairs at each abundance do not represent differential interactions.
+Any systematic differences between libraries are assumed to be technical in origin and are removed.
+If this assumption does not hold, genuine differences may be lost upon normalization.
+For example, a global increase in the compaction of the genome would manifest as an upward trend in the MA plot, as low-abundance distal interactions are weakened in favour of high-abundance short-range interactions.
+In such cases, the simpler scaling strategy described in Section~\ref{sec:simplenorm} may be more appropriate.
 
 \section{Iterative correction of interaction intensities}
 \label{sec:itercor}
