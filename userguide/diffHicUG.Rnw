@@ -586,7 +586,7 @@ head(targets(viewdata))
 @
 
 As these results demonstrate, interactions are only considered if exactly one interacting locus is from the specified \code{regions}.
-The identity of the other locus (i.e., from \code{second.regions}) for each interaction can be determined using on the \code{is.second} field in the \code{GRanges} object.
+The identity of the other locus (i.e., from \code{second.regions}) can be determined based on the \code{is.second} field in the \code{GRanges} object.
 This approach avoids loading irrelevant interactions when only specific viewpoints are of interest.
 
 \section{Counting into single bins}
