@@ -24,7 +24,7 @@ consolidatePairs <- function(data.list, result.list, equiweight=TRUE, combine.ar
 		for (x in 1:nset) { weights[[x]] <- 1/counts(boxed$pairs)[boxed$indices[[x]],x] }
 		weights <- unlist(weights)
 	} else {
-		weights <- 1
+		weights <- NULL
 	}
 
 	# Combining the p-values.
