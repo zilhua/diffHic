@@ -4,15 +4,6 @@ diffHic
 An R package for differential analyses of Hi-C data
 
 This package provides methods for read pair processing and detection of differential interactions from Hi-C data. 
-It is based primarily on the statistical methods in the edgeR package. 
-Users are directed to the user's guide (found in `package/inst/doc`) to implement their own analyses, and to understand some of the theory behind the pipeline.
-
-To install this package, make sure that the latest version of R is installed. Then, at the R prompt, type:
-```R
-source("http://bioconductor.org/biocLite.R")
-useDevel()
-biocLite(c('csaw', 'rhdf5', 'Biostrings', 'BSgenome'))
-install.packages('locfit')
-devtools::install_github("LTLA/diffHic/package")
-```
+The repository here represents an unstable experimental version for masochists.
+Regular users are advised to download the [devel](http://www.bioconductor.org/packages/devel/bioc/html/diffHic.html) (slightly more stable) or [release](http://www.bioconductor.org/packages/release/bioc/html/diffHic.html) (very stable) versions from the Bioconductor project.
 
