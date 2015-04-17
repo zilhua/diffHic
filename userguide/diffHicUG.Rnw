@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 24 March 2015}
+Last revised 17 April 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -1648,9 +1648,9 @@ o <- order(final$PValue)
 write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
-\subsection{Aggregating results for small bin pairs}
-For small bin sizes, adjacent bin pairs can be aggregated into larger clusters.
-This avoids redundancy in the interpretation of the results.
+\subsection{Independent clustering of adjacent bin pairs}
+Adjacent bin pairs can be aggregated into larger clusters to reduce redundancy in the interpretation of the results.
+This is especially useful at smaller bin sizes, where multiple bin pairs may overlap a single underlying interaction.
 To demonstrate, a quick-and-dirty differential analysis of the previously loaded counts for the 100 kbp bin pairs is performed here.
 
 <<>>=
@@ -1674,7 +1674,7 @@ head(tabcluster)
 
 In practice, this approach requires aggressive filtering to avoid chaining effects.
 Otherwise, clustering will be confounded by the density of the interaction space, particularly at short distances and/or in TADs.
-Some protection is provided by setting \code{max.width} to limit the maximum dimensions of each cluster.
+Some protection is provided by setting \code{upper} to limit the maximum dimensions of each cluster.
 Even so, the boundaries of each cluster become ambiguous and difficult to interpret, e.g., if a whole TAD is absorbed into a cluster.
 
 There is no guarantee that the cluster will form a regular shape in the interaction space.
@@ -1691,6 +1691,40 @@ final <- data.frame(anchor.chr=seqnames(ax.c), anchor.start=start(ax.c),
     target.end=end(tx.c), tabcluster)
 write.table(final, file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
+
+\subsection{Clustering based on significant bin pairs}
+The interaction space is often dominated by high-abundance structural features like domains and compartments. 
+Attempting to cluster on abundance may result in excessive chaining, yielding very large clusters for which the coordinates are mostly uninformative with respect to DIs.
+To avoid this, it may be necessary to cluster on those bin pairs that are significantly different.
+These bin pairs are more sparsely distributed throughout the interaction space, such that the coordinates of the resulting clusters can be easily interpreted.
+
+To demonstrate, the test results for the 1 Mbp bin pairs will be used here.
+Significant bin pairs are defined at a FDR threshold of 5\%, and clustered together with \code{clusterPairs}.
+Each cluster represents the coordinates of a DI.
+This is more useful than reporting the coordinates for an entire domain if only a portion of the domain is changing.
+No limits are placed on the maximum dimensions, as the sparsity of bin pairs should avoid chaining effects.
+
+<<>>=
+threshold <- 0.05
+is.sig <- adj.p <= threshold
+sig.data <- data[is.sig,]
+clustered.sig <- clusterPairs(sig.data, tol=1, upper=NULL)
+head(clustered.sig$anchors)
+head(clustered.sig$targets)
+@
+
+However, this summarization of results is not statistically rigorous.
+Controlling the FDR across bin pairs does not guarantee control of the FDR over clusters.
+Instead, an informal estimate of the cluster-level FDR can be obtained with the \code{clusterFDR} function.
+The idea is to adjust \code{threshold} such that the cluster-level FDR lies below some desired value.
+
+<<>>=
+csaw::clusterFDR(clustered.sig$id, threshold)
+@
+
+In general, direct application of the BH method or independent clustering should be preferred to this \textit{ad hoc} method.
+Users should only choose this method if direct application yields too many redundant results, or if the independent clusters are too large.
+Some loss of statistical rigour may be a necessary price to pay for interpretable results.
 
 %This problem can be avoided by performing pre-defined clustering based on large bin pairs.
 %Specifically, a large bin pair is defined and the set of all smaller bin pairs nested therein is defined as a cluster.
