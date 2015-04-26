@@ -163,19 +163,34 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 })
 
 # Setting some methods inspired by equivalents in csaw.
-setMethod("asDGEList", signature("DIList"), function(object, lib.sizes=NULL, ...) {
-	if (is.null(lib.sizes)) { lib.sizes <- object$totals }
-	DGEList(counts(object), lib.size=lib.sizes, ...)
+setMethod("asDGEList", signature("DIList"), function(object, ...) {
+	opt <- match.call(DGEList, do.call(call, list("DGEList", 
+		counts=counts(object), ...)))
+
+	if (is.null(opt$lib.size)) {
+	    if (is.null(object$totals)) {
+		    warning("library sizes not found in 'totals'")
+		} else {
+			opt$lib.size <- object$totals
+		}
+	}
+
+	eval(opt)
 })
 
-setMethod("normalize", signature("DIList"), function(object, lib.sizes=NULL, ...) {
-	if (is.null(lib.sizes)) { 
+setMethod("normalize", signature("DIList"), function(object, ...) {
+    opt <- match.call(normalizeCounts, do.call(call, list("normalizeCounts",
+		counts=counts(object), ...)))
+
+	if (is.null(opt$lib.sizes)) { 
 		if (is.null(object$totals)) {
-			return(normalizeCounts(counts=counts(object), ...))
-		} 
-		lib.sizes <- object$totals
+			warning("library sizes not found in 'totals'")
+		} else {
+			opt$lib.sizes <- object$totals
+		}
 	}
-	normalizeCounts(counts(object), lib.sizes=lib.sizes, ...)
+
+	eval(opt)
 })
 
 ########################################################################################

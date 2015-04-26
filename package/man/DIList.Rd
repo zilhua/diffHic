@@ -134,15 +134,15 @@ In the code snippets below, \code{x} is a DIList object.
 		By default the \code{show} method displays count and interval data for the top 5 interactions.
 		Data for all interactions will be shown if there are no more than 10 interactions.
 	}
-	\item{}{\code{asDGEList(x, lib.sizes=NULL, ...)}:
+	\item{}{\code{asDGEList(x, ...)}:
 		Extracts count data and library sizes, and returns the same data as a \code{DGEList}.
-		Library sizes are extracted from \code{x$totals} if not otherwise specified.
 		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
+		Library sizes can be set through \code{lib.size}, but will otherwise be extracted from \code{x$totals}.
 	}
-	\item{}{\code{normalize(x, lib.sizes=NULL, ...)}:
+	\item{}{\code{normalize(x, ...)}:
 		Performs scaling or loess normalization using the count data and library sizes in \code{x}.
-		Library sizes are extracted from \code{x$totals} if not otherwise specified.
 		Arguments in \code{...} are passed to the \code{\link{normalizeCounts}} function.
+		Library sizes can be set through \code{lib.sizes}, but will otherwise be extracted from \code{x$totals}.
 	}
 }
 }
@@ -150,8 +150,8 @@ In the code snippets below, \code{x} is a DIList object.
 \author{Aaron Lun}
 
 \examples{
-blah <- DIList(counts=matrix(c(1,1,2,2,3,3,4,4), ncol=2), 
-    totals=c(10L, 10L), anchors=c(1,2,3,4), targets=c(1,1,2,2), 
+blah <- DIList(counts=matrix(c(1,1,2,2,3,3,4,4,5,5,6,6), ncol=2), 
+    totals=c(10L, 10L), anchors=c(1,2,3,4,5,6), targets=c(1,1,2,2,3,3), 
 	regions=GRanges("chrA", IRanges(10+1:20, 2+21:40)))
 nrow(blah)
 ncol(blah)
@@ -173,6 +173,10 @@ colData(blah)
 exptData(blah)
 
 asDGEList(blah)
+asDGEList(blah, lib.size=c(1,2)) # Manually set to some other value.
+
+normalize(blah)  
+normalize(blah, lib.sizes=c(1,2)) # Manually set to some other value. 
 normalize(blah, logratioTrim=0)
 normalize(blah, type="loess")
 
