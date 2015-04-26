@@ -871,7 +871,8 @@ Note that the function requires unfiltered bin pairs, i.e., counting in \code{sq
 Thus, to avoid overloading the machine memory, it may be prudent to analyze each pair of chromosomes separately.
 
 <<>>=
-chr1.data <- squareCounts(input, reform(mm.param, restrict="chr1"), width=1e5, filter=1)
+chr1.data <- squareCounts(input,  width=1e5, filter=1,
+    param=reform(mm.param, restrict=cbind("chr1", "chr1")))
 flank.width <- 5
 enrich.chr1 <- enrichedPairs(chr1.data, flank=flank.width)
 summary(enrich.chr1)   
@@ -981,8 +982,15 @@ In such cases, several options are available:
 This is simple but the chosen threshold has no obvious interpretation.
 \item Load counts for each pair of chromosomes separately, using the \code{restrict} argument as described in Section~\ref{sec:restrictchr}.
 Abundances (and distances) can be computed for each pair and collected, to define the filter threshold without loading all counts into memory.
-Counts for each chromosome pair can be reloaded for separate filtering, and the remaining bin pairs can be aggregated for downstream analysis.
+Counts for each chromosome pair can be reloaded for separate filtering, and the remaining bin pairs can be aggregated for downstream analysis with \code{c(...)}.
 This is quite slow.
+Also, when computing abundances, the full library size should be manually specified in \code{asDGEList}.
+This allows valid comparisons between abundances from different chromosome pairs.
+Otherwise, the library size will be different for each pair.
+<<>>=
+totals <- totalCounts(data, mm.param)
+chr1.ab <- aveLogCPM(asDGEList(chr1.data, lib.sizes=totals))
+@
 \item Load counts for larger bin sizes without pre-filtering.
 This reduces memory usage as the interaction space is partitioned into fewer bin pairs.
 Then, perform filtering and convert the computed filter thresholds into values for the original (smaller) bin sizes.
