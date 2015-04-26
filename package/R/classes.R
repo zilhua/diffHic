@@ -163,12 +163,19 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 })
 
 # Setting some methods inspired by equivalents in csaw.
-setMethod("asDGEList", signature("DIList"), function(object, ...) {
-	DGEList(counts(object), lib.size=object$totals, ...)
+setMethod("asDGEList", signature("DIList"), function(object, lib.sizes=NULL, ...) {
+	if (is.null(lib.sizes)) { lib.sizes <- object$totals }
+	DGEList(counts(object), lib.size=lib.sizes, ...)
 })
 
-setMethod("normalize", signature("DIList"), function(object, ...) {
-	normalizeCounts(counts(object), lib.sizes=object$totals, ...)
+setMethod("normalize", signature("DIList"), function(object, lib.sizes=NULL, ...) {
+	if (is.null(lib.sizes)) { 
+		if (is.null(object$totals)) {
+			return(normalizeCounts(counts=counts(object), ...))
+		} 
+		lib.sizes <- object$totals
+	}
+	normalizeCounts(counts(object), lib.sizes=lib.sizes, ...)
 })
 
 ########################################################################################

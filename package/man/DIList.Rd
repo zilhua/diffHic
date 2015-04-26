@@ -134,12 +134,14 @@ In the code snippets below, \code{x} is a DIList object.
 		By default the \code{show} method displays count and interval data for the top 5 interactions.
 		Data for all interactions will be shown if there are no more than 10 interactions.
 	}
-	\item{}{\code{asDGEList(x, ...)}:
+	\item{}{\code{asDGEList(x, lib.sizes=NULL, ...)}:
 		Extracts count data and library sizes, and returns the same data as a \code{DGEList}.
+		Library sizes are extracted from \code{x$totals} if not otherwise specified.
 		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
 	}
-	\item{}{\code{normalize(x, ...)}:
+	\item{}{\code{normalize(x, lib.sizes=NULL, ...)}:
 		Performs scaling or loess normalization using the count data and library sizes in \code{x}.
+		Library sizes are extracted from \code{x$totals} if not otherwise specified.
 		Arguments in \code{...} are passed to the \code{\link{normalizeCounts}} function.
 	}
 }
