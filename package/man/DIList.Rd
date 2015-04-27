@@ -114,7 +114,7 @@ In the code snippets below, \code{x} is a DIList object.
 
 \describe{
     \item{}{\code{x[i, j]}:
-  	Get data for all interactions \code{i} in libraries \code{j}.
+  	Get count and coordinate data for all interactions \code{i} in libraries \code{j}.
 	Either \code{i} or \code{j} can be missing, in which case all interactions or libraries are returned, respectively.
 	}
 
@@ -131,18 +131,18 @@ In the code snippets below, \code{x} is a DIList object.
 In the code snippets below, \code{x} is a DIList object.
 \describe{
 	\item{}{\code{show(x)}:
-		By default the \code{show} method displays count and interval data for the top 5 interactions.
-		Data for all interactions will be shown if there are no more than 10 interactions.
+		Shows a summary of the information in \code{x}.
+		Specifically, a string is printed that reports the number of libraries, number of interactions and total number of regions in \code{x}.
 	}
-	\item{}{\code{asDGEList(x, ...)}:
+	\item{}{\code{asDGEList(x, lib.sizes, ...)}:
 		Extracts count data and library sizes, and returns the same data as a \code{DGEList}.
+		Library sizes are taken from \code{x$totals}, unless (optionally) specified in \code{lib.sizes}.
 		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
-		Library sizes can be set through \code{lib.size}, but will otherwise be extracted from \code{x$totals}.
 	}
-	\item{}{\code{normalize(x, ...)}:
+	\item{}{\code{normalize(x, lib.sizes, ...)}:
 		Performs scaling or loess normalization using the count data and library sizes in \code{x}.
+		Library sizes are taken from \code{x$totals}, unless (optionally) specified in \code{lib.sizes}.
 		Arguments in \code{...} are passed to the \code{\link{normalizeCounts}} function.
-		Library sizes can be set through \code{lib.sizes}, but will otherwise be extracted from \code{x$totals}.
 	}
 }
 }
@@ -173,7 +173,8 @@ colData(blah)
 exptData(blah)
 
 asDGEList(blah)
-asDGEList(blah, lib.size=c(1,2)) # Manually set to some other value.
+asDGEList(blah, lib.sizes=c(1,2)) # Manually set to some other value.
+asDGEList(blah, group=c("a", "b")) 
 
 normalize(blah)  
 normalize(blah, lib.sizes=c(1,2)) # Manually set to some other value. 
