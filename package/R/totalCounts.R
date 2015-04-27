@@ -25,7 +25,6 @@ totalCounts <- function(files, param)
     for (anchor in names(overall)) {
         current <- overall[[anchor]]
 		for (target in names(current)) {
-			if (!.checkIfPairOK(restrict, anchor, target)) { next }
 
 			# Getting totals.
 			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
