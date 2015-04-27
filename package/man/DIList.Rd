@@ -27,11 +27,6 @@
 \alias{show,DIList-method}
 \alias{c,DIList-method}
 
-\alias{asDGEList}
-\alias{asDGEList,DIList-method}
-\alias{normalize}
-\alias{normalize,DIList-method}
-
 \title{DIList class and methods}
 
 \description{
@@ -134,16 +129,6 @@ In the code snippets below, \code{x} is a DIList object.
 		Shows a summary of the information in \code{x}.
 		Specifically, a string is printed that reports the number of libraries, number of interactions and total number of regions in \code{x}.
 	}
-	\item{}{\code{asDGEList(x, lib.sizes, ...)}:
-		Extracts count data and library sizes, and returns the same data as a \code{DGEList}.
-		Library sizes are taken from \code{x$totals}, unless (optionally) specified in \code{lib.sizes}.
-		Arguments in \code{...} are passed to the \code{\link{DGEList}} constructor.
-	}
-	\item{}{\code{normalize(x, lib.sizes, ...)}:
-		Performs scaling or loess normalization using the count data and library sizes in \code{x}.
-		Library sizes are taken from \code{x$totals}, unless (optionally) specified in \code{lib.sizes}.
-		Arguments in \code{...} are passed to the \code{\link{normalizeCounts}} function.
-	}
 }
 }
 
@@ -172,22 +157,12 @@ blah$totals
 colData(blah)
 exptData(blah)
 
-asDGEList(blah)
-asDGEList(blah, lib.sizes=c(1,2)) # Manually set to some other value.
-asDGEList(blah, group=c("a", "b")) 
-
-normalize(blah)  
-normalize(blah, lib.sizes=c(1,2)) # Manually set to some other value. 
-normalize(blah, logratioTrim=0)
-normalize(blah, type="loess")
-
 c(blah, blah)
 c(blah[1:2,], blah[3:4,], add.totals=FALSE)
 }
 
 \seealso{
-\code{\link{DGEList}},
-\code{\link{normalize}}
+\code{\link{squareCounts}}
 }
 
 \keyword{counting}
