@@ -205,7 +205,7 @@ plotDI <- function(data, fc, first.region, second.region=first.region,
 
 	# Making the actual plot.
 	all.cols <- colfun(fc[keep])
-	.plotDiag(first.ranges, second.ranges, targets(current), all.cols, diag=diag)
+	.plotDiag(first.ranges, second.ranges, all.cols, diag=diag)
 	return(invisible(colfun))
 }
 
