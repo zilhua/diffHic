@@ -1981,8 +1981,8 @@ rotPlaid(input[3], mm.param, region=example, width=2e4,
 chosen <- o2[3]
 example <- tx.2[chosen]
 end(example) <- end(ax.2[chosen])
-nest.mid.a <- (ax.3$start[chosen]+ax.3$end[chosen])/2
-nest.mid.t <- (tx.3$start[chosen]+tx.3$end[chosen])/2
+nest.mid.a <- (final.3$nest.anchor.start[chosen]+final.3$nest.anchor.end[chosen])/2
+nest.mid.t <- (final.3$nest.target.start[chosen]+final.3$nest.target.end[chosen])/2
 nest.mid <- (nest.mid.a + nest.mid.t)/2
 nest.gap <- nest.mid.a - nest.mid.t
 @
