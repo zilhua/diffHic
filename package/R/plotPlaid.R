@@ -17,8 +17,8 @@ plotPlaid <- function(file, param, first.region, second.region=first.region,
 	first.end <- end(first.region)
 	second.start <- start(second.region)
 	second.end <- end(second.region)
-    if (length(first.chr)!=1L) { stop("exactly one first range is required for plotting") }
-    if (length(second.chr)!=1L) { stop("exactly one second range is required for plotting") }
+	if (length(first.chr)!=1L) { stop("exactly one first range is required for plotting") }
+	if (length(second.chr)!=1L) { stop("exactly one second range is required for plotting") }
 
 	# Setting up the parameters
 	fragments <- param$fragments
@@ -27,32 +27,46 @@ plotPlaid <- function(file, param, first.region, second.region=first.region,
 	}
 	discard <- .splitDiscards(param$discard)
 	cap <- param$cap
-
+	frag.by.chr <- .splitByChr(fragments)
+	width <- as.integer(width) 
+	
 	# Setting up the boundaries.
 	first.min <- max(1L, first.start)
 	first.max <- min(seqlengths(fragments)[[first.chr]], first.end)
 	second.min <- max(1L, second.start)
 	second.max <- min(seqlengths(fragments)[[second.chr]], second.end)
 	if (first.min > first.max || second.min > second.max) { stop("invalid anchor/target ranges supplied") }
-	
-	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that edges of the plot are retained).
-	keep.first <- overlapsAny(fragments, first.region, maxgap=width(first.region)/2+100)
-	if (first.chr!=second.chr || first.start!=second.start || first.end!=second.end) {
-		keep.second <- overlapsAny(fragments, second.region, maxgap=width(second.region)/2+100)
-		keep <- keep.first | keep.second
-	} else {
-		keep <- keep.second <- keep.first
+
+	# Setting up the boxes.
+	cur.chrs <- frag.by.chr$first[[first.chr]]:frag.by.chr$last[[first.chr]]
+	if (first.chr!=second.chr) {
+		second.set <- frag.by.chr$first[[second.chr]]:frag.by.chr$last[[second.chr]]
+		if (cur.chrs[1] < second.set[1]) { # Distinction isn't strictly necessary, but it simplifies interpretation. 
+			cur.chrs <- c(cur.chrs, second.set) 
+		} else {
+			cur.chrs <- c(second.set, cur.chrs) 
+		}
 	}
-	width <- as.integer(width) 
-	new.pts <- .getBinID(fragments[keep], width)
+	new.pts <- .getBinID(fragments[cur.chrs], width)
 	out.id <- integer(length(fragments))
-	out.id[keep] <- new.pts$id
+	out.id[cur.chrs] <- new.pts$id
+
+	# Identifying the boxes that lie within our ranges of interest. We give it some leeway
+	# to ensure that edges of the plot are retained.
+	use.bin.first <- overlapsAny(new.pts$region, first.region, maxgap=width(first.region)/2+100)
+	keep.frag.first <- logical(length(fragments))
+	keep.frag.first[cur.chrs] <- use.bin.first[new.pts$id]
+	if (first.chr!=second.chr || first.start!=second.start || first.end!=second.end) {
+		use.bin.second <- overlapsAny(new.pts$region, second.region, maxgap=width(second.region)/2+100)
+		keep.frag.second <- logical(length(fragments))
+		keep.frag.second[cur.chrs] <- use.bin.second[new.pts$id]
+	} else {
+		keep.frag.second <- keep.frag.first
+	}
 
 	# Pulling out the read pair indices from each file, and checking whether chromosome names are flipped around.
 	all.dex <- .loadIndices(file, seqlevels(fragments))
-	frag.by.chr <- .splitByChr(fragments)
 	flipped <- FALSE
-
 	if (!is.null(all.dex[[first.chr]][[second.chr]])) {
 		current <- .baseHiCParser(TRUE, file, first.chr, second.chr, 
 			chr.limits=frag.by.chr, discard=discard, cap=cap)[[1]]
@@ -65,25 +79,33 @@ plotPlaid <- function(file, param, first.region, second.region=first.region,
 	# Generating a plot.
 	if (is.null(xlab)) { xlab <- first.chr }
 	if (is.null(ylab)) { ylab <- second.chr }
-    plot(-1, -1, xlim=c(first.min, first.max), ylim=c(second.min, second.max), xlab=xlab, ylab=ylab, type="n", ...)
+	plot(-1, -1, xlim=c(first.min, first.max), ylim=c(second.min, second.max), xlab=xlab, ylab=ylab, type="n", ...)
 
 	# Setting up the color function.		
 	my.col<-col2rgb(col)[,1]
 	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/max.count)) }
 	if (!nrow(current))	{ return(invisible(colfun)) }
 
-	# Getting the counts around the area of interest, and then collating them.
+	# Getting the read pairs around the area of interest.
    	if (flipped) {
-		filter.a <- keep.second
-		filter.t <- keep.first
+		filter.a <- keep.frag.second
+		filter.t <- keep.frag.first
    	} else {
- 	   	filter.a <- keep.first
-		filter.t <- keep.second
+ 	   	filter.a <- keep.frag.first
+		filter.t <- keep.frag.second
    	}	   
    	retain <- filter.a[current$anchor.id] & filter.t[current$target.id]
-    out<-.Call(cxx_count_patch, list(current[retain,]), out.id, 1L, 
-		out.id[filter.t][1L], tail(out.id[filter.t], 1L)) # First and last bin indices on the target interval.
-    if (is.character(out)) { stop(out) }
+	if (first.chr==second.chr) { 
+		# Pick up reflection around diagonal.
+		retain <- retain | (filter.a[current$target.id] & filter.t[current$anchor.id]) 
+		bin.indices <- out.id[filter.t | filter.a]	
+	} else {
+		bin.indices <- out.id[filter.t]
+	}
+	
+	# Collating read pairs into counts.
+	out <- .Call(cxx_count_patch, list(current[retain,]), out.id, 1L, bin.indices[1L], tail(bin.indices, 1L))
+	if (is.character(out)) { stop(out) }
 	
 	# Assigning coordinates to x and y-axes, while checking whether chromosome names have been flipped.
 	a.ranges <- new.pts$region[out[[1]]]
@@ -149,8 +171,8 @@ plotDI <- function(data, fc, first.region, second.region=first.region,
 	first.end <- end(first.region)
 	second.start <- start(second.region)
 	second.end <- end(second.region)
-    if (length(first.chr)!=1L) { stop("exactly one first range is required for plotting") }
-    if (length(second.chr)!=1L) { stop("exactly one second range is required for plotting") }
+	if (length(first.chr)!=1L) { stop("exactly one first range is required for plotting") }
+	if (length(second.chr)!=1L) { stop("exactly one second range is required for plotting") }
 
 	# Setting up the boundaries.
 	first.min <- max(1L, first.start)
@@ -181,7 +203,7 @@ plotDI <- function(data, fc, first.region, second.region=first.region,
 
 	if (is.null(xlab)) { xlab <- first.chr }
 	if (is.null(ylab)) { ylab <- second.chr }
-    plot(-1, -1, xlim=c(first.min, first.max), ylim=c(second.min, second.max), xlab=xlab, ylab=ylab, type="n", ...)
+	plot(-1, -1, xlim=c(first.min, first.max), ylim=c(second.min, second.max), xlab=xlab, ylab=ylab, type="n", ...)
 	u <- par("usr") # The coordinates of the plot area
 	rect(u[1], u[3], u[2], u[4], col=background, border=NA)
 	box()

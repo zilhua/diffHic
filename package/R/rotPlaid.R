@@ -5,9 +5,8 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 #
 # written by Aaron Lun
 # created 18 September 2014
-# last modified 20 March 2015
+# last modified 28 April 2015
 {
-	if (!is.integer(width)) { width<-as.integer(width) }
 	xchr <- as.character(seqnames(region))
 	xstart <- start(region)
 	xend <- end(region)
@@ -18,26 +17,32 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	if (!xchr %in% seqlevels(fragments)) { stop("anchor/target chromosome names not in cut site list") } 
 	discard <- .splitDiscards(param$discard)
 	cap <- param$cap
+	frag.by.chr <- .splitByChr(fragments)
 
 	# Setting up the boundaries.
 	x.min <- max(1L, xstart)
 	x.max <- min(seqlengths(fragments)[[xchr]], xend)
 	if (x.min >= x.max) { stop("invalid anchor/target ranges supplied") }
 	max.height <- x.max - x.min
+
+	# Setting up the boxes.		
+	width<-as.integer(width) 
+	cur.chrs <- frag.by.chr$first[[xchr]]:frag.by.chr$last[[xchr]]
+	new.pts <- .getBinID(fragments[cur.chrs], width)
+	out.id <- integer(length(fragments))
+	out.id[cur.chrs] <- new.pts$id
 						
-	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that 
+	# Identifying the boxes in our ranges of interest (with some leeway, to ensure that 
 	# there's stuff in the corners of the rotated plot). Specifically, you need to include 
 	# 'center +/- max.height' on either side to fill up the top left/right corners; this is
 	# equivalent to the region interval +- 'max.height/2'. We ask for a bit more, to be safe.
-	keep <- overlapsAny(fragments, region, maxgap=max.height*0.7)
-	new.pts <- .getBinID(fragments[keep], width)
-	out.id <- integer(length(fragments))
-	out.id[keep] <- new.pts$id
+	use.bin <- overlapsAny(new.pts$region, region, maxgap=max.height*0.7)
+	keep.frag <- logical(length(fragments))
+	keep.frag[cur.chrs] <- use.bin[new.pts$id]	
 	
 	# Pulling out the read pair indices from each file.
-	all.dex <- .loadIndices(file, seqlevels(param$fragments))
+	all.dex <- .loadIndices(file, seqlevels(fragments))
 	if (!is.null(all.dex[[xchr]][[xchr]])) {
-		frag.by.chr <- .splitByChr(fragments)
 		current <- .baseHiCParser(TRUE, file, xchr, xchr, chr.limits=frag.by.chr,
 			discard=discard, cap=cap)[[1]]
 	} else { 
@@ -54,9 +59,11 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/max.count)) }
 	if (!nrow(current))	{ return(invisible(colfun)) }
 
-   	retain <- keep[current$anchor.id] & keep[current$target.id]
+	# Collating read pairs into counts.
+   	retain <- keep.frag[current$anchor.id] & keep.frag[current$target.id]
+	bin.indices <- out.id[keep.frag]
 	out<-.Call(cxx_count_patch, list(current[retain,]), out.id, 1L, 
-			out.id[keep][1L], tail(out.id[keep], 1L)) # First and last bin indices on the interval.
+			bin.indices[1L], tail(bin.indices, 1L)) # First and last bin indices on interval of interest.
 	if (is.character(out)) { stop(out) }
 
 	# Rotating the vertices.
@@ -96,14 +103,14 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 #################################################################
 
 rotDI <- function(data, fc, region, col.up="red", col.down="blue",
-    background="grey70", zlim=NULL, xlab=NULL, ylab="Gap", ...)
+	background="grey70", zlim=NULL, xlab=NULL, ylab="Gap", ...)
 # This constructs a sideways plot of interaction intensities.
 # Boxes represent interactions where the interacting loci are
 # on the x-axis, extended from the diagonal.
 #
 # written by Aaron Lun
 # created 18 September 2014
-# last modified 20 March 2015
+# last modified 28 April 2015
 {
 	xchr <- as.character(seqnames(region))
 	xstart <- start(region)
