@@ -24,8 +24,10 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	x.max <- min(seqlengths(fragments)[[xchr]], xend)
 	if (x.min >= x.max) { stop("invalid anchor/target ranges supplied") }
 						
-	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that edges of the plot are retained).
-	keep <- overlapsAny(fragments, region, maxgap=width(region)/2)
+	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that 
+	# there's stuff in the corners of the rotated plot). Specifically, you need to include 
+	# 'max.height' on either side to fill up the top left/right corners.
+	keep <- overlapsAny(fragments, region, maxgap=width(region)*1.2)
 	new.pts <- .getBinID(fragments[keep], width)
 	out.id <- integer(length(fragments))
 	out.id[keep] <- new.pts$id
@@ -33,7 +35,9 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	# Pulling out the read pair indices from each file.
 	all.dex <- .loadIndices(file, seqlevels(param$fragments))
 	if (!is.null(all.dex[[xchr]][[xchr]])) {
-		current <- .baseHiCParser(TRUE, file, xchr, xchr, discard=discard, cap=cap)[[1]]
+		frag.by.chr <- .splitByChr(fragments)
+		current <- .baseHiCParser(TRUE, file, xchr, xchr, chr.limits=frag.by.chr,
+			discard=discard, cap=cap)[[1]]
 	} else { 
 		current<-data.frame(anchor.id=integer(0), target.id=integer(0))
 	}
@@ -43,10 +47,15 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	if (is.null(xlab)) { xlab <- xchr }
 	plot(-1, -1, xlim=c(x.min, x.max), ylim=c(0, max.height),
 		xlab=xlab, yaxs="i", ylab=ylab, type="n", bg="transparent", ...)
-	if (!nrow(current))	{ next }
+
+	# Getting the colour (and returning it, if necessary).
+	my.col<-col2rgb(col)[,1]
+	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/max.count)) }
+	if (!nrow(current))	{ return(invisible(colfun)) }
 
    	retain <- keep[current$anchor.id] & keep[current$target.id]
-	out<-.Call(cxx_count_patch, list(current[retain,]), out.id, 1L)
+	out<-.Call(cxx_count_patch, list(current[retain,]), out.id, 1L, 
+			out.id[keep][1L], tail(out.id[keep], 1L)) # First and last bin indices on the interval.
 	if (is.character(out)) { stop(out) }
 
 	# Rotating the vertices.
@@ -55,8 +64,6 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	corner <- .spawnVertices(anchors, targets)
 
 	# Plotting these new vertices.
-	my.col<-col2rgb(col)[,1]
-	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/max.count)) }
 	polygon(corner$x, corner$y, border=NA, col=colfun(out[[3]]))
 	return(invisible(colfun))
 }
@@ -107,8 +114,8 @@ rotDI <- function(data, fc, region, col.up="red", col.down="blue",
 	x.max <- min(seqlengths(regions(data))[[xchr]], xend)
 	if (x.min >= x.max) { stop("invalid anchor/target ranges supplied") }
 						
-	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that edges of the plot are retained).
-	ref.keep <- overlapsAny(regions(data), region, maxgap=width(region)/2)
+	# Identifying the fragments in our ranges of interest.
+	ref.keep <- overlapsAny(regions(data), region, maxgap=width(region)*1.2)
 	keep <- ref.keep[anchors(data, id=TRUE)] & ref.keep[targets(data, id=TRUE)]
 
 	# Computing the max height.
@@ -117,15 +124,16 @@ rotDI <- function(data, fc, region, col.up="red", col.down="blue",
 	plot(-1, -1, xlim=c(x.min, x.max), ylim=c(0, max.height), xlab=xlab, yaxs="i", ylab=ylab, type="n", ...)
 	u <- par("usr") # The coordinates of the plot area
 	rect(u[1], u[3], u[2], u[4], col=background, border=NA)
-	if (!any(keep)) { next }
+	box()
 
 	# Generating colours.
 	if (is.null(zlim)) { zlim <- max(abs(fc)) }
 	up.col <- col2rgb(col.up)[,1]
 	down.col <- col2rgb(col.down)[,1]
 	colfun <- .forgeNewFun(zlim, up.col, down.col)
+	if (!any(keep)) { return(invisible(colfun)) }
 
-	# Rotating the vertices and plotting them..
+	# Rotating the vertices and plotting them.
 	current <- data[keep,]
 	corner <- .spawnVertices(anchors(current), targets(current))
 	polygon(corner$x, corner$y, border=NA, col=colfun(fc[keep]))
