@@ -28,14 +28,15 @@ enrichedPairs <- function(data, flank=5, prior.count=2, abundances=NULL)
 	
 	# Running through each pair of chromosomes.
 	np <- nrow(data)
-	by.chr <- split(1:np, as.character(seqnames(anchors(data))))
+	all.chrs <- as.character(seqnames(regions(data)))
 	aid <- anchors(data, id=TRUE)
+	by.chr <- split(1:np, all.chrs[aid])
 	tid <- targets(data, id=TRUE)
 	output <- numeric(np)
 
 	for (anchor in names(by.chr)) {
 		next.chr <- by.chr[[anchor]]
-		next.chr <- split(next.chr, as.character(seqnames(targets(data[next.chr,]))))
+		next.chr <- split(next.chr, all.chrs[tid[next.chr]])
 		a.len <- last.id[[anchor]] - first.id[[anchor]] + 1L
 
 		for (target in names(next.chr)) {
