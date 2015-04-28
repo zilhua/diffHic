@@ -12,6 +12,7 @@ totalCounts <- function(files, param)
 		stop("number of libraries must be positive")
 	} 
 	fragments <- param$fragments
+	frag.by.chr <- .splitByChr(fragments)
  	chrs <- seqlevels(fragments) 
 	full.sizes <- integer(nlibs)
 
@@ -27,8 +28,9 @@ totalCounts <- function(files, param)
 		for (target in names(current)) {
 
 			# Getting totals.
-			pairs <- .baseHiCParser(current[[target]], files, anchor, target, discard=discard, cap=cap)
-			for (lib in 1:length(pairs)) { full.sizes[lib] <- full.sizes[lib] + nrow(pairs[[lib]]) }
+			pairs <- .baseHiCParser(current[[target]], files, anchor, target, 
+				chr.limits=frag.by.chr, discard=discard, cap=cap)
+			full.sizes <- full.sizes + sapply(pairs, FUN=nrow)
 		}
 	}
 
