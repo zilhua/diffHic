@@ -988,7 +988,7 @@ Also, when computing abundances, the full library size should be manually specif
 This allows valid comparisons between abundances from different chromosome pairs.
 Otherwise, the library size will be different for each pair.
 <<>>=
-totals <- totalCounts(data, mm.param)
+totals <- totalCounts(input, mm.param)
 chr1.ab <- aveLogCPM(asDGEList(chr1.data, lib.size=totals))
 @
 \item Load counts for larger bin sizes without pre-filtering.
