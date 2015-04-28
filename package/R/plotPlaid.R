@@ -86,7 +86,7 @@ plotPlaid <- function(file, param, first.region, second.region=first.region,
 	colfun <- function(count) { .get.new.col(my.col, pmin(1, count/max.count)) }
 	if (!nrow(current))	{ return(invisible(colfun)) }
 
-	# Getting the read pairs around the area of interest.
+	# Getting the read pairs around the area of interest, and collating them into counts.
    	if (flipped) {
 		filter.a <- keep.frag.second
 		filter.t <- keep.frag.first
@@ -96,14 +96,13 @@ plotPlaid <- function(file, param, first.region, second.region=first.region,
    	}	   
    	retain <- filter.a[current$anchor.id] & filter.t[current$target.id]
 	if (first.chr==second.chr) { 
-		# Pick up reflection around diagonal.
+		# Pick up reflection around diagonal (it's hard to conclusively define 
+		# the anchor/target range acround the diagonal, so we just include everything).
 		retain <- retain | (filter.a[current$target.id] & filter.t[current$anchor.id]) 
 		bin.indices <- out.id[filter.t | filter.a]	
 	} else {
 		bin.indices <- out.id[filter.t]
 	}
-	
-	# Collating read pairs into counts.
 	out <- .Call(cxx_count_patch, list(current[retain,]), out.id, 1L, bin.indices[1L], tail(bin.indices, 1L))
 	if (is.character(out)) { stop(out) }
 	
