@@ -921,8 +921,8 @@ par(mfrow=c(1,2))
 for (chosen in 1:length(a.list)) { 
 	if (!any(anchors(chr1.data[keep])==a.list[chosen] & targets(chr1.data[keep])==t.list[chosen])) { stop("can't find example for peak-calling") }
 	plotPlaid(input[3], param=mm.param, width=2.5e4, max.count=capped[chosen], col="black",
-			anchor=resize(a.list[chosen], fix="center", width=1e6),
-			target=resize(t.list[chosen], fix="center", width=1e6),
+			first.region=resize(a.list[chosen], fix="center", width=1e6),
+			second.region=resize(t.list[chosen], fix="center", width=1e6),
 			main=paste("Example", chosen))
 	box()
 	rect(start(a.list[chosen]), start(t.list[chosen]),
@@ -1849,13 +1849,13 @@ Each ``pixel'' represents an interaction between the corresponding intervals on 
 The colour of the pixel is proportional to the number of read pairs mapped between the interacting loci.
 
 <<label=plaid1,eval=FALSE,echo=FALSE>>=
-plotPlaid(input[1], anchor=expanded.a, target=expanded.t, max.count=bound1, 
+plotPlaid(input[1], first=expanded.a, second=expanded.t, max.count=bound1, 
     width=5e4, col="red", param=mm.param, main="Flox")
 rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
 @
 
 <<label=plaid3,eval=FALSE,echo=FALSE>>=
-plotPlaid(input[3], anchor=expanded.a, target=expanded.t, max.count=bound3, 
+plotPlaid(input[3], first=expanded.a, second=expanded.t, max.count=bound3, 
     width=5e4, col="blue", param=mm.param, main="KO")
 rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
 @
@@ -1915,13 +1915,13 @@ Because the counts are ``averaged'' across the area of the interaction space, th
 Of course, any sharp changes within each of these large bin pairs will be overlooked as the smaller bin pairs are not used.
 
 <<label=plaid1b,eval=FALSE,echo=FALSE>>=
-plotPlaid(input[1], anchor=expanded.a, target=expanded.t, max.count=bound1, 
+plotPlaid(input[1], first=expanded.a, second=expanded.t, max.count=bound1, 
     width=5e4, param=mm.param, col="red", main="Flox")
 rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
 @
 
 <<label=plaid3b,eval=FALSE,echo=FALSE>>=
-plotPlaid(input[3], anchor=expanded.a, target=expanded.t, max.count=bound3, 
+plotPlaid(input[3], first=expanded.a, second=expanded.t, max.count=bound3, 
     width=5e4, col="blue", param=mm.param, main="KO")
 rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
 @
