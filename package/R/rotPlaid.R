@@ -23,11 +23,13 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 	x.min <- max(1L, xstart)
 	x.max <- min(seqlengths(fragments)[[xchr]], xend)
 	if (x.min >= x.max) { stop("invalid anchor/target ranges supplied") }
+	max.height <- x.max - x.min
 						
 	# Identifying the fragments in our ranges of interest (with some leeway, to ensure that 
 	# there's stuff in the corners of the rotated plot). Specifically, you need to include 
-	# 'max.height' on either side to fill up the top left/right corners.
-	keep <- overlapsAny(fragments, region, maxgap=width(region)*1.2)
+	# 'center +/- max.height' on either side to fill up the top left/right corners; this is
+	# equivalent to the region interval +- 'max.height/2'. We ask for a bit more, to be safe.
+	keep <- overlapsAny(fragments, region, maxgap=max.height*0.7)
 	new.pts <- .getBinID(fragments[keep], width)
 	out.id <- integer(length(fragments))
 	out.id[keep] <- new.pts$id
@@ -42,8 +44,7 @@ rotPlaid <- function(file, param, region, width=10000, col="red", max.count=20, 
 		current<-data.frame(anchor.id=integer(0), target.id=integer(0))
 	}
 
-	# Computing the max height.
-	max.height <- x.max - x.min
+	# Making the plot.
 	if (is.null(xlab)) { xlab <- xchr }
 	plot(-1, -1, xlim=c(x.min, x.max), ylim=c(0, max.height),
 		xlab=xlab, yaxs="i", ylab=ylab, type="n", bg="transparent", ...)
@@ -113,13 +114,13 @@ rotDI <- function(data, fc, region, col.up="red", col.down="blue",
 	x.min <- max(1L, xstart)
 	x.max <- min(seqlengths(regions(data))[[xchr]], xend)
 	if (x.min >= x.max) { stop("invalid anchor/target ranges supplied") }
+	max.height <- x.max - x.min
 						
 	# Identifying the fragments in our ranges of interest.
-	ref.keep <- overlapsAny(regions(data), region, maxgap=width(region)*1.2)
+	ref.keep <- overlapsAny(regions(data), region, maxgap=max.height*0.7)
 	keep <- ref.keep[anchors(data, id=TRUE)] & ref.keep[targets(data, id=TRUE)]
 
-	# Computing the max height.
-	max.height <- x.max - x.min
+	# Making the plot.
 	if (is.null(xlab)) { xlab <- xchr }
 	plot(-1, -1, xlim=c(x.min, x.max), ylim=c(0, max.height), xlab=xlab, yaxs="i", ylab=ylab, type="n", ...)
 	u <- par("usr") # The coordinates of the plot area
