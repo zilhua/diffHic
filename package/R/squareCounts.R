@@ -21,6 +21,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	# Setting up ranges for the fragments and bins.
 	chrs <- seqlevels(fragments)
 	frag.by.chr <- .splitByChr(fragments)
+	bin.by.chr <- .splitByChr(new.pts$region)
 		
 	# Setting up other local references.
 	restrict <- param$restrict
@@ -45,7 +46,8 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 			full.sizes <- full.sizes + sapply(pairs, FUN=nrow)
 			
 			# Aggregating them in C++ to obtain count combinations for each bin pair.
-			out <- .Call(cxx_count_patch, pairs, new.pts$id, filter) 
+			out <- .Call(cxx_count_patch, pairs, new.pts$id, filter, 
+				bin.by.chr$first[[target]], bin.by.chr$last[[target]])
 			if (is.character(out)) { stop(out) }
 			if (!length(out[[1]])) { next }
 
