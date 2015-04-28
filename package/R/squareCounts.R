@@ -160,13 +160,15 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 			if (is.character(check)) { stop(check) }
 
 			# Checking that we're all on the right chromosome.
-			if (max(out$anchor.id) > chr.limits$last[[anchor]] || 
-					min(out$anchor.id) < chr.limits$first[[anchor]]) { 
-				stop("anchor index outside range of fragment object") 
-			}
-			if (max(out$target.id) > chr.limits$last[[target]] || 
-					min(out$target.id) < chr.limits$first[[target]]) { 
-				stop("target index outside range of fragment object") 
+			if (nrow(out)) { 
+				if (max(out$anchor.id) > chr.limits$last[[anchor]] || 
+						min(out$anchor.id) < chr.limits$first[[anchor]]) { 
+					stop("anchor index outside range of fragment object") 
+				}
+				if (max(out$target.id) > chr.limits$last[[target]] || 
+						min(out$target.id) < chr.limits$first[[target]]) { 
+					stop("target index outside range of fragment object") 
+				}
 			}
 
 			# Overlapping with those in the discard intervals.
