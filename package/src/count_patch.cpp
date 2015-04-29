@@ -7,6 +7,8 @@ SEXP count_patch(SEXP all, SEXP bin, SEXP filter, SEXP firstbin, SEXP lastbin) t
 	if (!isInteger(filter) || LENGTH(filter)!=1) { throw std::runtime_error("filter value must be an integer scalar"); }
 	const int f=asInteger(filter);
 	if (!isInteger(firstbin) || LENGTH(firstbin)!=1) { throw std::runtime_error("index of first bin on target chromosome must be an integer scalar"); }
+
+	// Getting the indices of the first and last bin on the target chromosome.
 	const int fbin=asInteger(firstbin);
 	if (!isInteger(lastbin) || LENGTH(lastbin)!=1) { throw std::runtime_error("index of first bin on target chromosome must be an integer scalar"); }
 	const int lbin=asInteger(lastbin);
