@@ -125,7 +125,8 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter, SEX
 					} else if ((itb->second).second==counter) { 
 						/* The 'counter' avoids adding the same range twice to a particular pair. Regions
 						 * can be irregularly sized and spaced, e.g., nested, so it's not possible to set up 
-						 * a general rule to avoid redundant counting.
+						 * a general rule to avoid redundant counting. For example, the target fragment might
+						 * overlap regions 1, 2 while the anchor might just overlap 1, if 2 is nested in 1.
 						 */
 						continue;
 					}
