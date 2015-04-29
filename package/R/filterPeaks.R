@@ -5,14 +5,13 @@ enrichedPairs <- function(data, flank=5, prior.count=2, abundances=NULL)
 #
 # written by Aaron Lun
 # created 23 April 2014
-# last modified 23 March 2015
+# last modified 29 April 2015
 {
 	flank <- as.integer(flank)
 	if (flank <= 0L) { stop("flank width must be a positive integer") }
-	rdata <- .delimitFragments(regions(data))
-	last.id <- rdata$end
-	first.id <- rdata$start
-	names(last.id) <- names(first.id) <- rdata$chr
+	rdata <- .splitByChr(regions(data))
+	last.id <- rdata$last
+	first.id <- rdata$first
 	if (is.null(abundances)) { abundances <- aveLogCPM(asDGEList(data), prior.count=0) }
 
 	# Rescaling to count-level data with at least 6 dp, for stable calculations with integers.

@@ -5,7 +5,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 #
 # written by Aaron Lun
 # some time ago
-# last modified 28 April 2015
+# last modified 29 April 2015
 {
 	nlibs <- length(files)
 	if (nlibs==0) { 
@@ -97,11 +97,11 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	out.ids<-integer(length(fragments))
 	out.ranges<-list()
 	last<-0L
-	frag.data <- .delimitFragments(fragments)
+	frag.data <- .splitByChr(fragments)
 	nfrags <- list() 
 	
 	for (x in 1:length(frag.data$chr)) {
-		curindex <- frag.data$start[x]:frag.data$end[x]
+		curindex <- frag.data$first[x]:frag.data$last[x]
 		curf <- fragments[curindex]
 		mids <- (start(curf)+end(curf))/2
 		bin.id <- as.integer((mids-0.1)/width)+1L 
@@ -127,16 +127,6 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 	seqlengths(out.ranges) <- seqlengths(fragments)
 	out.ranges$nfrags <- unlist(nfrags)
 	return(list(id=out.ids, region=out.ranges))
-}
-
-####################################################################################################
-
-.splitByChr <- function(ranges) {
-	runs <- runLength(seqnames(ranges))
-	lasts <- cumsum(runs)
-	firsts <- c(1L, lasts[-length(lasts)] + 1L)
-	names(firsts) <- names(lasts) <- runValue(seqnames(ranges))
-	return(list(first=firsts, last=lasts))
 }
 
 ####################################################################################################

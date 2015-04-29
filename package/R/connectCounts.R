@@ -6,7 +6,7 @@ connectCounts <- function(files, param, regions, filter=1L, type="any", second.r
 #
 # written by Aaron Lun
 # a long time ago.
-# last modified 27 March 2015
+# last modified 29 April 2015
 {
 	nlibs <- length(files)
 	if (nlibs==0L) { stop("number of libraries must be positive") } 
@@ -70,9 +70,9 @@ connectCounts <- function(files, param, regions, filter=1L, type="any", second.r
 		regions$original <- 1:length(regions)
 	}
 
-	# Figuring out which regions are anchor or targets.
-	fdata <- .delimitFragments(fragments)
-	matched <- match(as.character(seqnames(regions)), fdata$chr)
+	# Ordering regions, consistent with the previous definitions of anchor/targets.
+	ordered.chrs <- as.character(runValue(seqnames(fragments)))
+	matched <- match(as.character(seqnames(regions)), ordered.chrs)
 	if (any(is.na(matched))) { stop("chromosome present in regions and not in fragments") }
 
 	nregs <- length(regions)
