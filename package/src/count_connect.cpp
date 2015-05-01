@@ -141,8 +141,8 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter, SEX
 		for (lib=0; lib<nlibs; ++lib) { curcounts[lib]=0; }
 
 		/* Removing all entries where the first index is below the smallest region index for the anchor 
-		 * fragment. As we iterate, the anchor fragment will increase, so the smallest region index will 
-		 * only get higher (regions have already been sorted at the R-level). This means that lower entries 
+		 * fragment. As we iterate, the anchor fragment will increase, so the smallest region index cannot 
+		 * decrease (assuming regions have already been sorted at the R-level). This means that lower entries 
 		 * will no longer be accessible. Swapping with the index for the target fragment has no effect, as 
 		 * you need to be higher to swap. The aim is to shrink the map to make it (almost) 1-dimensional.
 		 */
