@@ -31,29 +31,29 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter, SEX
 	// Setting up other structures, including pointers. We assume it's sorted on R's side.
    	if (!isNewList(all)) { throw std::runtime_error("data on interacting PETs must be contained within a list"); }
 	const int nlibs=LENGTH(all);
-    std::deque<const int*> aptrs(nlibs), tptrs(nlibs);
+	std::deque<const int*> aptrs(nlibs), tptrs(nlibs);
 	std::deque<int> nums(nlibs), indices(nlibs);
-    std::priority_queue<coord, std::deque<coord>, std::greater<coord> > next;
+	std::priority_queue<coord, std::deque<coord>, std::greater<coord> > next;
 
 	for (int i=0; i<nlibs; ++i) {
-        SEXP current=VECTOR_ELT(all, i);
-        if (!isNewList(current) || LENGTH(current)!=2) { 
+		SEXP current=VECTOR_ELT(all, i);
+		if (!isNewList(current) || LENGTH(current)!=2) { 
 			throw std::runtime_error("interactions must be supplied as a data.frame with anchor.id, target.id"); }
 
-        for (int j=0; j<2; ++j) {
-            SEXP current_col=VECTOR_ELT(current, j);
-            if (!isInteger(current_col)) { throw std::runtime_error("interaction data must be in integer format"); }
-            int* ptr=INTEGER(current_col);
-            switch (j) {
-                case 0: 
+		for (int j=0; j<2; ++j) {
+			SEXP current_col=VECTOR_ELT(current, j);
+			if (!isInteger(current_col)) { throw std::runtime_error("interaction data must be in integer format"); }
+			int* ptr=INTEGER(current_col);
+			switch (j) {
+				case 0: 
 					aptrs[i]=ptr; 
 					nums[i]=LENGTH(current_col);
 					break;
-                case 1: tptrs[i]=ptr; break;
-                default: break;
-            }
+				case 1: tptrs[i]=ptr; break;
+				default: break;
+			}
 		}
-        // Populating the priority queue.
+		// Populating the priority queue.
 		if (nums[i]) { next.push(coord(aptrs[i][0], tptrs[i][0], i)); }
 	}
 	
@@ -86,7 +86,7 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter, SEX
 			int& libdex=indices[curlib];
 			curcounts[curlib]+=1;
 			next.pop();
-            if ((++libdex) < nums[curlib]) {
+			if ((++libdex) < nums[curlib]) {
 				next.push(coord(aptrs[curlib][libdex], tptrs[curlib][libdex], curlib));
 			} 
 		} while (!next.empty() && next.top().anchor==curab && next.top().target==curtb);
@@ -151,10 +151,10 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter, SEX
 		itb=bins.begin();
 		while (itb!=bins.end()) { 
 			if ((itb->first).first < smallest) {
-				countsum=0;
+				countsum=0; 
 				index=(itb->second).first;
 				for (lib=0; lib<nlibs; ++lib, ++index) { countsum += counts[index]; }
-				if (countsum >= filtval) { 
+				if (countsum >= filtval) { // Checking that the count sum is sufficient.
 					returned_anchors.push_back((itb->first).first);
 					returned_targets.push_back((itb->first).second);
 					count_indices.push_back((itb->second).first);
