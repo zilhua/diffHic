@@ -34,7 +34,10 @@ SEXP count_patch(SEXP all, SEXP bin, SEXP filter, SEXP firstbin, SEXP lastbin) t
 					aptrs[i]=ptr; 
 					nums[i]=LENGTH(current_col);
 					break;
-				case 1: tptrs[i]=ptr; break;
+				case 1: 
+					tptrs[i]=ptr; 
+					if (LENGTH(current_col)!=nums[i]) { throw std::runtime_error("vectors should be the same length"); }		
+					break;
 				default: break;
 			}
 		}

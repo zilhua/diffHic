@@ -49,7 +49,10 @@ SEXP count_connect(SEXP all, SEXP start, SEXP end, SEXP region, SEXP filter, SEX
 					aptrs[i]=ptr; 
 					nums[i]=LENGTH(current_col);
 					break;
-				case 1: tptrs[i]=ptr; break;
+				case 1: 
+					tptrs[i]=ptr; 
+					if (LENGTH(current_col)!=nums[i]) { throw std::runtime_error("vectors should be the same length"); }
+					break;
 				default: break;
 			}
 		}
