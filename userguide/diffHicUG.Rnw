@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 28 April 2015}
+Last revised 8 May 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -438,6 +438,12 @@ Users should also note that the alignment script described in Section~\ref{sec:a
 This approach is based on splitting chimeric reads at the ligation signature, which is constructed from the recognition site of a restriction enzyme.
 The sequence around the ligation junction is not well-defined when DNase~I is used for cleavage.
 Instead, alignment programs should be used that can directly handle chimeric reads with arbitrary breakpoints in the genome, e.g., BWA \citep{li2010fast}.
+A Python script for iterative mapping \citep{imakaev2012iterative} is also provided for this purpose.
+
+<<results=hide>>=
+system.file("python", "iter_map.py", package="diffHic", mustWork=TRUE)
+@
+
 
 \chapter{Counting read pairs into interactions}
 \label{chap:counting}
