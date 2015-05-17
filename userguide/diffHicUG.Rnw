@@ -1322,6 +1322,8 @@ In short, normalization within a library is a different problem from normalizati
 %
 % Besides failing to remove trended biases, the iterative correction methods run the risk of overfitting.
 % There's no doubt that the marginal counts should be equal on average; whether they should be exactly equal is another matter.
+% You'll get some variability in counts just due to stochasticity, even if the expected coverage is the same.
+% In fact, variability might be substantial, due to correlations between bin pairs and the fact that the count is often dominated by a few local interactions.
 % Coercing equality will distort the differences between libraries, resulting in weird dispersion estimates and fold changes.
 % I don't think that's useful for routine analyses.
 
