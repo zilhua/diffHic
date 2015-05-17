@@ -1319,6 +1319,12 @@ In short, normalization within a library is a different problem from normalizati
 % This mean-dependent fold change represents a trended bias that can be eliminated with non-linear methods.
 % In contrast, the sum of counts for each genomic interval is the same for all intervals in each replicate ($1 + 3 + 1$ for the first and $2 + 2 + 2$ for the second).
 % This means that iterative correction will have no effect as it operates on the differences in these sums within a single sample.
+%
+% Besides failing to remove trended biases, the iterative correction methods run the risk of overfitting.
+% There's no doubt that the marginal counts should be equal on average; whether they should be exactly equal is another matter.
+% Coercing equality will distort the differences between libraries, resulting in weird dispersion estimates and fold changes.
+% I don't think that's useful for routine analyses.
+
 
 % A related single-sample approach deserves special mention. Normalization can
 % be performed on the distances between bins in each pair \cite{ay2014} to
