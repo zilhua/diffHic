@@ -108,7 +108,7 @@ SEXP count_background(SEXP all, SEXP bin, SEXP back_width, SEXP filter,
 	int leftbound, rightbound, leftdex, rightdex, desired_anchor;
    	size_t saved_copy_dex;
 
-	while (!engine.empty() || saved_dex < anchors.size()) {
+	while (1) { 
 		if (!engine.empty()) {
 			engine.fill(curcounts, ischanged, waschanged);
 			curanchor=engine.get_anchor() - fabin;
@@ -193,7 +193,10 @@ SEXP count_background(SEXP all, SEXP bin, SEXP back_width, SEXP filter,
 							--(neighbourarea[mode][saved_copy_dex]);
 						}
 					}
-					// Each bump_level will result in an increase in desired_anchor, so we can hot-start from the previous left/rightdex.
+					/* Each bump_level will result in an increase in desired_anchor, so we can hot-start 
+					 * from the previous left/rightdex. Both indices MUST increase (even when saved_copy_dex 
+					 * is reset to saved_dex) as they've been stuck on the previous desired_anchor.
+					 */
 				} while (base_ptr->bump_level());
 			}
 			while (saved_dex < anchors.size() && anchors[saved_dex]==saved_anchor) { ++saved_dex; } // Shifting onwards.
@@ -206,7 +209,7 @@ SEXP count_background(SEXP all, SEXP bin, SEXP back_width, SEXP filter,
 			ref_anchors.erase(ref_anchors.begin(), ref_anchors.begin()+n_to_drop);
 			ref_targets.erase(ref_targets.begin(), ref_targets.begin()+n_to_drop);
 			ref_ave.erase(ref_ave.begin(), ref_ave.begin()+n_to_drop);
-		}
+		} else if (engine.empty()) { break; }
 	}
 
 	// Storing into R objects.
