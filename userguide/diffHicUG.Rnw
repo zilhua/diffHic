@@ -869,29 +869,27 @@ These tend to dominate the output as they constitute most of the interaction spa
 Of course, the majority of these bin pairs will have low counts due to the sparseness of the data.
 
 \section{Peak-calling in the interaction space}
+
+\subsection{Defining enrichment values for each bin pair}
 Peaks in the interaction space refer to those bin pairs that have substantially more reads than their neighbours.
-The \code{enrichedPairs} function computes an enrichment value for each bin pair, defined as the log-fold change of its abundance against its neighbours.
+The \code{enrichedPairs} function computes an enrichment value for each bin pair, defined as the log-fold change of its abundance against that of its neighbours.
 Those bin pairs with high enrichment values can then be retained.
-The example below uses a smaller bin size to detect potential peaks at higher resolution.
-Note that the function requires unfiltered bin pairs, i.e., counting in \code{squareCounts} with \code{filter=1}.
-Thus, to avoid overloading the machine memory, it may be prudent to analyze each pair of chromosomes separately.
+This extends the concept of peak calling on the linear genome to the 2-dimensional interaction space \citep{rao2014kilobase}.
 
 <<>>=
-chr1.data <- squareCounts(input,  width=1e5, filter=1,
-    param=reform(mm.param, restrict=cbind("chr1", "chr1")))
 flank.width <- 5
-enrich.chr1 <- enrichedPairs(chr1.data, flank=flank.width)
-summary(enrich.chr1)   
+enrichments <- enrichedPairs(data, flank=flank.width)
+summary(enrichments)   
 @
 
 More specifically, the function partitions the neighbourhood into several different regions around the target bin pair.
-The size of the neighbourhood is set by \code{flank}, and is defined in terms of bins (actual distance of $\sim$500 kbp, in this case).
+The size of the neighbourhood is set by \code{flank}, and is defined in terms of bins (actual distance of $\sim$5 Mbp, in this case).
 The average abundance across each region is computed, and the region with the largest abundance is chosen.
 The enrichment value is defined as the log-fold change between the abundances of the target bin pair and the chosen region.
 Peaks are then defined as those bin pairs with high enrichment values.
 The neighbourhood regions are designed to capture high-intensity structural features like looping domains, TADs or banding patterns \citep{rao2014kilobase}.
 Any bin pair inside a feature will be compared to other high-abundance bin pairs from the same feature.
-This avoids spuriously high enrichments if it were compared instead to bin pairs outside the feature.
+This avoids spuriously high enrichments due to comparisons with bin pairs outside that feature.
 
 In this example, an enrichment value above 0.5 is required for retention.
 This is a modest threshold that errs on the side of caution, as weak peaks may be DB and should be retained for testing.
@@ -901,10 +899,11 @@ Near-diagonal elements should also be removed, as these tend to have high enrich
 All of these steps can be conveniently applied through the \code{filterPeaks} wrapper function.
 
 <<>>=
-keep <- filterPeaks(chr1.data, enrich.chr1, min.enrich=0.5, min.count=5, min.diag=2L)
+keep <- filterPeaks(data, enrichments, min.enrich=0.5, min.count=5, min.diag=2L)
 sum(keep)
 @
 
+\subsection{Examining some peak-calling diagnostics}
 This filtering strategy can be evaluated by examining the interaction space around each putative peak (see Chapter~\ref{chap:plaid}).
 Briefly, the colour intensity of each ``pixel'' is proportional to the number of read pairs between the corresponding loci on each axis.
 Red boxes mark the bin pairs retained by filtering, where each side represents a bin.
@@ -912,23 +911,25 @@ In both examples, the bin pairs correspond nicely to punctate high-intensity con
 
 \begin{center}
 <<fig=TRUE,echo=FALSE,height=6,width=10>>=
-#which(keep)[order(enrich.chr1[keep], decreasing=TRUE)]
-#plotPlaid(input[3], param=mm.param, width=2.5e4, cap=20, col="black",
-#	anchor=resize(anchors(chr1.data[chosen]), fix="center", width=1e6),
-#	target=resize(targets(chr1.data[chosen]), fix="center", width=1e6))
-a.list <- GRanges("chr1", IRanges(
-			c(150402687, 179710378),
-			c(150501589, 179796841)))
-t.list <- GRanges("chr1", IRanges(
-			c(139400813, 150402687),
-			c(139499958, 150501589)))
-capped <- c(20, 10)
+#keep2 <- keep & !is.na(dist)
+#which(keep2)[order(enrichments[keep2], decreasing=TRUE)][1:100]
+#plotPlaid(input[3], param=mm.param, width=2e5, cap=20, col="black",
+#	first=resize(anchors(data[chosen]), fix="center", width=10e6),
+#	second=resize(targets(data[chosen]), fix="center", width=10e6))
+a.list <- GRanges(c("chr11", "chr4"), IRanges(
+			c(80999224, 153002112),
+			c(81998782, 154006051)))
+t.list <- GRanges(c("chr11", "chr4"), IRanges(
+			c(66001477, 130998845),
+			c(67011476, 131997373)))
+capped <- c(50, 50)
 par(mfrow=c(1,2))
 for (chosen in 1:length(a.list)) { 
-	if (!any(anchors(chr1.data[keep])==a.list[chosen] & targets(chr1.data[keep])==t.list[chosen])) { stop("can't find example for peak-calling") }
-	plotPlaid(input[3], param=mm.param, width=2.5e4, max.count=capped[chosen], col="black",
-			first.region=resize(a.list[chosen], fix="center", width=1e6),
-			second.region=resize(t.list[chosen], fix="center", width=1e6),
+	if (!suppressWarnings(any(overlapsAny(anchors(data[keep]), a.list[chosen], type="equal") & 
+			overlapsAny(targets(data[keep]), t.list[chosen], type="equal")))) { stop("can't find example for peak-calling") }
+	plotPlaid(input[3], param=mm.param, width=2e5, max.count=capped[chosen], col="black",
+			first.region=resize(a.list[chosen], fix="center", width=10e6),
+			second.region=resize(t.list[chosen], fix="center", width=10e6),
 			main=paste("Example", chosen))
 	box()
 	rect(start(a.list[chosen]), start(t.list[chosen]),
@@ -941,16 +942,17 @@ Another diagnostic is based on the sparsity of putative peaks.
 Bin pairs nested within larger ``parent'' bin pairs are identified using the \code{boxPairs} function.
 Most of these parents should contain low numbers (i.e., less than 5) of nested bin pairs.
 This is because each peak, by definition, should be isolated in its neighbourhood.
-Larger numbers suggest that more aggressive filtering on the enrichment score is required, e.g., in the second example. 
+Larger proportions suggest that more aggressive filtering on the enrichment score is required, e.g., in the second example. 
 
 <<>>=
-neighbourhood <- (2*flank.width + 1) * exptData(chr1.data)$width
-boxed <- boxPairs(chr1.data[keep], reference=neighbourhood)
-table(tabulate(boxed$indices[[1]]))
-keep2 <- filterPeaks(chr1.data, enrich.chr1, min.enrich=0, min.count=5, min.diag=2L)
-boxed <- boxPairs(chr1.data[keep2], reference=neighbourhood)
+neighbourhood <- (2*flank.width + 1) * exptData(data)$width
+boxed <- boxPairs(data[keep], reference=neighbourhood)
 out <- tabulate(tabulate(boxed$indices[[1]]))
-setNames(c(out[1:10], sum(out[10:length(out)])), c(1:10, ">10"))
+setNames(round(c(out[1:5], sum(out[5:length(out)]))/sum(out)*100, 1), c(1:5, ">5"))
+keep2 <- filterPeaks(data, enrichments, min.enrich=0, min.count=5, min.diag=2L)
+boxed <- boxPairs(data[keep2], reference=neighbourhood)
+out <- tabulate(tabulate(boxed$indices[[1]]))
+setNames(round(c(out[1:5], sum(out[5:length(out)]))/sum(out)*100, 1), c(1:5, ">5"))
 @
 
 Obviously, peak calling assumes that changes in intensity of broad interactions are not interesting.
@@ -961,18 +963,33 @@ Users should try out the other general filters before proceeding to peak calling
 % I would just do direct filtering, and then consolidate across bin sizes.
 % It's less aggressive, I avoid having to cluster my output, and I still get decent resolution if the parents aren't too big.
 
-As an aside, no adjustment is done for the effect of distance on abundance for intra-chromosomal pairs.
-This assumes that the distance effect is uninteresting bias, which may not be the case.
-It is also difficult to fit stable trends for small bin sizes with low counts.
-Nonetheless, distance-adjusted abundances can be obtained by subtracting the fitted values from the abundances in the output of \code{filterTrended}, and supplying them to \code{enrichedPairs} through the \code{abundances} argument.
-Stable trends can be obtained by using larger bins (see Section~\ref{sec:filtersmall}).
-In general, adjustment is not required to obtain sensible peak calls.
+\subsection{Efficient peak calling at high resolution}
+The \code{enrichedPairs} function requires that all bin pairs are loaded into memory, i.e., with \code{filter=1} during \code{squareCounts}.
+This may not be feasible for high resolution analyses with small bin sizes, where there is a large number of bin pairs with low counts.
+In such cases, it may be more practical to use the \code{neighbourCounts} function.
+This re-counts the read pairs for each bin pair, storing only a limited portion of the interaction space to compute the enrichment statistic for that bin pair.
+The need to load all non-empty bin pairs is avoided.
+Only bin pairs with count sums greater than or equal to \code{filter} are returned, along with their enrichment values.
+This reduces memory usage at the cost of some speed.
 
-<<eval=FALSE,echo=TRUE>>=
-trended <- filterTrended(chr1.data, prior.count=0)
-adj.ab <- trended$abundances - trended$threshold
-summary(enrichedPairs(chr1.data, abundances=adj.ab))
+<<>>=
+en.data <- neighbourCounts(input, param, width=1e5, filter=10, flank=5)
+en.data$interaction
+head(en.data$enrichment)
 @
+
+% As an aside, no adjustment is done for the effect of distance on abundance for intra-chromosomal pairs.
+% This assumes that the distance effect is uninteresting bias, which may not be the case.
+% It is also difficult to fit stable trends for small bin sizes with low counts.
+% Nonetheless, distance-adjusted abundances can be obtained by subtracting the fitted values from the abundances in the output of \code{filterTrended}, and supplying them to \code{enrichedPairs} through the \code{abundances} argument.
+% Stable trends can be obtained by using larger bins (see Section~\ref{sec:filtersmall}).
+% In general, adjustment is not required to obtain sensible peak calls.
+% 
+% <<eval=FALSE,echo=TRUE>>=
+% trended <- filterTrended(chr1.data, prior.count=0)
+% adj.ab <- trended$abundances - trended$threshold
+% summary(enrichedPairs(chr1.data, abundances=adj.ab))
+% @
 
 \section{Defining filters in special cases}
 
