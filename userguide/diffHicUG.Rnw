@@ -1904,13 +1904,13 @@ The colour of the pixel is proportional to the number of read pairs mapped betwe
 
 <<label=plaid1,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[1], first=expanded.a, second=expanded.t, max.count=bound1, 
-    width=5e4, col="red", param=mm.param, main="Flox")
+    width=5e4, param=mm.param, main="Flox")
 rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
 @
 
 <<label=plaid3,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[3], first=expanded.a, second=expanded.t, max.count=bound3, 
-    width=5e4, col="blue", param=mm.param, main="KO")
+    width=5e4, param=mm.param, main="KO")
 rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
 @
 
@@ -1970,13 +1970,13 @@ Of course, any sharp changes within each of these large bin pairs will be overlo
 
 <<label=plaid1b,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[1], first=expanded.a, second=expanded.t, max.count=bound1, 
-    width=5e4, param=mm.param, col="red", main="Flox")
+    width=5e4, param=mm.param, main="Flox")
 rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
 @
 
 <<label=plaid3b,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[3], first=expanded.a, second=expanded.t, max.count=bound3, 
-    width=5e4, col="blue", param=mm.param, main="KO")
+    width=5e4, param=mm.param, main="KO")
 rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
 @
 
@@ -2022,13 +2022,13 @@ In the example below, each coloured box represents an interaction between two bi
 The coordinates of each interacting bin can be identified by extending lines from opposite sides of the box until they intersect the $x$-axis.
 
 <<eval=FALSE,echo=FALSE,label=rot1>>=
-rotPlaid(input[1], mm.param, region=example, width=2e4, 
-    main="Flox", col="Red", max.count=bound1)
+rotPlaid(input[1], mm.param, region=example, width=2.5e4, 
+    main="Flox", max.count=bound1)
 @
 
 <<eval=FALSE,echo=FALSE,label=rot2>>=
-rotPlaid(input[3], mm.param, region=example, width=2e4,
-    main="KO", col="blue", max.count=bound3)
+rotPlaid(input[3], mm.param, region=example, width=2.5e4,
+    main="KO", max.count=bound3)
 @
 
 <<eval=TRUE,echo=FALSE,label=rotset>>=
