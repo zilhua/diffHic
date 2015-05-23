@@ -1173,7 +1173,7 @@ original <- data
 data <- data[direct.keep2,] 
 @
 
-As promised, the filtered results are assigned back into \code{data}.
+The filtered results are assigned back into \code{data}.
 This is mostly for consistency, so that all operations are performed on \code{data} in the rest of this guide.
 The original unfiltered data is retained for later use in Section~\ref{sec:itercor}, but can otherwise be ignored.
 Direct filtering is also performed for the smaller bin pairs, and the results stored in \code{smaller.data}.
@@ -1873,7 +1873,7 @@ Nesting ensures that the FDR is computed over large bin pairs, even when detecti
 It is often convenient to identify the top-ranked bin pair nested within each of the larger features, i.e., parent bin pairs or clusters.
 Here, the top-ranked bin pair is identified as \code{getBestTest} as the one with the smallest individual $p$-value.
 This means that any high-resolution changes nested within a large feature can be easily identified.
-However, users should always keep in mind that the FDR is computed with respect to features, not bin pairs.
+However, keep in mind that the FDR is computed with respect to the features, not the nested bin pairs.
 
 <<>>=
 small.ids <- cons$id$smaller
