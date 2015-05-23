@@ -751,26 +751,25 @@ Any bin pair with an average abundance less than a specified threshold value wil
 At the very least, the threshold should be chosen to filter out bin pairs with very low absolute counts.
 This is because these bin pairs will never have sufficient evidence to reject the null hypothesis.
 The discreteness of low counts will also interfere with the asymptotic approximations that are required for downstream statistical modelling.
-The example below removes those bin pairs with an overall NB mean below 5 across all libraries.
+The example below identifies those bin pairs with an overall NB mean not less than 5.
 
 <<>>=
 count.keep <- ave.ab >= aveLogCPM(5, lib.size=mean(data$totals))
 summary(count.keep)
 @
 
-This count-based approach is fairly objective yet is still effective, i.e., it removes a large number of bin pairs that are likely to be uninteresting.
-More sophisticated strategies can be implemented where the choice of threshold is motivated by some understanding of the Hi-C protocol.
-These strategies will be described in the rest of this chapter.
-
-As an aside, the filtered results are assigned into the \code{dummy} object.
-This avoids overwriting the original data at this point in the guide.
-Similarly, \code{dummy} will be used as a dumping ground for the various demonstrations below.
-However, when actual filtering is desired, the filtered results should be assigned back to the \code{data} object for further analysis.
+The \code{count.keep} vector is then used to subset the \code{DIList}.
+The resulting \code{dummy} object will contain only the interesting bin pairs for downstream analysis.
+The same procedure can be used for any logical or integer vector that specifies the bin pairs to be retained.
 
 <<>>=
 dummy <- data[count.keep,]
-dummy
 @
+
+This count-based approach is fairly objective yet is still effective, i.e., it removes a large number of bin pairs that are likely to be uninteresting.
+However, it will be less useful with greater sequencing depth where all bin pairs will have higher counts.
+More sophisticated strategies can be implemented where the choice of threshold is motivated by some understanding of the Hi-C protocol.
+These strategies will be described in the rest of this chapter.
 
 \section{Directly removing low-abundance interactions}
 \label{sec:direct}
@@ -788,17 +787,15 @@ Here, the threshold is defined as a minimum fold change of 5 above this estimate
 direct <- filterDirect(data)
 direct$threshold
 direct.keep <- direct$abundances > log2(5) + direct$threshold
-dummy <- data[direct.keep,]
 summary(direct.keep)
 @
 
-The \code{direct.keep} vector can then be used to filter \code{data}, as shown above.
+The \code{direct.keep} vector can then be used to filter \code{data}, as shown previously.
 This approach is named here as ``direct'' filtering, as the average abundance for each bin pair is directly compared against a fixed threshold value.
-In practice, the direct filter can be combined with \code{count.keep} to ensure that the retained bin pairs also have large absolute counts.
+In practice, the direct filter can be combined with \code{count.keep} to ensure that the retained bin pairs have large absolute counts.
 
 <<>>=
 direct.keep2 <- direct.keep & count.keep
-summary(direct.keep2)
 @
 
 % No consideration is given to the presence of biases between bins.
@@ -845,7 +842,6 @@ This favours selection of longer-range interactions, compared to the direct filt
 
 <<>>=
 trend.keep <- trended$abundances > trended$threshold
-dummy <- data[trend.keep,]
 summary(trend.keep)
 @
 
@@ -854,13 +850,19 @@ summary(trend.keep)
 % for significant differences from the expected value.
 
 Of course, the threshold can also be defined at some minimum fold change above the fitted value.
-For example, a two-fold increase above the expected compaction intensity may be necessary.
+This effectively increases the stringency of the filter.
+The example below retains bin pairs with abundances that are two-fold higher than the expected compaction intensity.
+
+<<>>=
+trend.keep2 <- trended$abundances > trended$threshold + log2(2)
+summary(trend.keep2)
+@
+
 The trended filter can also be combined with \code{count.keep} to ensure that the absolute counts are large.
 This is particularly important at large distances, where the drop in the threshold may lead to the inappropriate retention of very low abundance bins.
 
 <<>>=
-trend.keep2 <- trend.keep & count.keep
-summary(trend.keep2)
+trend.keep3 <- trend.keep & count.keep
 @
 
 Note that the distance between bins can also be obtained directly with the \code{getDistance} function.
@@ -899,8 +901,8 @@ Near-diagonal elements should also be removed, as these tend to have high enrich
 All of these steps can be conveniently applied through the \code{filterPeaks} wrapper function.
 
 <<>>=
-keep <- filterPeaks(data, enrichments, min.enrich=0.5, min.count=5, min.diag=2L)
-sum(keep)
+peak.keep <- filterPeaks(data, enrichments, min.enrich=0.5, min.count=5, min.diag=2L)
+sum(peak.keep)
 @
 
 \subsection{Examining some peak-calling diagnostics}
@@ -911,9 +913,9 @@ In both examples, the bin pairs correspond nicely to punctate high-intensity con
 
 \begin{center}
 <<fig=TRUE,echo=FALSE,height=6,width=10>>=
-#keep2 <- keep & !is.na(dist)
+#keep2 <- peak.keep & !is.na(dist)
 #which(keep2)[order(enrichments[keep2], decreasing=TRUE)][1:100]
-#plotPlaid(input[3], param=mm.param, width=2e5, cap=20, col="black",
+#plotPlaid(input[3], param=mm.param, width=2e5, cap=20, 
 #	first=resize(anchors(data[chosen]), fix="center", width=10e6),
 #	second=resize(targets(data[chosen]), fix="center", width=10e6))
 a.list <- GRanges(c("chr11", "chr4"), IRanges(
@@ -925,9 +927,9 @@ t.list <- GRanges(c("chr11", "chr4"), IRanges(
 capped <- c(50, 50)
 par(mfrow=c(1,2))
 for (chosen in 1:length(a.list)) { 
-	if (!suppressWarnings(any(overlapsAny(anchors(data[keep]), a.list[chosen], type="equal") & 
-			overlapsAny(targets(data[keep]), t.list[chosen], type="equal")))) { stop("can't find example for peak-calling") }
-	plotPlaid(input[3], param=mm.param, width=2e5, max.count=capped[chosen], col="black",
+	if (!suppressWarnings(any(overlapsAny(anchors(data[peak.keep]), a.list[chosen], type="equal") & 
+			overlapsAny(targets(data[peak.keep]), t.list[chosen], type="equal")))) { stop("can't find example for peak-calling") }
+	plotPlaid(input[3], param=mm.param, width=2e5, max.count=capped[chosen], 
 			first.region=resize(a.list[chosen], fix="center", width=10e6),
 			second.region=resize(t.list[chosen], fix="center", width=10e6),
 			main=paste("Example", chosen))
@@ -946,11 +948,11 @@ Larger proportions suggest that more aggressive filtering on the enrichment scor
 
 <<>>=
 neighbourhood <- (2*flank.width + 1) * exptData(data)$width
-boxed <- boxPairs(data[keep], reference=neighbourhood)
+boxed <- boxPairs(data[peak.keep], reference=neighbourhood)
 out <- tabulate(tabulate(boxed$indices[[1]]))
 setNames(round(c(out[1:5], sum(out[5:length(out)]))/sum(out)*100, 1), c(1:5, ">5"))
-keep2 <- filterPeaks(data, enrichments, min.enrich=0, min.count=5, min.diag=2L)
-boxed <- boxPairs(data[keep2], reference=neighbourhood)
+peak.keep2 <- filterPeaks(data, enrichments, min.enrich=0, min.count=5, min.diag=2L)
+boxed <- boxPairs(data[peak.keep2], reference=neighbourhood)
 out <- tabulate(tabulate(boxed$indices[[1]]))
 setNames(round(c(out[1:5], sum(out[5:length(out)]))/sum(out)*100, 1), c(1:5, ">5"))
 @
@@ -1046,7 +1048,6 @@ A minimum 5-fold change over this threshold is required for retention of each 10
 direct <- filterDirect(data, scale=(bin.size/new.bin.size)^2)
 direct$threshold
 small.keep <- smaller.ab > direct$threshold + log2(5)
-smaller.filtered <- smaller.data[small.keep,]
 summary(small.keep)
 @
 
@@ -1123,13 +1124,12 @@ Incomplete removal of artifacts (e.g., dangling ends, self-circles) will general
 If artifact generation and/or removal is not consistent between libraries, the behaviour of the diagonal elements will differ markedly from the other bin pairs.
 This can be diagnosed using MA plots between libraries, where the diagonal elements show up as a distinct mass that is unconnected to the rest of the points.
 Such irregularities cannot be smoothly normalized and should be removed prior to further analysis, or analyzed separately.
-Removal can be achieved by applying the \code{diag.keep} object alongside other filters, as shown below for the direct filter.
+Removal can be achieved by generating the \code{ndiag.keep} logical vector for filtering, as shown below.
 
 <<>>=
 dist <- getDistance(data)
-diag.keep <- is.na(dist) | dist > 0L  
-dummy <- data[diag.keep & direct.keep2,]
-summary(diag.keep)
+ndiag.keep <- is.na(dist) | dist > 0L  
+summary(ndiag.keep)
 @
 
 Obviously, this will also remove short-range interactions that might be of interest.
@@ -1170,7 +1170,7 @@ On a practical level, the simplicity of the direct approach is attractive and wi
 
 <<>>=
 original <- data
-data <- data[direct.keep2,]
+data <- data[direct.keep2,] 
 @
 
 As promised, the filtered results are assigned back into \code{data}.
@@ -1179,7 +1179,7 @@ The original unfiltered data is retained for later use in Section~\ref{sec:iterc
 Direct filtering is also performed for the smaller bin pairs, and the results stored in \code{smaller.data}.
 
 <<>>=
-smaller.data <- smaller.filtered
+smaller.data <- smaller.data[small.keep,]
 @
 
 \chapter{Normalization strategies for Hi-C data}
