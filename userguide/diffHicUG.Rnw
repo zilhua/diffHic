@@ -1233,13 +1233,8 @@ lines(ab[o], fit$fitted[o], col="red")
 \setkeys{Gin}{width=0.5\textwidth}
 \begin{center}
 <<echo=FALSE,fig=TRUE>>=
-redist <- getDistance(data) # Prettifying the plot by removing near-diagonal artifacts.
-temp <- data
-dist.keep <- is.na(redist) | redist > 1.5e6
-data <- data[dist.keep]
 <<maunnorm>>
 <<makema>>
-data <- temp
 @
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
@@ -1253,6 +1248,19 @@ A large offset for a count is equivalent to downscaling that count relative to t
 <<>>=
 nb.off <- normalize(data, type="loess")
 head(nb.off)
+@
+
+In most cases, the above code is sufficient for normalization.
+However, as previously mentioned, bin pairs near the diagonal may exhibit irregular behaviour relative to the rest of the interaction space.
+This manifests in the previous MA plot as a distinct mass of points at high abundances, preventing smooth normalization of the trended bias.
+To overcome this, the near-diagonal bin pairs can be normalized separately from the others.
+
+<<>>=
+redist <- getDistance(data) 
+neardiag <- is.na(redist) | redist > 1.5e6
+nb.off <- matrix(0, nrow=nrow(data), ncol=ncol(data))
+nb.off[neardiag] <- normalize(data[neardiag,], type="loess")
+nb.off[!neardiag] <- normalize(data[!neardiag,], type="loess")
 @
 
 The MA plot can be examined after adjusting the log-counts with the offsets.
@@ -1270,14 +1278,8 @@ adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
 \setkeys{Gin}{width=0.5\textwidth}
 \begin{center}
 <<echo=FALSE,fig=TRUE>>=
-temp <- data # Showing the fitted results after removing diagonal artifacts.
-data <- data[dist.keep]
-temp.off <- nb.off
-nb.off <- normalize(data, type="loess")
 <<manorm>>
 <<makema>>
-data <- temp
-nb.off <- temp.off
 @
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
@@ -2086,7 +2088,7 @@ The latter features may be constant between libraries and, thus, not of any part
 The log-fold changes also incorporate normalization information, which is difficult to represent on a count-based plaid plot.
 
 <<label=diplot,eval=FALSE>>=
-chosen <- o[2]
+chosen <- o[5]
 expanded.a <- resize(ax[chosen], fix="center", width=5e7)
 expanded.t <- resize(tx[chosen], fix="center", width=5e7)
 colfun <- plotDI(data, result$table$logFC, expanded.a, expanded.t, diag=FALSE)
