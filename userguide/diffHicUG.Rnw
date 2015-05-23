@@ -1212,6 +1212,12 @@ Changes in cross-linking efficiency or ligation specificity can lead to a system
 For example, reduced specificity may result in more counts for weak non-specific interactions, and fewer counts for strong genuine interactions.
 Such biases may manifest as an abundance-dependent trend in a MA plot between replicates.
 
+<<echo=FALSE,eval=FALSE,label=maunnorm>>=
+ab <- aveLogCPM(asDGEList(data))
+o <- order(ab)
+adj.counts <- cpm(asDGEList(data), log=TRUE)
+@
+
 <<echo=FALSE,eval=FALSE,label=makema>>=
 mval <- adj.counts[,3]-adj.counts[,2]
 smoothScatter(ab, mval, xlab="A", ylab="M", main="KO vs. Flox")
@@ -1219,17 +1225,21 @@ fit <- loessFit(x=ab, y=mval)
 lines(ab[o], fit$fitted[o], col="red")
 @
 
-<<eval=FALSE,label=maunnorm>>=
-ab <- aveLogCPM(asDGEList(data))
-o <- order(ab)
-adj.counts <- cpm(asDGEList(data), log=TRUE)
+<<eval=FALSE>>=
+<<maunnorm>>
 <<makema>>
 @
 
 \setkeys{Gin}{width=0.5\textwidth}
 \begin{center}
 <<echo=FALSE,fig=TRUE>>=
+redist <- getDistance(data) # Prettifying the plot by removing near-diagonal artifacts.
+temp <- data
+dist.keep <- is.na(redist) | redist > 1.5e6
+data <- data[dist.keep]
 <<maunnorm>>
+<<makema>>
+data <- temp
 @
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
@@ -1248,15 +1258,26 @@ head(nb.off)
 The MA plot can be examined after adjusting the log-counts with the offsets.
 Most of the trend is removed, indicating that non-linear normalization was successful.
 
-<<eval=FALSE,label=manorm>>=
+<<echo=FALSE,eval=FALSE,label=manorm>>=
 adj.counts <- log2(counts(data) + 0.5) - nb.off/log(2)
+@
+
+<<eval=FALSE>>=
+<<manorm>>
 <<makema>>
 @
 
 \setkeys{Gin}{width=0.5\textwidth}
 \begin{center}
 <<echo=FALSE,fig=TRUE>>=
+temp <- data # Showing the fitted results after removing diagonal artifacts.
+data <- data[dist.keep]
+temp.off <- nb.off
+nb.off <- normalize(data, type="loess")
 <<manorm>>
+<<makema>>
+data <- temp
+nb.off <- temp.off
 @
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
