@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 8 May 2015}
+Last revised 25 May 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -1703,13 +1703,13 @@ These can be saved to file as necessary.
 Resorting by $p$-value just makes it easier to parse the final table, as the most interesting differential interactions are placed at the top.
 
 <<>>=
-ax <- anchors(data)
-tx <- targets(data)
-final <- data.frame(anchor.chr=seqnames(ax), anchor.start=start(ax), anchor.end=end(ax),
-    target.chr=seqnames(tx), target.start=start(tx), target.end=end(tx), 
-    result$table, FDR=adj.p)
-o <- order(final$PValue)
-write.table(final[o,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+ax.d <- anchors(data)
+tx.d <- targets(data)
+results.d <- data.frame(anchor.chr=seqnames(ax.d), anchor.start=start(ax.d), 
+    anchor.end=end(ax.d),target.chr=seqnames(tx.d), target.start=start(tx.d), 
+    target.end=end(tx.d), result$table, FDR=adj.p)
+o.d <- order(result$table$PValue)
+write.table(results.d[o.d,], file="results.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
 \subsection{Independent clustering of adjacent bin pairs}
@@ -1750,10 +1750,11 @@ Identification of the top-ranking bin pair within each cluster may also be desir
 <<>>=
 ax.c <- clustered$anchors
 tx.c <- clustered$targets
-final <- data.frame(anchor.chr=seqnames(ax.c), anchor.start=start(ax.c), 
+results.c <- data.frame(anchor.chr=seqnames(ax.c), anchor.start=start(ax.c), 
     anchor.end=end(ax.c), target.chr=seqnames(tx.c), target.start=start(tx.c), 
     target.end=end(tx.c), tabcluster)
-write.table(final, file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+o.c <- order(tabcluster$PValue)
+write.table(results.c[o.c,] file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
 \subsection{Clustering based on significant bin pairs}
@@ -1852,13 +1853,13 @@ Statistics for each of the larger bin pairs can then be stored to file.
 Reordering is performed using the combined $p$-value to promote the strongest changes.
 
 <<>>=
-ax.2 <- anchors(cons$pairs)
-tx.2 <- targets(cons$pairs)
-final.2 <- data.frame(anchor.chr=seqnames(ax.2), anchor.start=start(ax.2), 
-    anchor.end=end(ax.2), target.chr=seqnames(tx.2), target.start=start(tx.2), 
-    target.end=end(tx.2), cons$table)
-o2 <- order(final.2$PValue)
-write.table(final.2[o2,], file="results.2.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+ax.s <- anchors(cons$pairs)
+tx.s <- targets(cons$pairs)
+o.s <- order(cons$table$PValue)
+results.s <- data.frame(anchor.chr=seqnames(ax.s), anchor.start=start(ax.s), 
+    anchor.end=end(ax.s), target.chr=seqnames(tx.s), target.start=start(tx.s), 
+    target.end=end(tx.s), cons$table)
+write.table(results.s[o.s,], file="sizecons.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
 In addition, nesting protects against misinterpretation of the FDR for diffuse differential interactions.
@@ -1878,16 +1879,16 @@ However, keep in mind that the FDR is computed with respect to the features, not
 <<>>=
 small.ids <- cons$id$smaller
 inside <- csaw::getBestTest(small.ids, result.small$table)
-ax.3 <- as.data.frame(anchors(smaller.data))[inside$best,]
-tx.3 <- as.data.frame(targets(smaller.data))[inside$best,]
-nested <- data.frame(anchor.start=ax.3$start, anchor.end=ax.3$end, 
-    target.start=tx.3$start, target.end=tx.3$end, 
+ax.n <- anchors(smaller.data[inside$best,])
+tx.n <- targets(smaller.data[inside$best,])
+nested <- data.frame(anchor.start=start(ax.n), anchor.end=end(ax.n),
+    target.start=start(tx.n), target.end=end(tx.n),
     result.small$table[inside$best,c("logFC", "F")])
 head(nested)
-expanded <- rep(NA, nrow(final.2)) # As some parents do not have nested elements.
+expanded <- rep(NA, nrow(results.s)) # As some parents do not have nested elements.
 expanded[as.integer(rownames(inside))] <- 1:nrow(inside)
-final.3 <- data.frame(final.2, nest=nested[expanded,])
-write.table(final.3[o2,], file="results.3.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+results.n <- data.frame(results.s, nest=nested[expanded,])
+write.table(results.n[o.s,], file="withnest.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
 The above code only reports the top-ranked nested bin pair within each large feature.
@@ -1907,19 +1908,19 @@ The colour of the pixel is proportional to the number of read pairs mapped betwe
 <<label=plaid1,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[1], first=expanded.a, second=expanded.t, max.count=bound1, 
     width=5e4, param=mm.param, main="Flox")
-rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
+rect(start(ax.s[chosen]), start(tx.s[chosen]), end(ax.s[chosen]), end(tx.s[chosen]))
 @
 
 <<label=plaid3,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[3], first=expanded.a, second=expanded.t, max.count=bound3, 
     width=5e4, param=mm.param, main="KO")
-rect(start(ax.2[chosen]), start(tx.2[chosen]), end(ax.2[chosen]), end(tx.2[chosen]))
+rect(start(ax.s[chosen]), start(tx.s[chosen]), end(ax.s[chosen]), end(tx.s[chosen]))
 @
 
 <<eval=FALSE,echo=FALSE,label=setup>>=
-chosen <- o2[1]
-expanded.a <- resize(ax.2[chosen], fix="center", width=bin.size*5)
-expanded.t <- resize(tx.2[chosen], fix="center", width=bin.size*5)
+chosen <- o.s[1]
+expanded.a <- resize(ax.s[chosen], fix="center", width=bin.size*5)
+expanded.t <- resize(tx.s[chosen], fix="center", width=bin.size*5)
 bound1 <- 100
 bound3 <- bound1*data$totals[3]/data$totals[1]
 @
@@ -1932,8 +1933,8 @@ bound3 <- bound1*data$totals[3]/data$totals[1]
 
 <<results=hide,echo=FALSE>>=
 <<setup>>
-if (as.character(seqnames(ax.2[chosen]))!="chr11" || start(ax.2[chosen])!=30001298 || end(ax.2[chosen])!=31000010 ||
-    as.character(seqnames(tx.2[chosen]))!="chr11" || start(tx.2[chosen])!=29000942 || end(tx.2[chosen])!=30001301) {
+if (as.character(seqnames(ax.s[chosen]))!="chr11" || start(ax.s[chosen])!=30001298 || end(ax.s[chosen])!=31000010 ||
+    as.character(seqnames(tx.s[chosen]))!="chr11" || start(tx.s[chosen])!=29000942 || end(tx.s[chosen])!=30001301) {
 	warning("first plaid plot hits the wrong spot")
 }
 @
@@ -1973,19 +1974,19 @@ Of course, any sharp changes within each of these large bin pairs will be overlo
 <<label=plaid1b,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[1], first=expanded.a, second=expanded.t, max.count=bound1, 
     width=5e4, param=mm.param, main="Flox")
-rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
+rect(start(ax.d[chosen]), start(tx.d[chosen]), end(ax.d[chosen]), end(tx.d[chosen]))
 @
 
 <<label=plaid3b,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[3], first=expanded.a, second=expanded.t, max.count=bound3, 
     width=5e4, param=mm.param, main="KO")
-rect(start(ax[chosen]), start(tx[chosen]), end(ax[chosen]), end(tx[chosen]))
+rect(start(ax.d[chosen]), start(tx.d[chosen]), end(ax.d[chosen]), end(tx.d[chosen]))
 @
 
 <<eval=FALSE,echo=FALSE,label=setup2>>=
-chosen <- o[1]
-expanded.a <- resize(ax[chosen], fix="center", width=bin.size*5)
-expanded.t <- resize(tx[chosen], fix="center", width=bin.size*5)
+chosen <- o.d[1]
+expanded.a <- resize(ax.d[chosen], fix="center", width=bin.size*5)
+expanded.t <- resize(tx.d[chosen], fix="center", width=bin.size*5)
 bound1 <- 30
 bound3 <- bound1*data$totals[3]/data$totals[1]
 @
@@ -1998,8 +1999,8 @@ bound3 <- bound1*data$totals[3]/data$totals[1]
 
 <<results=hide,echo=FALSE>>=
 <<setup2>>
-if (as.character(seqnames(ax[chosen]))!="chr3" || start(ax[chosen])!=151001261 || end(ax[chosen])!=152002835 ||
-    as.character(seqnames(tx[chosen]))!="chr3" || start(tx[chosen])!=145998892 || end(tx[chosen])!=147005847) {
+if (as.character(seqnames(ax.d[chosen]))!="chr3" || start(ax.d[chosen])!=151001261 || end(ax.d[chosen])!=152002835 ||
+    as.character(seqnames(tx.d[chosen]))!="chr3" || start(tx.d[chosen])!=145998892 || end(tx.d[chosen])!=147005847) {
 	warning("second plaid plot hits the wrong spot")
 }
 @
@@ -2034,9 +2035,9 @@ rotPlaid(input[3], mm.param, region=example, width=2.5e4,
 @
 
 <<eval=TRUE,echo=FALSE,label=rotset>>=
-chosen <- o2[3]
-example <- tx.2[chosen]
-end(example) <- end(ax.2[chosen])
+chosen <- o.s[3]
+example <- tx.s[chosen]
+end(example) <- end(ax.s[chosen])
 nest.mid.a <- (final.3$nest.anchor.start[chosen]+final.3$nest.anchor.end[chosen])/2
 nest.mid.t <- (final.3$nest.target.start[chosen]+final.3$nest.target.end[chosen])/2
 nest.mid <- (nest.mid.a + nest.mid.t)/2
@@ -2044,8 +2045,8 @@ nest.gap <- nest.mid.a - nest.mid.t
 @
 
 <<echo=FALSE,results=hide>>=
-if (as.character(seqnames(ax.2[chosen]))!="chr2" || start(ax.2[chosen])!=136998216 || end(ax.2[chosen])!=138001392 ||
-    as.character(seqnames(tx.2[chosen]))!="chr2" || start(tx.2[chosen])!=136001779 || end(tx.2[chosen])!=136998219) {
+if (as.character(seqnames(ax.s[chosen]))!="chr2" || start(ax.s[chosen])!=136998216 || end(ax.s[chosen])!=138001392 ||
+    as.character(seqnames(tx.s[chosen]))!="chr2" || start(tx.s[chosen])!=136001779 || end(tx.s[chosen])!=136998219) {
 	warning("third plaid plot hits the wrong spot")
 }
 @
@@ -2088,9 +2089,9 @@ The latter features may be constant between libraries and, thus, not of any part
 The log-fold changes also incorporate normalization information, which is difficult to represent on a count-based plaid plot.
 
 <<label=diplot,eval=FALSE>>=
-chosen <- o[5]
-expanded.a <- resize(ax[chosen], fix="center", width=5e7)
-expanded.t <- resize(tx[chosen], fix="center", width=5e7)
+chosen <- o.d[5]
+expanded.a <- resize(ax.d[chosen], fix="center", width=5e7)
+expanded.t <- resize(tx.d[chosen], fix="center", width=5e7)
 colfun <- plotDI(data, result$table$logFC, expanded.a, expanded.t, diag=FALSE)
 @
 
@@ -2103,8 +2104,8 @@ colfun <- plotDI(data, result$table$logFC, expanded.a, expanded.t, diag=FALSE)
 \setkeys{Gin}{width=0.8\textwidth}
 
 <<results=hide,echo=FALSE>>=
-if (as.character(seqnames(ax[chosen]))!="chr16" || start(ax[chosen])!=70000341 || end(ax[chosen])!=70999295 ||
-    as.character(seqnames(tx[chosen]))!="chr16" || start(tx[chosen])!=65999261 || end(tx[chosen])!=67001066) {
+if (as.character(seqnames(ax.d[chosen]))!="chr16" || start(ax.d[chosen])!=70000341 || end(ax.d[chosen])!=70999295 ||
+    as.character(seqnames(tx.d[chosen]))!="chr16" || start(tx.d[chosen])!=65999261 || end(tx.d[chosen])!=67001066) {
 	warning("first DI plot hits the wrong spot")
 }
 @
