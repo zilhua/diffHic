@@ -2,7 +2,7 @@
 \title{diffHic News}
 \encoding{UTF-8}
 
-\section{Version 1.1.4}{\itemize{
+\section{Version 1.1.5}{\itemize{
 \item
 Added library size specification to DIList methods normalize(), asDGEList().
 
