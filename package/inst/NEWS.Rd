@@ -21,6 +21,9 @@ Added iter_map.py to inst/python, for iterative mapping of DNase Hi-C data.
 \item
 Added the neighbourCounts() function, for simultaneous read counting and enrichment calculation.
 
+\item
+Switched default colour in rotPlaid(), plotPlaid() to black.
+
 \item 
 Updated documentation, tests and user's guide.
 }}
