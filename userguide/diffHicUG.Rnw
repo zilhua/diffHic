@@ -1754,7 +1754,7 @@ results.c <- data.frame(anchor.chr=seqnames(ax.c), anchor.start=start(ax.c),
     anchor.end=end(ax.c), target.chr=seqnames(tx.c), target.start=start(tx.c), 
     target.end=end(tx.c), tabcluster)
 o.c <- order(tabcluster$PValue)
-write.table(results.c[o.c,] file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+write.table(results.c[o.c,], file="clustered.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
 \subsection{Clustering based on significant bin pairs}
@@ -1782,6 +1782,7 @@ However, this summarization of results is not statistically rigorous.
 Controlling the FDR across bin pairs does not guarantee control of the FDR over clusters.
 Instead, an informal estimate of the cluster-level FDR can be obtained with the \code{clusterFDR} function.
 The idea is to adjust \code{threshold} such that the cluster-level FDR lies below some desired value.
+All clusters formed at the chosen \code{threshold} can then be reported, as shown previously.
 
 <<>>=
 csaw::clusterFDR(clustered.sig$id, threshold)
@@ -2038,8 +2039,8 @@ rotPlaid(input[3], mm.param, region=example, width=2.5e4,
 chosen <- o.s[3]
 example <- tx.s[chosen]
 end(example) <- end(ax.s[chosen])
-nest.mid.a <- (final.3$nest.anchor.start[chosen]+final.3$nest.anchor.end[chosen])/2
-nest.mid.t <- (final.3$nest.target.start[chosen]+final.3$nest.target.end[chosen])/2
+nest.mid.a <- (results.n$nest.anchor.start[chosen]+results.n$nest.anchor.end[chosen])/2
+nest.mid.t <- (results.n$nest.target.start[chosen]+results.n$nest.target.end[chosen])/2
 nest.mid <- (nest.mid.a + nest.mid.t)/2
 nest.gap <- nest.mid.a - nest.mid.t
 @
@@ -2115,6 +2116,15 @@ White and near-white regions correspond to those with log-fold change close to z
 Grey regions mark the parts of the space where no bin pairs are present in \code{data}, possibly due to filtering on abundance.
 As a result, this approach tends to be less useful when high-abundance bin pairs are more sparsely distributed, e.g., for long-range interactions.
 A rotated DI plot can be similarly constructed using the \code{rotDI} function.
+
+% There's a bit of a checkerboard DI pattern here, albeit weak with low log-fold changes.
+% This represents some sort of global change in inter-compartment contacts, which (in the context of ID'ing specific changes) may not be uninteresting.
+% In generally, these changes aren't too concerning, as the log-FCs aren't huge and the majority are not significant.
+% The pattern of the changes probably looks worse than it is due to correlations across the interaction space.
+% If it were a problem, though, non-linear normalization wouldn't help, because the different compartments don't separate by abundance.
+% The slight decrease in inter-compartment interactions is overshadowed by the distance effect.
+% If you want to get rid of it, you'll have to explicitly identify compartments and normalize them directly.
+% This is a pain, though we could do it by converting the DIList to a full matrix, and running PCA on the matrix for each chromosome.
 
 Both \code{rotDI} and \code{plotDI} will invisibly return another function that maps log-fold changes to colours.
 This can be used to generate a custom colour bar, as shown below.
