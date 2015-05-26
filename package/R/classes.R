@@ -163,11 +163,10 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 })
 
 setMethod("as.matrix", signature("DIList"), function(x, first=NULL, second=first, fill=NULL, ...) {
-	all.chrs <- as.character(seqnames(regions(x)))
-    if (!is.null(first)) { keep.first <- all.chrs %in% first } 
-	else { keep.first <- !logical(length(all.chrs)) }
-	if (!is.null(second)) { keep.second <- all.chrs %in% second } 
-	else { keep.second <- !logical(length(all.chrs)) }
+	if (!is.null(first)) { keep.first <- as.logical(seqnames(regions(x)) %in% first) }
+	else { keep.first <- !logical(length(regions(x))) }
+	if (!is.null(second)) { keep.second <- as.logical(seqnames(regions(x)) %in% second) }
+	else { keep.second <- !logical(length(regions(x))) }
 	new.f <- cumsum(keep.first)
 	new.s <- cumsum(keep.second)
 
