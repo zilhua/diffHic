@@ -1013,7 +1013,7 @@ Also, when computing abundances, the full library size should be manually specif
 This allows valid comparisons between abundances from different chromosome pairs.
 Otherwise, the library size will be different for each pair.
 <<>>=
-chr1.data <- squareCounts(input,  width=1e5, filter=1,
+chr1.data <- squareCounts(input, width=1e5, filter=1,
     param=reform(mm.param, restrict=cbind("chr1", "chr1")))
 totals <- totalCounts(input, mm.param)
 chr1.ab <- aveLogCPM(asDGEList(chr1.data, lib.size=totals))
