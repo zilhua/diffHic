@@ -5,7 +5,7 @@
 \description{Use contact matrices to identify self-interacting genomic compartments}
 
 \usage{
-compartmentalize(data, centers=3, inter=FALSE, ...)
+compartmentalize(data, centers=2, inter=FALSE, ...)
 }
 
 \arguments{
@@ -21,20 +21,18 @@ Bins in the same compartment interact more frequently with each other compared t
 This forms a checkerboard-like pattern in the interaction space that can be used to define the genomic intervals in each compartment.
 Typically, one compartment is gene-rich and is defined as ``open'', while the other is gene-poor and defined as ``closed''.
 
-Compartment identification is done by setting up a contact matrix where each row/rolumn represents a bin.
-Each entry of the matrix represents the frequency of contacts between bins.
-Frequencies are adjusted for distance, to improve visibility of distal intra-compartment interactions (see \code{\link{filterTrended}} for more details).
-Bins with similar interaction profiles are then clustered together with k-means.
-Bins with the same ID in the output \code{compartment} vector are in the same compartment for that chromosome.
+Compartment identification is done by setting up a contact matrix where each row/rolumn represents a bin and each matrix entry contains the frequency of contacts between bins.
+Frequencies are row-normalized to eliminate bin-specific biases, and adjusted for distance to improve visibility of long-range interactions (see \code{\link{filterTrended}} for more details).
+Bins with similar interaction profiles are clustered together with k-means.
+Those with the same ID in the output \code{compartment} vector are in the same compartment.
 
 When \code{inter=FALSE}, clustering is performed for each chromosome separately, using a series of intra-chromosomal contact matrices.
 This saves memory and performs well, given that most information is contained in the intra-chromosomal space.
 If \code{inter} is set to \code{TRUE}, clustering is performed for the entire genome, including the interaction space between different chromosomes, i.e., the inter-chromomsal space.
 This may be useful for matching compartments of the same type between chromosomes, but will use a lot more memory.
 
-By default, \code{centers} is set to 3 during clustering.
-This models the open and closed compartments, as well as providing an additional compartment that contains the low-coverage regions at the telomeres and centromere.
-While more clusters can be used, the interpretation of the resulting compartments becomes more difficult and requires more care.
+By default, \code{centers} is set to 2 to model the open and closed compartments.
+While a larger value can be used to obtain more clusters, care is required as the interpretation of the resulting compartments becomes more difficult.
 If desired, users can also apply their own clustering methods on the \code{matrix} returned in the output.
 }
 
