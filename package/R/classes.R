@@ -162,6 +162,39 @@ setMethod("c", signature("DIList"), function (x, ..., add.totals=TRUE, recursive
 		exptData=exptData(x), colData=colData)
 })
 
+setMethod("as.matrix", signature("DIList"), function(x, first=NULL, second=first, fill=NULL, ...) {
+	all.chrs <- as.character(seqnames(regions(x)))
+    if (!is.null(first)) { keep.first <- all.chrs %in% first } 
+	else { keep.first <- !logical(length(all.chrs)) }
+	if (!is.null(second)) { keep.second <- all.chrs %in% second } 
+	else { keep.second <- !logical(length(all.chrs)) }
+	new.f <- cumsum(keep.first)
+	new.s <- cumsum(keep.second)
+
+	mat <- matrix(NA, nrow=sum(keep.first), ncol=sum(keep.second))
+	rownames(mat) <- which(keep.first)
+	colnames(mat) <- which(keep.second)
+	aid <- anchors(x, id=TRUE)
+	tid <- targets(x, id=TRUE)
+
+	retain <- keep.first[aid] & keep.second[tid]
+	ax <- new.f[aid[retain]]
+	tx <- new.s[tid[retain]]
+	flip.retain <- keep.first[tid] & keep.second[aid]
+	flip.ax <- new.f[tid[flip.retain]]
+	flip.tx <- new.s[aid[flip.retain]]
+
+	if (is.null(fill)) { 
+		fill <- numeric(nrow(x))
+		retained <- retain | flip.retain
+		fill[retained] <- aveLogCPM(asDGEList(x[retained,])) 
+	}
+	mat[ax + (tx-1L) * nrow(mat)] <- fill[retain] 
+	mat[flip.ax + (flip.tx-1L) * nrow(mat)] <- fill[flip.retain] 
+
+	return(mat)
+})
+
 # Setting some methods inspired by equivalents in csaw.
 setMethod("asDGEList", signature("DIList"), function(object, lib.sizes, ...) {
 	if (missing(lib.sizes)) { 

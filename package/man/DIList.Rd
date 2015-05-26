@@ -26,6 +26,7 @@
 \alias{[,DIList,ANY,ANY-method}
 \alias{show,DIList-method}
 \alias{c,DIList-method}
+\alias{as.matrix,DIList-method}
 
 \title{DIList class and methods}
 
@@ -129,6 +130,15 @@ In the code snippets below, \code{x} is a DIList object.
 		Shows a summary of the information in \code{x}.
 		Specifically, a string is printed that reports the number of libraries, number of interactions and total number of regions in \code{x}.
 	}
+	\item{}{\code{as.matrix(x, first=NULL, second=first, fill=NULL, ...)}:
+		Converts \code{x} into a contact matrix where rows and columns represent regions on the \code{first} and \code{second} chromosomes, respectively.
+		Entries of the matrix correspond to an interaction of \code{x}.
+		Each entry is extracted from \code{fill}, where \code{fill} is a numeric vector with one value per interaction in \code{x}.
+ 	   	By default, the average abundance of each interaction in \code{x} is used as the entry.
+		For intra-chromosomal spaces, both sides of the diagonal are filled.
+		Multiple chromosomes can also be specified in \code{first} or \code{second}. 
+		Each row and column is named according to the matching index of \code{regions(x)}.
+	}
 }
 }
 
@@ -137,7 +147,7 @@ In the code snippets below, \code{x} is a DIList object.
 \examples{
 blah <- DIList(counts=matrix(c(1,1,2,2,3,3,4,4,5,5,6,6), ncol=2), 
     totals=c(10L, 10L), anchors=c(1,2,3,4,5,6), targets=c(1,1,2,2,3,3), 
-	regions=GRanges("chrA", IRanges(10+1:20, 2+21:40)))
+	regions=GRanges("chrA", IRanges(1:6*10, 1:6*10+9)))
 nrow(blah)
 ncol(blah)
 
@@ -159,6 +169,9 @@ exptData(blah)
 
 c(blah, blah)
 c(blah[1:2,], blah[3:4,], add.totals=FALSE)
+
+as.matrix(blah, anchor="chrA")
+as.matrix(blah, fill=runif(nrow(blah)))
 }
 
 \seealso{
