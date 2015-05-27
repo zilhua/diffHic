@@ -13,15 +13,15 @@
 \alias{counts}
 \alias{counts,DIList-method}
 
-\alias{$}
 \alias{$,DIList-method}
-\alias{colData}
 \alias{colData,DIList-method}
-\alias{exptData}
 \alias{exptData,DIList-method}
 
 \alias{dim,DIList-method}
 \alias{dimnames,DIList-method}
+
+\alias{$<-,DIList-method}
+\alias{exptData<-,DIList,SimpleList-method}
 
 \alias{[,DIList,ANY,ANY-method}
 \alias{show,DIList-method}
@@ -105,6 +105,21 @@ In the code snippets below, \code{x} is a DIList object.
 }
 }
 
+\section{Modifiers}{
+In the code snippets below, \code{x} is a DIList object.
+
+\describe{ 
+	\item{}{\code{x$name <- value}:
+	Assign \code{value} to the \code{name} field of the \code{colData} in \code{x}.
+	Primarily intended for modification of the library sizes in \code{totals}, but can also be used to store additional library-specific information.
+	}
+	\item{}{\code{exptData(x) <- value}:
+	Assign a \code{SimpleList} object named \code{value} to the \code{exptData} slot of \code{x}.
+	Note that this also works with list accessors, e.g., by assigning to \code{exptData(x)$name}.
+	}	
+}
+}
+
 \section{Subsetting and combining}{
 In the code snippets below, \code{x} is a DIList object.
 
@@ -165,6 +180,10 @@ regions(blah)
 
 blah$totals
 colData(blah)
+exptData(blah)
+
+blah$totals <- c(10L, 20L)
+exptData(blah)$width <- 5
 exptData(blah)
 
 c(blah, blah)

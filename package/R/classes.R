@@ -115,6 +115,18 @@ setMethod("exptData", signature("DIList"), function(x, ...) {
 	x@exptData
 })
 
+# Modifier functions.
+
+setMethod("$<-", signature("DIList"), function(x, name, value) { 
+	x@colData[[name]] <- value
+	x
+})
+
+setMethod("exptData<-", signature("DIList", "SimpleList"), function(x, ..., value) {
+	x@exptData <- value
+	x
+})
+
 # Constructor object.
 DIList <- function(counts, totals=colSums(counts), anchors, targets, regions, exptData=List(), ...) {
 	if (!is.integer(counts)) { storage.mode(counts) <- "integer" }

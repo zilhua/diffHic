@@ -23,8 +23,8 @@ exportClasses(
 )
 
 exportMethods(
-    anchors, targets, counts, regions, "[", show, colData, exptData,
-    asDGEList, normalize, reform, as.matrix, c
+    anchors, targets, counts, regions, 
+	asDGEList, normalize, reform 
 )
 
 # Requires several imports.
