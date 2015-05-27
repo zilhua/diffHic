@@ -5,12 +5,15 @@
 \description{Use contact matrices to identify self-interacting genomic compartments}
 
 \usage{
-compartmentalize(data, centers=2, inter=FALSE, ...)
+compartmentalize(data, centers=2, dist.correct=TRUE, 
+    cov.correct=TRUE, inter=FALSE, ...)
 }
 
 \arguments{
 \item{data}{a \code{DIList} object containing bin pair data, like that produced by \code{\link{squareCounts}}}
 \item{centers}{an integer scalar, specifying the number of clusters to form in \code{\link{kmeans}}}
+\item{dist.correct}{a logical scalar, indicating whether abundances should be corrected for distance biases}
+\item{cov.correct}{a logical scalar, indicating whether abundances should be corrected for coverage biases}
 \item{inter}{a logical scalar, indicating whether inter-chromosomal space should be used during clustering}
 \item{...}{other arguments to pass to \code{\link{kmeans}}}
 }
@@ -22,9 +25,13 @@ This forms a checkerboard-like pattern in the interaction space that can be used
 Typically, one compartment is gene-rich and is defined as ``open'', while the other is gene-poor and defined as ``closed''.
 
 Compartment identification is done by setting up a contact matrix where each row/rolumn represents a bin and each matrix entry contains the frequency of contacts between bins.
-Frequencies are row-normalized to eliminate bin-specific biases, and adjusted for distance to improve visibility of long-range interactions (see \code{\link{filterTrended}} for more details).
-Bins with similar interaction profiles are clustered together with k-means.
+Bins (i.e., rows) with similar interaction profiles (i.e., entries across columns) are clustered together with the k-means method.
 Those with the same ID in the output \code{compartment} vector are in the same compartment.
+
+If \code{dist.correct=TRUE}, frequencies are normalized to mitigate the effect of distance and to improve the visibility of long-range interactions.
+This is done by computing the residuals of the distance-dependent trend - see \code{\link{filterTrended}} for more details.
+If \code{cov.correct=TRUE}, frequencies are also normalized to eliminate coverage biases betwen bins.
+This is done by computing the average coverage of each row/column, and dividing each matrix entry by the square root averages of the relevant row and column.
 
 When \code{inter=FALSE}, clustering is performed for each chromosome separately, using a series of intra-chromosomal contact matrices.
 This saves memory and performs well, given that most information is contained in the intra-chromosomal space.
@@ -37,7 +44,7 @@ If desired, users can also apply their own clustering methods on the \code{matri
 }
 
 \value{
-If \code{inter=FALSE}, a named list of lists is returned where each internal list corresponds to a chromosome in \code{data} and contains \code{compartment}, an integer vector of compartment IDs for all bins in that chromosome; and \code{matrix}, a numeric matrix of (adjusted) contact frequencies for the intra-chromosomal space. 
+If \code{inter=FALSE}, a named list of lists is returned where each internal list corresponds to a chromosome in \code{data} and contains \code{compartment}, an integer vector of compartment IDs for all bins in that chromosome; and \code{matrix}, a numeric matrix of (normalized) contact frequencies for the intra-chromosomal space. 
 Entries in \code{compartment} and rows/columns in \code{matrix} are named according to the matching index of \code{regions(data)}.
 
 If \code{inter=TRUE}, a list is returned that contains \code{compartment}, an integer vector of IDs for all bins in the genome; and \code{matrix}, a contact matrix spanning the entire interaction space.

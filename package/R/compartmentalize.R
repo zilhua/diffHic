@@ -1,18 +1,20 @@
-compartmentalize <- function(data, centers=2, inter=FALSE, ...)
+compartmentalize <- function(data, centers=2, dist.correct=TRUE,
+		cov.correct=TRUE, inter=FALSE, ...)
 # Computes compartments for every chromosome, using the intra-chromosomal
 # contact maps that have been corrected for distance effects.
 #
 # written by Aaron Lun
 # created 26 May 2015
+# last modified 27 May 2015
 {
 	if (!inter) {
 		is.intra <- !is.na(getDistance(data))
 		trended <- filterTrended(data[is.intra,])
 		resids <- rep(NA, length(is.intra))
-		resids[is.intra] <- trended$abundance - trended$threshold
+		resids[is.intra] <- .chosenAbs(trended, dist.correct) 
 	} else { 
 		trended <- filterTrended(data)
-		resids <- trended$abundance - trended$threshold
+		resids <- .chosenAbs(trended, dist.correct)
 	}
 	dist2trend <- approxfun(x=trended$log.distance, y=trended$threshold, rule=2)
 
@@ -22,7 +24,7 @@ compartmentalize <- function(data, centers=2, inter=FALSE, ...)
 			mat <- as.matrix(data, first=chr, fill=resids)
 			if (any(dim(mat)==0L)) { next }
 			mat <- .fillZeros(mat, data, dist2trend)
-			mat <- .debiasBins(mat)
+			if (cov.correct) { mat <- .debiasBins(mat) }
 					
 			# Actually partitioning by location.
 			comp <- .safeCluster(mat, centers=centers, ...)
@@ -33,7 +35,7 @@ compartmentalize <- function(data, centers=2, inter=FALSE, ...)
 		# Using the entirety of the interaction space.				
 		mat <- as.matrix(data, fill=resids)
 		mat <- .fillZeros(mat, data, dist2trend)
-		mat <- .debiasBins(mat)
+		if (cov.correct) { mat <- .debiasBins(mat) }
 		comp <- .safeCluster(mat, centers=centers, ...)
 		stored <- list(compartment=comp, matrix=mat)
 	}
@@ -41,8 +43,9 @@ compartmentalize <- function(data, centers=2, inter=FALSE, ...)
 	return(stored)
 }
 
-.fillZeros <- function(mat, data, dist2trend) {
-	# Filling NA's (i.e., zero's). Using mid-distance, interpolating to get the trend.
+.fillZeros <- function(mat, data, dist2trend) 
+# Filling NA's (i.e., zero's). Using mid-distance, interpolating to get the trend.
+{
 	lost <- which(is.na(mat), arr.ind=TRUE)
 	lost.dist <- abs(mid(ranges(anchors(data[lost[,1]]))) - mid(ranges(targets(data[lost[,2]]))))
 	lost.dist <- log10(lost.dist + exptData(data)$width)
@@ -60,13 +63,18 @@ compartmentalize <- function(data, centers=2, inter=FALSE, ...)
 	return(comp)
 }
 
-.debiasBins <- function(mat) {
-	# Just subtracting half from both rows and columns. This is equivalent to 
-	# dividing by square root of coverage, which works pretty well in place of
-	# a more rigorous iterative approach (check out Rao's supplementaries).
+.debiasBins <- function(mat) 
+# Just subtracting half from both rows and columns. This is equivalent to 
+# dividing by square root of coverage, which works pretty well in place of
+# a more rigorous iterative approach (check out Rao's supplementaries).
+{
 	rwm <- log2(rowMeans(2^mat))
 	mat <- mat - rwm/2
 	mat <- t(t(mat) - rwm/2)
 	return(mat)
 }
 
+.chosenAbs <- function(trended, dist.correct) { 
+	if (dist.correct) { return(trended$abundance-trended$threshold) }
+	else { return(trended$abundance) }
+}
