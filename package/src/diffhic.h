@@ -64,6 +64,8 @@ SEXP pair_stats (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP get_missing_dist(SEXP, SEXP, SEXP, SEXP);
 
+SEXP directionality(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
 }
 
 #endif
