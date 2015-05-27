@@ -33,7 +33,7 @@
 				if (!any(amatch)) { next }
 				if (paired) {
 					tmatch <- which(amatch)
-					tmatch <- tmatch + nr * (-1L)^(tmatch > nr)
+					tmatch <- tmatch + nr * (-1L)^(tmatch > nr) # Getting the chromosome in the other column.
 					subcurrent <- intersect(subcurrent, restrict[tmatch])
 				} else {
 					subcurrent <- intersect(subcurrent, restrict)
