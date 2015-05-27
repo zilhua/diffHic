@@ -1,6 +1,16 @@
 #include "read_count.h"
 #include "neighbours.h"
 
+typedef std::pair<int, int> floater;
+const double MULT=1000000;
+
+floater double2int(double x) { 
+	// Getting integer values.
+	int int_comp=int(x);
+	int dec_comp=int((x-double(int_comp))*MULT);
+	return std::make_pair(int_comp, dec_comp);
+}
+
 SEXP count_background(SEXP all, SEXP bin, SEXP back_width, SEXP filter, 
 		SEXP first_target_bin, SEXP last_target_bin, SEXP first_anchor_bin, SEXP last_anchor_bin,
 		SEXP max_it, SEXP tolerance, SEXP offsets, SEXP dispersion,
@@ -74,7 +84,7 @@ SEXP count_background(SEXP all, SEXP bin, SEXP back_width, SEXP filter,
 				ref_targets.push_back(waschanged[vecdex]);
 
 				rowdex=waschanged[vecdex]*nlibs;
-				current_average=nb_average(nlibs, maxit, tol, offptr, curcounts+rowdex, disp);
+				current_average=double2int(nb_average(nlibs, maxit, tol, offptr, curcounts+rowdex, disp));
 				ref_ave.push_back(current_average);
 
 				countsum=0;

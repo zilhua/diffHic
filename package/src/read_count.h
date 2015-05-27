@@ -33,8 +33,6 @@ private:
 	bool failed;
 };
 
-typedef std::pair<int, int> floater;
-const double MULT=1000000;
-floater nb_average(const int&, const int&, const double&, const double*, const int*, const double&);
+double nb_average(const int&, const int&, const double&, const double*, const int*, const double&);
 
 #endif

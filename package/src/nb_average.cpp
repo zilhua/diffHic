@@ -3,7 +3,7 @@
 
 const double low_value=std::pow(10.0, -10.0);
 
-floater nb_average(const int& nlibs, const int& maxit, const double& tolerance, const double* offset, 
+double nb_average(const int& nlibs, const int& maxit, const double& tolerance, const double* offset, 
 		const int* y, const double& disp) { // Code copied from glm_one_group in edgeR's src.
 
 	bool nonzero=false;
@@ -16,7 +16,7 @@ floater nb_average(const int& nlibs, const int& maxit, const double& tolerance, 
 		}
 	}
 	cur_beta=std::log(cur_beta/nlibs);
-	if (!nonzero) { return std::make_pair(0, 0); }
+	if (!nonzero) { return 0; }
 
 	double dl, info, mu, step, denominator;
 	for (int i=0; i<maxit; ++i) {
@@ -31,11 +31,6 @@ floater nb_average(const int& nlibs, const int& maxit, const double& tolerance, 
 		cur_beta+=step;
 		if (std::abs(step)<tolerance) { break; }
 	}
-
-	// Getting integer values.
-	cur_beta=std::exp(cur_beta);
-	int int_comp=int(cur_beta);
-	int dec_comp=int((cur_beta-double(int_comp))*MULT);
-	return std::make_pair(int_comp, dec_comp);
+	return std::exp(cur_beta);
 }
 
