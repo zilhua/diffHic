@@ -1,80 +1,85 @@
 compartmentalize <- function(data, centers=2, dist.correct=TRUE,
-		cov.correct=TRUE, inter=FALSE, ...)
+		cov.correct=TRUE, robust.cov=5, inter=FALSE, ...)
 # Computes compartments for every chromosome, using the intra-chromosomal
 # contact maps that have been corrected for distance effects.
 #
 # written by Aaron Lun
 # created 26 May 2015
-# last modified 27 May 2015
+# last modified 28 May 2015
 {
 	if (!inter) {
 		is.intra <- !is.na(getDistance(data))
-		trended <- filterTrended(data[is.intra,])
-		resids <- rep(NA, length(is.intra))
-		resids[is.intra] <- .chosenAbs(trended, dist.correct) 
-	} else { 
-		trended <- filterTrended(data)
-		resids <- .chosenAbs(trended, dist.correct)
+		data <- data[is.intra,]
 	}
-	dist2trend <- approxfun(x=trended$log.distance, y=trended$threshold, rule=2)
+	if (dist.correct) { 
+		trended <- filterTrended(data)
+		contacts <- trended$abundance - trended$threshold
+		dist2trend <- approxfun(x=trended$log.distance, y=trended$threshold, rule=2)
+	} else {
+		contacts <- aveLogCPM(asDGEList(data))
+		dist2trend <- function(x) { 0 } # Trend correction function does nothing if no distance correction is requested.
+	}
 
 	if (!inter) { 
+		# Going chromosome-by-chromosome.
 		stored <- list()
 		for (chr in seqlevels(regions(data))) { 
-			mat <- as.matrix(data, first=chr, fill=resids)
-			if (any(dim(mat)==0L)) { next }
-			mat <- .fillZeros(mat, data, dist2trend)
-			if (cov.correct) { mat <- .debiasBins(mat) }
-					
-			# Actually partitioning by location.
-			comp <- .safeCluster(mat, centers=centers, ...)
-			names(comp) <- rownames(mat)
-			stored[[chr]] <- list(compartment=comp, matrix=mat)
+			mat <- as.matrix(data, first=chr, fill=contacts)
+			stored[[chr]] <- .compartChr(mat, data, dist2trend, robust.cov, cov.correct, centers, ...)
 		}
 	} else {
 		# Using the entirety of the interaction space.				
-		mat <- as.matrix(data, fill=resids)
-		mat <- .fillZeros(mat, data, dist2trend)
-		if (cov.correct) { mat <- .debiasBins(mat) }
-		comp <- .safeCluster(mat, centers=centers, ...)
-		stored <- list(compartment=comp, matrix=mat)
+		mat <- as.matrix(data, fill=contacts)
+		stored <- .compartChr(mat, data, dist2trend, robust.cov, cov.correct, centers, ...)
 	}
 
 	return(stored)
 }
 
-.fillZeros <- function(mat, data, dist2trend) 
-# Filling NA's (i.e., zero's). Using mid-distance, interpolating to get the trend.
-{
+.compartChr <- function(mat, data, dist2trend, robust.cov, cov.correct, centers, ...) {
+	# Filling NA's (i.e., zero's). Using mid-distance, interpolating to get the trend.
 	lost <- which(is.na(mat), arr.ind=TRUE)
 	lost.dist <- abs(mid(ranges(anchors(data[lost[,1]]))) - mid(ranges(targets(data[lost[,2]]))))
 	lost.dist <- log10(lost.dist + exptData(data)$width)
 	mat[is.na(mat)] <- .makeEmpty(data) - dist2trend(lost.dist)
-	return(mat)
-}
 
-.safeCluster <- function(mat, centers, ...) { 
-	if (nrow(mat) > centers) { 
+	# Correcting for coverage biases, by subtracting half the average coverage from both rows 
+	# and columns. This is equivalent to dividing by square root of coverage, which works pretty 
+	# well in place of a more rigorous iterative approach (check out Rao's supplementaries).
+	rwm <- log2(rowMeans(2^mat))
+	if (cov.correct) { 
+		mat <- mat - rwm/2
+		mat <- t(t(mat) - rwm/2)
+	}
+	
+	# Robustifying.
+	if (!is.na(robust.cov)) {
+ 	    rwm.med <- median(rwm)
+		rwm.mad <- mad(rwm, center=rwm.med)	
+		keep <- (rwm <= rwm.med + robust.cov*rwm.mad) & (rwm >= rwm.med - robust.cov*rwm.mad)
+		temp.mat <- mat
+		mat <- mat[keep,keep,drop=FALSE] 
+	}
+
+	# K-means.
+	if (nrow(mat) > centers) {
 		out <- kmeans(mat, centers=centers, ...)
 		comp <- out$cluster
 	} else {
 		comp <- 1:nrow(mat)
 	}
-	return(comp)
+
+	# Filling the robustified bins back in.
+	if (!is.na(robust.cov)) { 
+		mat <- temp.mat
+		temp <- integer(length(keep))
+		temp[keep] <- comp
+		temp[!keep] <- NA
+		comp <- temp
+	}
+
+	names(comp) <- rownames(mat)
+	return(list(compartment=comp, matrix=mat))
 }
 
-.debiasBins <- function(mat) 
-# Just subtracting half from both rows and columns. This is equivalent to 
-# dividing by square root of coverage, which works pretty well in place of
-# a more rigorous iterative approach (check out Rao's supplementaries).
-{
-	rwm <- log2(rowMeans(2^mat))
-	mat <- mat - rwm/2
-	mat <- t(t(mat) - rwm/2)
-	return(mat)
-}
 
-.chosenAbs <- function(trended, dist.correct) { 
-	if (dist.correct) { return(trended$abundance-trended$threshold) }
-	else { return(trended$abundance) }
-}

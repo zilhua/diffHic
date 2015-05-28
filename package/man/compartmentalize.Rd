@@ -6,7 +6,7 @@
 
 \usage{
 compartmentalize(data, centers=2, dist.correct=TRUE, 
-    cov.correct=TRUE, inter=FALSE, ...)
+    cov.correct=TRUE, robust.cov=5, inter=FALSE, ...)
 }
 
 \arguments{
@@ -14,6 +14,7 @@ compartmentalize(data, centers=2, dist.correct=TRUE,
 \item{centers}{an integer scalar, specifying the number of clusters to form in \code{\link{kmeans}}}
 \item{dist.correct}{a logical scalar, indicating whether abundances should be corrected for distance biases}
 \item{cov.correct}{a logical scalar, indicating whether abundances should be corrected for coverage biases}
+\item{robust.cov}{a numeric scalar, specifying the multiple of MADs beyond which coverage outliers are removed}
 \item{inter}{a logical scalar, indicating whether inter-chromosomal space should be used during clustering}
 \item{...}{other arguments to pass to \code{\link{kmeans}}}
 }
@@ -32,6 +33,11 @@ If \code{dist.correct=TRUE}, frequencies are normalized to mitigate the effect o
 This is done by computing the residuals of the distance-dependent trend - see \code{\link{filterTrended}} for more details.
 If \code{cov.correct=TRUE}, frequencies are also normalized to eliminate coverage biases betwen bins.
 This is done by computing the average coverage of each row/column, and dividing each matrix entry by the square root averages of the relevant row and column.
+
+Extremely low-coverage regions such as telomeres and centromeres can confound k-means clustering.
+To protect against this, all bins with (distance-corrected) coverages that are more than \code{robust.cov} MAD's away from the median coverage of each chromosome are identified and removed.
+These bins will be marked with \code{NA} in the returned \code{compartment} for that chromosome.
+To turn off robustification, set \code{robust.cov} to \code{NA}.
 
 When \code{inter=FALSE}, clustering is performed for each chromosome separately, using a series of intra-chromosomal contact matrices.
 This saves memory and performs well, given that most information is contained in the intra-chromosomal space.
@@ -81,7 +87,11 @@ dim(out$chrB$matrix)
 
 out2 <- compartmentalize(data, inter=TRUE)
 head(out2$compartment)
-head(out2$matrix)
+out2$matrix[1,]
+
+test <- compartmentalize(data, cov.correct=FALSE)
+test <- compartmentalize(data, dist.correct=FALSE)
+test <- compartmentalize(data, robust.cov=NA)
 }
 
 \keyword{clustering}
