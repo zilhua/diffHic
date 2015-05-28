@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 25 May 2015}
+Last revised 28 May 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -655,7 +655,7 @@ new.param <- reform(mm.param, restrict=c("chr1", "chr2"))
 new.param
 @
 
-In addition, if \code{restrict} is a 1-by-2 matrix, count loading will be limited to the read pairs that are mapped between the specified pair of chromosomes.
+In addition, if \code{restrict} is a $n$-by-2 matrix, count loading will be limited to the read pairs that are mapped between the $n$ specified pairs of chromosomes.
 The example below considers all read pairs mapped between chromosomes 2 and 19.
 This feature is useful when memory is limited, as each pair of chromosomes can be loaded and analyzed separately.
 
@@ -2145,6 +2145,199 @@ mtext("logFC", side=1, line=3, cex=1.4)
 @
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Conventional feature detection}
+
+\begin{combox}
+This chapter is a bit odd, so there's not much required from previous chapters.
+In particular, we'll only need the \code{input} and \code{mm.param} objects from Chapter~\ref{chap:counting}.
+\end{combox}
+
+\section{Overview}
+Even though the \pkgname{} package focuses on detecting DIs, some routines are also implemented for conventional analyses of Hi-C data.
+This includes the \code{correctedContact} function for iterative correction \citep{imakaev2012iterative}, and the \code{enrichedPairs} function for peak calling \citep{rao2014kilobase}.
+The following chapter presents some more functions that are designed to identify compartments and domains in the interaction space.
+These methods tend to be rather \textit{ad hoc} from a statistical perspective, so more care is required in interpretation.
+
+\section{Identifying open and closed compartments}
+Contact frequencies in the interaction space of higher organisms typically exhibit a checkerboard pattern.
+This indicates that all sites on the genome must belong in one of two compartments, where loci in the same compartment interact more frequently than those in different compartments \citep{lieberman2009comprehensive}.
+The ``open'' compartment is associated with genes and active transcription, while the ``closed'' compartment is gene-poor.
+Identification of the loci in each compartment can be achieved with the \code{compartmentalize} function.
+In the example below, compartments are identified using bins at 500 kbp resolution.
+
+<<echo=FALSE,results=hide>>=
+set.seed(34234)
+@
+
+<<>>=
+data <- squareCounts(input, width=5e5, filter=1, param=mm.param)
+output <- compartmentalize(data, centers=2)
+@
+
+Briefly, the \code{compartmentalize} function constructs a symmetric matrix of contact frequencies for each chromosome.
+Each row or column of the matrix represents a bin, and each entry of the matrix represents the contact frequency -- in this case, the average abundance across \code{input} libraries.
+Frequencies are normalized to remove distance-dependent trends and coverage biases between bins.
+The normalized matrix is then used in $k$-means clustering \citep{lajoie2015hitchhiker}, where the bins (rows) are clustered based on similarities in their interaction profiles.
+All bins in the same cluster belong to the same compartment, as indicated by the cluster identifier in the returned \code{compartment} vector for each chromosome.
+The name of each entry in the vector refers to the index of \code{regions(data)} corresponding to that bin.
+Bins with \code{NA} entries correspond to low-coverage centromeres or telomeres that are filtered out.
+
+<<>>=
+head(output$chr2$compartment, 20)
+@
+
+By default, two clusters are identified in each chromosome that correspond to the open and closed compartments.
+More clusters can be specified by increasing \code{centers}, though the interpretation of the resulting compartments becomes more difficult.
+The function also returns the contact \code{matrix} for each chromosome.
+Users can then apply their own clustering algorithms on this matrix, if $k$-means is not satisfactory.
+Alternatively, the contact matrix can be used for visualization with \code{image}, as shown below for chromosome 5.
+The red/blue bar at the top of the plot indicates the genomic intervals in either compartment.
+
+<<eval=FALSE,label=compartplot>>=
+par(xpd=TRUE)
+color.range <- c(-5, 5)
+temp <- output$chr5$matrix
+temp[temp < color.range[1]] <- color.range[1]
+temp[temp > color.range[2]] <- color.range[2]
+image(temp, zlim=color.range)
+current <- output$chr5$compartment
+stretches <- rle(current)
+ends <- cumsum(stretches$lengths) - 0.5
+starts <- ends - stretches$lengths 
+not.na <- !is.na(stretches$values)
+rect(starts[not.na]/(nrow(temp)-1), 1.05, ends[not.na]/(nrow(temp)-1), 1.1,
+   col=c("black", "blue", "green")[stretches$values[not.na]])
+@
+
+\begin{center}
+<<echo=FALSE,fig=TRUE,resolution=100>>=
+<<compartplot>>
+@
+\end{center}
+
+Compartments can be identified at higher spatial resolution by using a lower \code{width} in \code{squareCounts}.
+To avoid running out of memory, users should \code{reform} the parameter object to \code{restrict} counting to intra-chromosomal bin pairs.
+However, be aware that small counts may compromise the effectiveness of the normalization scheme.
+High resolution may also be unnecessary given that compartments are usually quite large, e.g., 1 - 10 Mbp in size.
+
+% Also need to make sure you get the right library sizes.
+% totals <- totalCounts(input, param=mm.param) 
+% intras <- cbind(seqlevels(mm.frag), seqlevels(mm.frag)) 
+% data <- squareCounts(input, width=1e5, filter=1, param=reform(mm.param, restrict=intras)) 
+
+\section{Identifying topological and other domains}
+High intensity triangles are often observed on the diagonal of the intra-chromosomal interaction space.
+These correspond to topologically associating domains (TADs) where loci within each domain interact more frequently than those between domains.
+Such domains are proposed to control genomic behaviour by limiting the scope for interactions and restraining the spread of chromatin marks \citep{nora2013segmental}.
+At higher resolutions, small domains may also be formed due to looping between specific genomic elements \citep{rao2014kilobase}.
+
+To identify these domains, \cite{dixon2012topological} introduced a directionality statistic for each genomic locus.
+A region at the start of a domain will interact preferentially with ``upstream'' regions in the same domain, compared to ``downstream'' regions in a different domain.
+Conversely, the region at the end of each domain will interact preferentially with the downstream regions compared to upstream regions.
+The \code{domainDirections} function represents sites with 100 kbp bins, and counts the number of read pairs mapped between each bin and the closest \code{span} up- or downstream sites.
+The genomic coordinates of each bin is returned along with the total count in either direction, averaged across \code{input} libraries.
+
+<<>>=
+finder <- domainDirections(input, mm.param, width=1e5, span=10)
+finder
+@
+
+The total counts can be used to calculate the directionality index defined by \citeauthor{dixon2012topological}
+However, a simpler alternative is to compute the log-fold change between the up/down counts for each bin.
+This seems to be easier to model with a Gaussian distribution, as shown for chromosome 1.
+A large prior count is used to avoid spuriously large values at low counts.
+
+<<eval=FALSE,label=directiondist>>=
+prior.c <- 10
+directionality <- log2((finder$Up + prior.c)/(finder$Down + prior.c))
+onchr1 <- as.logical(seqnames(finder)=="chr1")
+chr1.dir <- directionality[onchr1]
+hist(chr1.dir, breaks=100)
+@
+
+\begin{center}
+<<echo=FALSE,fig=TRUE>>=
+<<directiondist>>
+@
+\end{center}
+
+% The directionality index is quite non-normal, and the density at zero is a lot higher,
+% making it harder to distinguish between states (all means of states closer to zero; 
+% CV is increased). This would explain the need for a mixture distribution in Dixon's paper.
+% d.index <- sign(finder$Up - finder$Down) * ((finder$Up - finder$Down)/(finder$Up + finder$Down))^2
+% hist(d.index, breaks=100)
+
+Actual identification of the domains involves fitting a hidden Markov model (HMM) to the directionalities across each chromosome.
+Three states are used -- upstream bias, no bias and downstream bias, corresponding to the start, middle and end of a domain with positive, near-zero and negative directionalities.
+The aim is to identify the most likely state for each bin in the fitted model.
+HMM fitting can be performed in \R{} using the depmixS4 package, as shown below.
+Note that the normality of the log-fold changes allows easy modelling with a single Gaussian distribution, instead the mixture of Gaussians used by \citeauthor{dixon2012topological}
+
+<<echo=FALSE,results=hide>>=
+set.seed(43123)
+@
+
+<<results=hide>>=
+require(depmixS4)
+mod <- depmix(chr1.dir~1, family=gaussian(), nstates=3, 
+   ntimes=sum(onchr1), trstart = runif(9))
+fm <- fit(mod, emc=em.control(rand=FALSE), verbose=FALSE)
+@
+
+Examination of the response parameters suggests that state 1 represents upstream bias, state 2 represents downstream bias and state 3 represents no bias.
+The transition probabilities also indicate that a direct transition from upstream to downstream states is unlikely, as is the downstream to no bias transition.
+This is consistent with the expected model of ``upstream bias $\to$ no bias $\to$ downstream bias'' state transitions for each domain.
+
+<<>>=
+summary(fm)
+@
+
+<<echo=FALSE,results=hide>>=
+state.bias <- getpars(fm)[9+3+1+0:2*2]
+if (!identical(order(state.bias,decreasing=TRUE), c(1L, 3L, 2L))) { warning("HMM states are not as expected") }
+@
+
+The most likely state for each bin can be determined by extracting the Viterbi path.
+Each pattern of ``up $\to$ none $\to$ down'' represents the interval of a single domain.
+
+<<>>=
+all.states <- posterior(fm)$state
+head(all.states, n=50)
+@
+
+The performance of this approach can be visually assessed with a (rotated) plaid plot.
+The red, yellow and orange intervals mark the start, end and center of each domain, respectively.
+These match up well with the characteristic triangle patterns in the interaction space.
+
+<<eval=FALSE,label=plotdomain>>=
+colours <- c("red", "yellow", "orange")
+rotPlaid(input[3], mm.param, GRanges("chr1", IRanges(10e6, 20e6)),
+    width=1e5, max.count=50)
+rect(start(finder[onchr1]), 0, end(finder[onchr1]), 1e5,
+   col=colours[all.states], border=NA)
+@
+
+\setkeys{Gin}{width=0.9\textwidth}
+\begin{center}
+<<fig=TRUE,echo=FALSE,height=5,width=10,resolution=100>>=
+<<plotdomain>>
+@
+\end{center}
+\setkeys{Gin}{width=0.8\textwidth}
+
+As an aside, nesting of domains is often observed in real data \citep{filippova2014identification}.
+The HMM approach will only report a single set of small domains, and will not report the larger domains in which those small domains are nested.
+Additional effort will be required to identify the nesting structure.
+One possibility is to compute the total contacts between the reported domains, and to use this as a similarity measure for heirarchical clustering.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{Epilogue}
 
