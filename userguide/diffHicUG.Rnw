@@ -597,8 +597,8 @@ This approach avoids loading irrelevant interactions when only specific viewpoin
 
 \section{Counting into single bins}
 \label{sec:marginal}
-For each bin, the number of read pairs with at least one read mapped inside that bin can be counted with the \code{marginalCounts} function.
-This effectively uses the Hi-C data to examine the genomic coverage of each bin.
+The \code{marginalCounts} function counts the number of reads mapped inside each bin.
+This effectively treats each Hi-C library as single-end data, to quantify the genomic coverage of each bin.
 One can use these ``marginal'' counts to determine whether there are systematic differences in coverage between libraries for a given bin.
 This implies that copy number variations are present, which may confound detection of differential interactions.
 
@@ -607,7 +607,7 @@ margin.data <- marginCounts(input, mm.param, width=bin.size)
 margin.data
 @
 
-Each row of the returned \code{DIList} contains the read pair counts for a single genomic bin.
+Each row of the returned \code{DIList} contains the marginal read counts for a single genomic bin.
 Note that the anchor/target notation is superfluous for \code{marginCounts}.
 This is because the marginal counts refer to individual bins rather than bin pairs.
 Nonetheless, a \code{DIList} is still returned for consistency, in which the anchor and target regions are identical.
