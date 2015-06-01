@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 28 May 2015}
+Last revised 1 June 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -511,7 +511,11 @@ The \code{width} of the bin is specified in base pairs and determines the spatia
 Smaller bins will have greater spatial resolution as adjacent features can be distinguished in the interaction space.
 Larger bins will have greater counts as a larger area is used to collect read pairs.
 Optimal summarization will not be achieved if bins are too small or too large to capture the (changes in) intensity of the underlying interactions.
-For this analysis, 1 Mbp bins are used to capture broad structural features. 
+
+For this analysis, 1 Mbp bins are used to capture broad structural features.
+This is also useful for demonstration purposes, as the counts are large enough for clear manifestation of biases in later chapters.
+Of course, \pkgname{} is more than capable of handling smaller sizes (e.g., below 20 kbp) for higher-resolution analyses of looping interactions between specific elements.
+In such cases, \code{filter} should be increased to avoid excessive memory usage.
 
 <<>>=
 head(regions(data))
