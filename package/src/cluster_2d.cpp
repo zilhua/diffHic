@@ -417,10 +417,9 @@ try {
 			first_ptr[current]=i+1;
 			start_ptr[current]=sptr[i];
 			end_ptr[current]=eptr[i];
-		} else if (start_ptr[current] > sptr[i]) { 
-			start_ptr[current]=sptr[i];
-		} else if (end_ptr[current] < eptr[i]) {
-			end_ptr[current]=eptr[i];
+		} else { 
+			if (start_ptr[current] > sptr[i]) { start_ptr[current]=sptr[i]; } 
+			if (end_ptr[current] < eptr[i]) { end_ptr[current]=eptr[i]; }
 		}
 	}	
 
