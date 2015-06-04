@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 1 June 2015}
+Last revised 4 June 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -1736,7 +1736,7 @@ Misinterpretation of the FDR is also mitigated as each interaction is represente
 
 <<>>=
 clustered <- clusterPairs(smaller.data, tol=1, upper=1e6)
-tabcluster <- csaw::combineTests(clustered$id, result.small$table)
+tabcluster <- csaw::combineTests(clustered$indices[[1]], result.small$table)
 head(tabcluster)
 @
 
@@ -1825,27 +1825,27 @@ Smaller bins provide greater spatial resolution and can identify sharp different
 Conversely, larger bin pairs provide larger counts and greater power to detect diffuse events.
 Comprehensive detection of differential interactions can be achieved by combining analyses from several bin sizes.
 
-To combine the results, the \code{consolidatePairs} function is used to identify all smaller bin pairs that are nested within each of the larger ``parent'' bin pairs.
+To combine the results, the \code{boxPairs} function is used to identify all smaller bin pairs that are nested within each of the larger ``parent'' bin pairs.
 Specifically, smaller bin pairs are nested in a large bin pair if the former has the same ID as the latter in their respective \code{cons\$id} vectors.
 Note that the larger bin size \textit{must} be an integer multiple of the smaller bin size(s).
 This is necessary to simplify the interpretation of the nesting procedure.
 
 <<>>=
-cons <- consolidatePairs(list(larger=data, smaller=smaller.data), 
-    list(result$table, result.small$table))
-head(cons$id$larger)
-head(cons$id$smaller)
+boxed <- boxPairs(larger=data, smaller=smaller.data)
+head(boxed$anchors)
+head(boxed$targets)
 @
 
 Each parent bin pair is associated with its own $p$-value and those of the smaller nested bin pairs.
-All of these $p$-values can then be combined into a single $p$-value for the parent.
-This is done using a weighted version of Simes' method \citep{benjamini1997multiple}.
+All of these $p$-values can be combined into a single $p$-value for the parent.
+To do this, the \code{consolidatePairs} function uses a weighted version of Simes' method \citep{benjamini1997multiple}.
 For each bin pair, the weight of the $p$-value is inversely proportional to the number of bin pairs of the same size nested in the same parent.
 This ensures that the combined $p$-value calculation is not dominated by smaller, more numerous bin pairs.
 The BH method is then applied to the combined $p$-values to control the FDR across all parents.
 
 <<>>=
-head(cons$table)
+cons <- consolidatePairs(boxed$indices, list(result$table, result.small$table))
+head(cons)
 sum(cons$table$FDR <= 0.05)
 @
 
