@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 4 June 2015}
+Last revised 5 June 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -530,6 +530,9 @@ Instead, repeated analyses with multiple bin sizes are recommended.
 This provides some robustness to the choice of bin size.
 Sharp interactions can be detected by pairs of smaller bins while diffuse interactions can be detected by larger bin pairs.
 See Section~\ref{sec:mergebins} for more information on consolidating results from multiple bin sizes.
+
+% Smaller bins also provide some protection against edge effects, when an interaction is not 
+% centered within a larger bin.
 
 \section{Counting with pre-defined regions}
 
@@ -1789,7 +1792,7 @@ The idea is to adjust \code{threshold} such that the cluster-level FDR lies belo
 All clusters formed at the chosen \code{threshold} can then be reported, as shown previously.
 
 <<>>=
-csaw::clusterFDR(clustered.sig$id, threshold)
+csaw::clusterFDR(clustered.sig$indices[[1]], threshold)
 @
 
 In general, direct application of the BH method or independent clustering should be preferred to this \textit{ad hoc} method.
@@ -1832,8 +1835,8 @@ This is necessary to simplify the interpretation of the nesting procedure.
 
 <<>>=
 boxed <- boxPairs(larger=data, smaller=smaller.data)
-head(boxed$anchors)
-head(boxed$targets)
+head(boxed$indices$larger)
+head(boxed$indices$smaller)
 @
 
 Each parent bin pair is associated with its own $p$-value and those of the smaller nested bin pairs.
@@ -1846,7 +1849,7 @@ The BH method is then applied to the combined $p$-values to control the FDR acro
 <<>>=
 cons <- consolidatePairs(boxed$indices, list(result$table, result.small$table))
 head(cons)
-sum(cons$table$FDR <= 0.05)
+sum(cons$FDR <= 0.05)
 @
 
 % In other cases, decreased power may be observed if either - but not both- sharp or diffuse interactions are observed.
@@ -1858,12 +1861,12 @@ Statistics for each of the larger bin pairs can then be stored to file.
 Reordering is performed using the combined $p$-value to promote the strongest changes.
 
 <<>>=
-ax.s <- anchors(cons$pairs)
-tx.s <- targets(cons$pairs)
-o.s <- order(cons$table$PValue)
+ax.s <- boxed$anchors
+tx.s <- boxed$targets
+o.s <- order(cons$PValue)
 results.s <- data.frame(anchor.chr=seqnames(ax.s), anchor.start=start(ax.s), 
     anchor.end=end(ax.s), target.chr=seqnames(tx.s), target.start=start(tx.s), 
-    target.end=end(tx.s), cons$table)
+    target.end=end(tx.s), cons)
 write.table(results.s[o.s,], file="sizecons.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
@@ -1882,7 +1885,7 @@ This means that any high-resolution changes nested within a large feature can be
 However, keep in mind that the FDR is computed with respect to the features, not the nested bin pairs.
 
 <<>>=
-small.ids <- cons$id$smaller
+small.ids <- boxed$indices$smaller
 inside <- csaw::getBestTest(small.ids, result.small$table)
 ax.n <- anchors(smaller.data[inside$best,])
 tx.n <- targets(smaller.data[inside$best,])
