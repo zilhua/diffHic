@@ -58,7 +58,7 @@ fqdcmd=fastq-dump
 # We pull out the Hi-C mapping script from diffHic.
 
 mapper=hicmap.py
-echo "require(diffHic); file.copy(system.file('python', 'presplit_map.py', package='diffHic'), '$mapper');" | ${rcmd} --no-save
+echo "require(diffHic); file.copy(system.file('python', 'presplit_map.py', package='diffHic'), '$mapper', overwrite=TRUE)" | ${rcmd} --no-save
 if [ ! -e $mapper ]; then
 	echo "Extraction of Hi-C mapping script failed."
 	exit 1
