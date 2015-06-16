@@ -2246,8 +2246,15 @@ At higher resolutions, small domains may also be formed due to looping between s
 To identify these domains, \cite{dixon2012topological} introduced a directionality statistic for each genomic locus.
 A region at the start of a domain will interact preferentially with ``upstream'' regions in the same domain, compared to ``downstream'' regions in a different domain.
 Conversely, the region at the end of each domain will interact preferentially with the downstream regions compared to upstream regions.
-The \code{domainDirections} function represents sites with 100 kbp bins, and counts the number of read pairs mapped between each bin and the closest \code{span} up- or downstream sites.
-The genomic coordinates of each bin is returned along with the total count in either direction, averaged across \code{input} libraries.
+This results in a characteristic pattern of positive directionality statistics at the start of the domain, followed by negative values at the end.
+These patterns can be extracted to identify the domain boundaries.
+
+Directionality calculations are performed using the output of the \code{domainDirections} function.
+In the example below, the genome is first partitioned into 100 kbp bins.
+For each bin, the total number of read pairs mapped between that bin and its closest \code{span} upstream neighbours is counted.
+This is repeated for its closest \code{span} downstream neighbours.
+The genomic coordinates of each bin is returned along with the total count in either direction.
+If multiple libraries are specified in \code{input}, the average of the total counts is returned.
 
 <<>>=
 finder <- domainDirections(input, mm.param, width=1e5, span=10)
@@ -2256,8 +2263,8 @@ finder
 
 The total counts can be used to calculate the directionality index defined by \citeauthor{dixon2012topological}
 However, a simpler alternative is to compute the log-fold change between the up/down counts for each bin.
-This seems to be easier to model with a Gaussian distribution, as shown for chromosome 1.
-A large prior count is used to avoid spuriously large values at low counts.
+A large prior count is used to avoid spuriously large changes at low counts.
+The computed values seem to follow a Gaussian distribution, as shown for chromosome 1.
 
 <<eval=FALSE,label=directiondist>>=
 prior.c <- 10
@@ -2279,11 +2286,11 @@ hist(chr1.dir, breaks=100)
 % d.index <- sign(finder$Up - finder$Down) * ((finder$Up - finder$Down)/(finder$Up + finder$Down))^2
 % hist(d.index, breaks=100)
 
-Actual identification of the domains involves fitting a hidden Markov model (HMM) to the directionalities across each chromosome.
-Three states are used -- upstream bias, no bias and downstream bias, corresponding to the start, middle and end of a domain with positive, near-zero and negative directionalities.
+Domain identification involves fitting a hidden Markov model (HMM) to the directionalities across each chromosome.
+Three states are used -- upstream bias, no bias and downstream bias, corresponding to the start, middle and end of a domain with positive, near-zero and negative directionalities, respectively.
 The aim is to identify the most likely state for each bin in the fitted model.
 HMM fitting can be performed in \R{} using the depmixS4 package, as shown below.
-Note that the normality of the log-fold changes allows easy modelling with a single Gaussian distribution, instead the mixture of Gaussians used by \citeauthor{dixon2012topological}
+Note that the normality of the log-fold changes allows simple modelling with a single Gaussian distribution, instead the mixture of Gaussians used by \citeauthor{dixon2012topological}
 
 <<echo=FALSE,results=hide>>=
 set.seed(43123)
