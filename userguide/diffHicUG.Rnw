@@ -1189,6 +1189,12 @@ Direct filtering is also performed for the smaller bin pairs, and the results st
 smaller.data <- smaller.data[small.keep,]
 @
 
+% I guess I prefer the direct method. Even though you get diffuse interactions, 
+% it doesn't mean that they're not relevant, i.e., non-specific!=non-functional.
+% For example, see Doyle's 2014 paper, and think of broad interactions in TADs.
+% It's like the difference between sharp and diffuse marking in ChIP-seq; as 
+% Hi-C pulls down all interactions, you're likely to get 
+
 \chapter{Normalization strategies for Hi-C data}
 
 \begin{combox}
