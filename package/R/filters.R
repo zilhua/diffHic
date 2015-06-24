@@ -82,10 +82,11 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
 		actual.dist <- log10(getDistance(data, type="mid") + .getBinSize(data))
 		ref <- Recall(reference, span=span, prior.count=prior.count)
+		new.threshold <- approx(x=ref$log.distance, y=ref$threshold, xout=actual.dist, rule=2)$y
 
 		stopifnot(identical(reference$totals, data$totals))
 		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
-		adj.thresh <- .repriorAveLogCPM(ref$threshold, totals=data$totals,
+		adj.thresh <- .repriorAveLogCPM(new.threshold, totals=data$totals,
 			prior.count=prior.count, scaling=scaling)
 		return(list(abundances=actual.ab, threshold=adj.thresh, log.distance=actual.dist, ref=ref)) 
 	}
