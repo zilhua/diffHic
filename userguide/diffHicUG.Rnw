@@ -1795,11 +1795,11 @@ head(clustered.sig$anchors)
 head(clustered.sig$targets)
 @
 
-However, this summarization of results is not statistically rigorous.
-Controlling the FDR across bin pairs does not guarantee control of the FDR over clusters.
+However, this summarization procedure is not statistically rigorous.
+Controlling the FDR across bin pairs does not guarantee control of the FDR over clusters \citep{lun2014denovo}.
 Instead, an informal estimate of the cluster-level FDR can be obtained with the \code{clusterFDR} function.
 The idea is to adjust \code{threshold} such that the cluster-level FDR lies below some desired value.
-All clusters formed at the chosen \code{threshold} can then be reported, as shown previously.
+All clusters formed at the chosen \code{threshold} can then be reported.
 
 <<>>=
 csaw::clusterFDR(clustered.sig$indices[[1]], threshold)
@@ -1880,12 +1880,18 @@ results.s <- data.frame(anchor.chr=seqnames(ax.s), anchor.start=start(ax.s),
 write.table(results.s[o.s,], file="sizecons.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 @
 
-In addition, nesting protects against misinterpretation of the FDR for diffuse differential interactions.
-The FDR across bin pairs is not the same as that across the true underlying interactions.
-For large bin pairs, the two may be similar if one assumes that each bin pair roughly corresponds to an interaction.
-This assumption is less reasonable when multiple smaller bin pairs are used to represent a diffuse interaction.
-Misinterpreting one FDR as the other may result in loss of control \citep{lun2014denovo}.
-Nesting ensures that the FDR is computed over large bin pairs, even when detection is driven by small bin pairs.
+Nesting also reduces redundancy in the results.
+The set of nested bin pairs will only be reported once, in the form of the parent bin pair.
+This limits the potential for misinterpretation of the FDR \citep{lun2014denovo}.
+Similarly, for sparse data, users can also use the \code{clusterPairs} function to replace \code{boxPairs} in the above call.
+This will compute a combined $p$-value for each cluster, based on the $p$-values of the bin pairs of varying sizes in each cluster.
+The cluster-level statistics can then be reported for easier interpretation.
+
+% The FDR across bin pairs is not the same as that across the true underlying interactions.
+% For large bin pairs, the two may be similar if one assumes that each bin pair roughly corresponds to an interaction.
+% This assumption is less reasonable when multiple smaller bin pairs are used to represent a diffuse interaction.
+% Misinterpreting one FDR as the other may result in loss of control.
+% Nesting provides some protection by ensuring that the FDR is computed over large bin pairs, even when detection is driven by small bin pairs.
 
 \subsection{Reporting nested bin pairs}
 \label{sec:nesting}
