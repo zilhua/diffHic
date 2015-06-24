@@ -15,7 +15,7 @@ filterDirect <- function(data, prior.count=2, reference=NULL)
 		stopifnot(identical(reference$totals, data$totals))
 		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
 		adj.thresh <- .repriorAveLogCPM(ref$threshold, totals=data$totals,
-			old.prior=prior.count, new.prior=prior.count*scaling) 
+			prior.count=prior.count, scaling=scaling)
 		return(list(abundances=actual.ab, threshold=adj.thresh, ref=ref))
 	}
 
@@ -62,12 +62,12 @@ filterDirect <- function(data, prior.count=2, reference=NULL)
 
 .makeEmpty <- function(data, ...) { scaledAverage(DGEList(rbind(integer(ncol(data))), lib.size=data$totals), ...) }
 
-.repriorAveLogCPM <- function(AveLogCPM, totals, old.prior, new.prior) 
+.repriorAveLogCPM <- function(AveLogCPM, totals, prior.count, scaling)
 # Adjusting the average log-CPM to use a new prior count.
 {
 	ave.count <- 2^AveLogCPM * mean(totals) / 1e6
-	ave.count <- ave.count - old.prior + new.prior
-	return(log2(ave.count * 1e6 / mean(totals)))
+	ave.count <- ave.count + prior.count*(scaling - 1)
+	return(log2(ave.count * 1e6 / mean(totals) / scaling))
 }
 
 filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
@@ -86,8 +86,8 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 		stopifnot(identical(reference$totals, data$totals))
 		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
 		adj.thresh <- .repriorAveLogCPM(ref$threshold, totals=data$totals,
-			old.prior=prior.count, new.prior=prior.count*scaling) 
-		data <- reference
+			prior.count=prior.count, scaling=scaling)
+		return(list(abundances=actual.ab, threshold=adj.thresh, log.distance=actual.dist, ref=ref)) 
 	}
 
 	dist <- getDistance(data, type="mid")
