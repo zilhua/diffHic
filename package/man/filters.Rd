@@ -80,6 +80,24 @@ y[keep,]
 trended <- filterTrended(y)
 keep <- trended$abundances > trended$threshold 
 y[keep,]
+
+# Running reference comparisons, using larger bin pairs.
+w <- 5L
+a2 <- a/w
+b2 <- b/w
+regions2 <- GRanges(rep(c("chrA", "chrB"), c(a2, b2)), 
+    IRanges(c(1:a2, 1:b2)*w-w+1L, c(1:a2, 1:b2)*w))
+npairs2 <- 20
+all.anchors2 <- sample(length(regions2), npairs2, replace=TRUE)
+all.targets2 <- as.integer(runif(npairs2, 1, all.anchors2+1))
+y2 <- DIList(matrix(rnbinom(npairs2*4, mu=10*w^2, size=10), npairs2, 4), 
+    anchors=all.anchors2, targets=all.targets2, regions=regions2, 
+    totals=y$totals, exptData=List(width=w))
+
+direct2 <- filterDirect(y, reference=y2)
+sum(direct2$abundances > direct2$threshold + log2(1.5))
+trended2 <- filterTrended(y, reference=y2)
+sum(trended2$abundances > trended2$threshold)
 }
 
 \references{
