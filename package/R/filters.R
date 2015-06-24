@@ -1,27 +1,54 @@
-filterDirect <- function(data, ...)
+filterDirect <- function(data, prior.count=2, reference=NULL)
 # Implements the direct filtering method on the abundances of 
-# inter-chromosomal bin pairs.
+# inter-chromosomal bin pairs. Also allows for specification of
+# a reference set of bin pairs (usually larger bins from which
+# the abundances can be more stably computed).
 #
 # written by Aaron Lun
 # created 5 March 2015
-# last modified 20 March 2015
+# last modified 24 June 2015
 {
+	use.ref <- !is.null(reference)
+	if (use.ref) { 
+		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
+		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
+		data <- reference
+	} else {
+		scaling <- 1
+	}
+
 	all.chrs <- seqnames(regions(data))
 	is.inter <- as.logical(all.chrs[anchors(data, id=TRUE)]!=all.chrs[targets(data, id=TRUE)])
-	ave.ab <- scaledAverage(asDGEList(data), ...)
-
-	threshold <- .getInterThreshold(all.chrs, ave.ab[is.inter], empty=.makeEmpty(data, ...))
-	return(list(abundances=ave.ab, threshold=threshold))
+	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count, scale=scaling)
+	threshold <- .getInterThreshold(all.chrs, ave.ab[is.inter],
+		empty=.makeEmpty(data, prior.count=prior.count, scale=scaling))
+	
+	if (use.ref) { 
+		return(list(abundances=actual.ab, threshold=threshold, 
+			ref=list(abundances=ave.ab, threshold=threshold)))
+	} else { 
+		return(list(abundances=ave.ab, threshold=threshold))
+	}
 }
 
-.getInterThreshold <- function(all.chrs, inter.ab, empty=NA) { 
-	# Getting the total number of inter-chromosomal bins.
+.getBinSize <- function(data) 
+# Gets the bin size in base pairs. 
+{
+	out <- exptData(data)$width
+	if (is.null(out)) { out <- median(regions(data)) }
+	return(out) 
+}
+
+.getInterThreshold <- function(all.chrs, inter.ab, empty=NA) 
+# Computes the threshold from inter-chromosomal interactions.
+# First we get the total number of inter-chromosomal bins,
+# and then we compue the median (accounting for those lost).
+{ 
 	n.bins <- as.numeric(runLength(all.chrs))
 	total.bins <- sum(n.bins)
 	n.inter <- total.bins * (total.bins + 1L)/2L - sum(n.bins * (n.bins + 1L)/2L)
 	prop.kept <- length(inter.ab)/n.inter
 
-	# Getting the threshold.
 	if (prop.kept >= 1) { 
 		threshold <- median(inter.ab) 
 	} else if (prop.kept < 0.5) { 
@@ -35,20 +62,30 @@ filterDirect <- function(data, ...)
 
 .makeEmpty <- function(data, ...) { scaledAverage(DGEList(rbind(integer(ncol(data))), lib.size=data$totals), ...) }
 
-filterTrended <- function(data, span=0.25, ...)
+filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 # Implements the trended filtering method on the abundances of 
-# inter-chromosomal bin pairs. 
+# inter-chromosomal bin pairs. Again, with allowances for a reference set.
 #
 # written by Aaron Lun
 # created 5 March 2015
 # last modified 20 March 2015
 {
+	use.ref <- !is.null(reference) 
+	if (use.ref) { 
+		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
+		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
+		actual.dist <- log10(getDistance(data) + .getBinSize(data))
+		data <- reference
+	} else {
+		scaling <- 1
+	}
+
 	dist <- getDistance(data, type="mid")
-	log.dist <- log10(dist + exptData(data)$width)
-	ave.ab <- scaledAverage(asDGEList(data), ...)
+	log.dist <- log10(dist + .getBinSize(data))
+	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count, scaling=scaling)
 
 	# Filling in the missing parts of the interaction space.
-	empty <- .makeEmpty(data, ...)
+	empty <- .makeEmpty(data, prior.count=prior.count, scaling=scaling)
 	is.intra <- !is.na(log.dist)
 	n.intras <- sum(is.intra)
 	all.chrs <- seqnames(regions(data))
@@ -75,6 +112,14 @@ filterTrended <- function(data, span=0.25, ...)
 	# Using the direct threshold.
 	direct.threshold <- .getInterThreshold(seqnames(regions(data)), ave.ab[is.na(log.dist)], empty=empty)
 	trend.threshold[is.na(log.dist)] <- direct.threshold
-	return(list(abundances=ave.ab, threshold=trend.threshold, log.distance=log.dist)) 
+
+	if (use.ref) { 
+		actual.thresh <- approx(x=log.dist, y=ave.ab, xout=actual.dist, rule=2)$y
+		actual.thresh[is.na(actual.dist)] <- direct.threshold
+		return(list(abundances=actual.ab, threshold=actual.thresh, log.distance=actual.dist,
+			ref=list(abundances=ave.ab, threshold=trend.threshold, log.distance=log.dist)))
+	} else {
+		return(list(abundances=ave.ab, threshold=trend.threshold, log.distance=log.dist)) 
+	}
 }
 

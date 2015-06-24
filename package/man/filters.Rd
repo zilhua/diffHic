@@ -6,14 +6,15 @@
 \description{Implementations of the direct and trended filtering strategies for bin pair abundances.}
 
 \usage{
-filterDirect(data, ...)
-filterTrended(data, span=0.25, ...)
+filterDirect(data, prior.count=2, reference=NULL)
+filterTrended(data, span=0.25, prior.count=2, reference=NULL)
 }
 
 \arguments{
 \item{data}{a \code{DIList} object produced by \code{\link{squareCounts}}}
 \item{span}{a numeric scalar specifying the bandwidth for loess curve fitting}
-\item{...}{other arguments to be passed to \code{\link{scaledAverage}}}
+\item{prior.count}{a numeric scalar indicating the prior count to use for calculating the average abundance}
+\item{reference}{another \code{DIList} object, usually containing data for larger bin pairs}
 }
 
 \details{
@@ -32,14 +33,20 @@ Lower values may need to be used for a more accurate fit when the trend is highl
 The bin size is also added to the distance prior to log-transformation, to avoid problems with undefined values when distances are equal to zero.
 Empty parts of the interaction space are considered by inferring the abundances and distances of the corresponding bin pairs (though this is skipped if too much of the space is empty).
 
-The \code{scale} argument can be passed to \code{\link{scaledAverage}}, in order to handle comparisons between bin pairs of different sizes.
-Check out the user's guide for more details.
+If \code{reference} is specified, it will be used to compute filter thresholds instead of \code{data}.
+This is intended for large bin pairs that have been loaded with \code{filter=1}.
+Larger bins provide larger counts for more precise threshold estimates, while the lack of filtering ensures that estimates are not biased.
+All threshold estimates are adjusted to account for differences in bin sizes between \code{reference} and \code{data}.
+The final values can be used to directly filter on abundances in \code{data}; check out the user's guide for more details.
 }
 
 \value{
 A list is returned containing \code{abundances}, a numeric vector with the average abundances of all bin pairs in \code{data}.
 For \code{filterDirect}, the list contains a numeric scalar \code{threshold}, i.e., the non-specific ligation rate.
-For \code{filterTrended}, the list contains \code{threshold}, a numeric vector containing the threshold for each bin pair; and \code{log.distances}, a numeric vector with the log-distances for each bin pair.
+For \code{filterTrended}, the list contains \code{threshold}, a numeric vector containing the threshold for each bin pair; and \code{log.distance}, a numeric vector with the log-distances for each bin pair.
+
+If \code{reference} is specified in either function, an additional list named \code{ref} is also returned.
+This contains the filtering information for the bin pairs in \code{reference}, same as that reported above for each bin pair in \code{data}.
 }
 
 \seealso{
