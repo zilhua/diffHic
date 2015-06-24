@@ -68,13 +68,13 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 #
 # written by Aaron Lun
 # created 5 March 2015
-# last modified 20 March 2015
+# last modified 24 June 2015
 {
 	use.ref <- !is.null(reference) 
 	if (use.ref) { 
 		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
 		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
-		actual.dist <- log10(getDistance(data) + .getBinSize(data))
+		actual.dist <- log10(getDistance(data, type="mid") + .getBinSize(data))
 		data <- reference
 	} else {
 		scaling <- 1
@@ -82,10 +82,10 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 
 	dist <- getDistance(data, type="mid")
 	log.dist <- log10(dist + .getBinSize(data))
-	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count, scaling=scaling)
+	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count, scale=scaling)
 
 	# Filling in the missing parts of the interaction space.
-	empty <- .makeEmpty(data, prior.count=prior.count, scaling=scaling)
+	empty <- .makeEmpty(data, prior.count=prior.count, scale=scaling)
 	is.intra <- !is.na(log.dist)
 	n.intras <- sum(is.intra)
 	all.chrs <- seqnames(regions(data))
