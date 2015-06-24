@@ -8,31 +8,31 @@ filterDirect <- function(data, prior.count=2, reference=NULL)
 # created 5 March 2015
 # last modified 24 June 2015
 {
-	use.ref <- !is.null(reference)
-	if (use.ref) { 
-		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
+	if (!is.null(reference)) { 
 		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
-		data <- reference
-	} else {
-		scaling <- 1
+		ref <- Recall(reference, prior.count=prior.count)
+
+		stopifnot(identical(reference$totals, data$totals))
+		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
+		adj.thresh <- .repriorAveLogCPM(ref$threshold, totals=data$totals,
+			old.prior=prior.count, new.prior=prior.count*scaling) 
+		return(list(abundances=actual.ab, threshold=adj.thresh, ref=ref))
 	}
 
 	all.chrs <- seqnames(regions(data))
 	is.inter <- as.logical(all.chrs[anchors(data, id=TRUE)]!=all.chrs[targets(data, id=TRUE)])
-	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count, scale=scaling)
+	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
+
 	threshold <- .getInterThreshold(all.chrs, ave.ab[is.inter],
-		empty=.makeEmpty(data, prior.count=prior.count, scale=scaling))
-	
-	if (use.ref) { 
-		return(list(abundances=actual.ab, threshold=threshold, 
-			ref=list(abundances=ave.ab, threshold=threshold)))
-	} else { 
-		return(list(abundances=ave.ab, threshold=threshold))
-	}
+		empty=.makeEmpty(data, prior.count=prior.count))
+	return(list(abundances=ave.ab, threshold=threshold))
 }
 
 .getBinSize <- function(data) 
-# Gets the bin size in base pairs. 
+# Gets the bin size in base pairs. This should be easy for bin pairs,
+# but we also allow for more exotic set-ups, e.g., Capture-C loaded
+# with regionCounts where anchors are bins around probes (evenly
+# sized so treatable as bin pairs, but irregularly spaced).
 {
 	out <- exptData(data)$width
 	if (is.null(out)) { out <- median(regions(data)) }
@@ -62,6 +62,14 @@ filterDirect <- function(data, prior.count=2, reference=NULL)
 
 .makeEmpty <- function(data, ...) { scaledAverage(DGEList(rbind(integer(ncol(data))), lib.size=data$totals), ...) }
 
+.repriorAveLogCPM <- function(AveLogCPM, totals, old.prior, new.prior) 
+# Adjusting the average log-CPM to use a new prior count.
+{
+	ave.count <- 2^AveLogCPM * mean(totals) / 1e6
+	ave.count <- ave.count - old.prior + new.prior
+	return(log2(ave.count * 1e6 / mean(totals)))
+}
+
 filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 # Implements the trended filtering method on the abundances of 
 # inter-chromosomal bin pairs. Again, with allowances for a reference set.
@@ -70,22 +78,24 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 # created 5 March 2015
 # last modified 24 June 2015
 {
-	use.ref <- !is.null(reference) 
-	if (use.ref) { 
-		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
+	if (!is.null(reference)) {
 		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
 		actual.dist <- log10(getDistance(data, type="mid") + .getBinSize(data))
+		ref <- Recall(reference, span=span, prior.count=prior.count)
+
+		stopifnot(identical(reference$totals, data$totals))
+		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
+		adj.thresh <- .repriorAveLogCPM(ref$threshold, totals=data$totals,
+			old.prior=prior.count, new.prior=prior.count*scaling) 
 		data <- reference
-	} else {
-		scaling <- 1
 	}
 
 	dist <- getDistance(data, type="mid")
 	log.dist <- log10(dist + .getBinSize(data))
-	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count, scale=scaling)
+	ave.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
 
 	# Filling in the missing parts of the interaction space.
-	empty <- .makeEmpty(data, prior.count=prior.count, scale=scaling)
+	empty <- .makeEmpty(data, prior.count=prior.count)
 	is.intra <- !is.na(log.dist)
 	n.intras <- sum(is.intra)
 	all.chrs <- seqnames(regions(data))
@@ -103,7 +113,7 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 		extra.dist <- .Call(cxx_get_missing_dist, cumsum(runLength(all.chrs)),
 			a.pts-1L, t.pts-1L, (start(regions(data))+end(regions(data)))/2)
 		if (is.character(extra.dist)) { stop(extra.dist) }
-		extra.dist <- log10(extra.dist + exptData(data)$width)
+		extra.dist <- log10(extra.dist + .getBinSize(data))
 		trend.threshold <- loessFit(x=c(log.dist, extra.dist), 
 			y=c(ave.ab, rep(empty, length(extra.dist))), 
 			span=span)$fitted[1:length(log.dist)]
@@ -112,14 +122,6 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 	# Using the direct threshold.
 	direct.threshold <- .getInterThreshold(seqnames(regions(data)), ave.ab[is.na(log.dist)], empty=empty)
 	trend.threshold[is.na(log.dist)] <- direct.threshold
-
-	if (use.ref) { 
-		actual.thresh <- approx(x=log.dist, y=ave.ab, xout=actual.dist, rule=2)$y
-		actual.thresh[is.na(actual.dist)] <- direct.threshold
-		return(list(abundances=actual.ab, threshold=actual.thresh, log.distance=actual.dist,
-			ref=list(abundances=ave.ab, threshold=trend.threshold, log.distance=log.dist)))
-	} else {
-		return(list(abundances=ave.ab, threshold=trend.threshold, log.distance=log.dist)) 
-	}
+	return(list(abundances=ave.ab, threshold=trend.threshold, log.distance=log.dist)) 
 }
 
