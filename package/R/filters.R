@@ -82,7 +82,9 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
 		actual.dist <- log10(getDistance(data, type="mid") + .getBinSize(data))
 		ref <- Recall(reference, span=span, prior.count=prior.count)
+		
 		new.threshold <- approx(x=ref$log.distance, y=ref$threshold, xout=actual.dist, rule=2)$y
+		new.threshold[is.na(actual.dist)] <- ref$threshold[is.na(ref$log.distance)][1] # Direct threshold.
 
 		stopifnot(identical(reference$totals, data$totals))
 		scaling <- (.getBinSize(reference)/.getBinSize(data))^2
