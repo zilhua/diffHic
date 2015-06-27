@@ -34,7 +34,7 @@ Cleavage sites on the forward strand can be obtained as the \code{start} locatio
 }
 
 \section{Warning}{
-If \code{bs} is a FASTQ file, the chromosome names will be loaded faithfully by \code{cutGenome}.
+If \code{bs} is a FASTQ file, the chromosome names in the FASTQ headers will be loaded faithfully by \code{cutGenome}.
 However, many mapping pipelines will drop the rest of the name past the first whitespace when constructing the alignment index.
 To be safe, users should ensure that the chromosome names in the FASTQ headers consist of one word.
 Otherwise, there will be a discrepancy between the chromosome names in the output \code{GRanges}, and those in the BAM files after alignment.
