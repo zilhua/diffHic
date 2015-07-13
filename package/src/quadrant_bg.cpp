@@ -67,8 +67,7 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 				case 5: current=&aa2; break;
 			}
 
-			if (quadtype!=3 && quadtype!=5) { 
-				// Don't clear them, we want them added on from 2 and 4, respectively.
+			if (quadtype!=3 && quadtype!=5) { // Don't clear them, we want them added on from 2 and 4, respectively.
 				for (curpair=0; curpair<npair; ++curpair) { 
 					nptr[curpair]=0; 
 					temp_int[curpair]=0;
@@ -119,7 +118,7 @@ SEXP quadrant_bg (SEXP anchor, SEXP target,
 					if (nptr[curpair]) {
 						temp_val = (temp_int[curpair] + temp_dec[curpair]/multiplier)/nptr[curpair];
 						if (optr[curpair] < temp_val) { optr[curpair]=temp_val; }
-//	 			    Rprintf("%i %i %.3f\n", aptr[curpair]+1, tptr[curpair]+1, temp_val);
+//						if (exwidth) { Rprintf("%i %i %.3f %i\n", aptr[curpair]+1, tptr[curpair]+1, temp_val, nptr[curpair]); }
 					}
 				}
 			}

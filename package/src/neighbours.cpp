@@ -8,11 +8,9 @@ basic::basic(int w, int t, bool i, int x=0) : level(0), width(w), tlen(t), intra
 void basic::restrain () {
 	if (left < 0) { left=0; }
 	if (intra) {
-		if (right > row) { 
-			right=row+1; 
-			if (left > right) { left=right; }
-		}
+		if (right > row) { right=row+1; }
 	} else if (right > tlen) { right=tlen; } // For intra's, right will hit diagonal; no need to worry about tlen.
+	if (left > right) { left=right; } // Avoid negative areas in calling function.
 }
 
 bottomright::bottomright(int w, int t, bool i, int x) : basic(w, t, i, x) { level=-w; }
