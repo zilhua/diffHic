@@ -97,7 +97,8 @@ head(stuff$max)
 anchor.bias <- stuff$bias[anchors(data, id=TRUE),]
 target.bias <- stuff$bias[targets(data, id=TRUE),]
 offsets <- log(anchor.bias * target.bias)
-head(offsets)
+difference <- log(stuff$truth) - (log(counts(data)) - offsets) # effective function of offset in GLMs.
+stopifnot(all(is.na(difference) | difference < 1e-8))
 
 # Adjusting for distance, and computing offsets with trend correction.
 stuff <- correctedContact(data, average=FALSE, dist.correct=TRUE)
@@ -106,6 +107,8 @@ head(stuff$trend)
 offsets <- log(stuff$bias[anchors(data, id=TRUE),]) +
     log(stuff$bias[targets(data, id=TRUE),]) + 
     stuff$trend/log2(exp(1))
+difference <- log(stuff$truth) - (log(counts(data)) - offsets)
+stopifnot(all(is.na(difference) | difference < 1e-8))
 }
 
 \author{Aaron Lun}
