@@ -35,7 +35,7 @@ filterDirect <- function(data, prior.count=2, reference=NULL)
 # sized so treatable as bin pairs, but irregularly spaced).
 {
 	out <- exptData(data)$width
-	if (is.null(out)) { out <- median(regions(data)) }
+	if (is.null(out)) { out <- median(width(regions(data))) }
 	return(out) 
 }
 
