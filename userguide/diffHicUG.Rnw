@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 26 June 2015}
+Last revised 17 July 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -1339,6 +1339,18 @@ Note that \code{original} is used as the input to \code{correctedContact}.
 No filtering should be performed prior to iterative correction.
 All non-empty bin pairs are needed as information is collected across the entire interaction space.
 The contribution of many bin pairs with low counts might end up being as substantial as that of a few bin pairs with large counts.
+
+In addition, normalization from iterative correction can be fed naturally into the DI analysis via the GLM machinery in \edgeR{}.
+The log-transformed product of the estimated genomic biases for both bins in each bin pair can be used as the offset for that bin pair.
+This is computed separately for each library by setting \code{average=FALSE}, to correct for sample-specific genomic biases.
+\code{NA} offsets will be obtained for some bin pairs, but these should not be too problematic given that the affected bin pairs will generally have low counts (as at least one interacting partner will be of low abundance) and be filtered out during the analysis proper.
+
+<<>>=
+corrected <- correctedContact(original, average=FALSE)
+anchor.bias <- corrected$bias[anchors(original, id=TRUE),]
+target.bias <- corrected$bias[targets(original, id=TRUE),]
+iter.off <- log(anchor.bias * target.bias)
+@
 
 Of course, iterative correction only removes biases between different bins.
 It is not guaranteed to remove (trended) biases between libraries.
