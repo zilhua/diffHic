@@ -41,8 +41,10 @@ correctedContact <- function(data, iterations=50, exclude.local=1, ignore.low=0.
     
 	# Computing average counts, with or without distance correction.
 	if (dist.correct) { 
-		trended <- filterTrended(data, prior.count=0)
-		ave.counts <- exp(trended$abundance - trended$threshold)
+		temp <- data
+		temp$totals <- 1e6 # need library size to be reflected in fitted value of trend.
+		trended <- filterTrended(temp, prior.count=0)
+		ave.counts <- 2^(trended$abundance - trended$threshold)
 		is.local <- !is.na(trended$log.distance)
 		nzero <- !is.na(ave.counts)
 	} else {

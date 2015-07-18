@@ -104,7 +104,8 @@ stuff <- correctedContact(data, average=FALSE, dist.correct=TRUE)
 head(stuff$truth)
 head(stuff$trend)
 offsets <- log(stuff$bias[anchors(data, id=TRUE),]) +
-    log(stuff$bias[targets(data, id=TRUE),]) + stuff$trend
+    log(stuff$bias[targets(data, id=TRUE),]) + 
+    stuff$trend/log2(exp(1))
 }
 
 \author{Aaron Lun}
