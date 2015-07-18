@@ -123,8 +123,11 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 	}
 
 	# Using the direct threshold.
-	direct.threshold <- .getInterThreshold(seqnames(regions(data)), ave.ab[is.na(log.dist)], empty=empty)
-	trend.threshold[is.na(log.dist)] <- direct.threshold
+	is.inter <- is.na(log.dist)
+	if (any(is.inter)) { 
+		direct.threshold <- .getInterThreshold(seqnames(regions(data)), ave.ab[is.inter], empty=empty)
+		trend.threshold[is.inter] <- direct.threshold
+	}
 	return(list(abundances=ave.ab, threshold=trend.threshold, log.distance=log.dist)) 
 }
 
