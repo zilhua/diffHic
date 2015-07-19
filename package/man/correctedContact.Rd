@@ -64,9 +64,10 @@ If \code{dist.correct=TRUE}, abundances will be adjusted for distance-dependent 
 This is done by computing residuals from the fitted distance-abundance trend, using the \code{filterTrended} function.
 These residuals are then used for iterative correction, such that local interactions will not always have higher contact probabilities.
 
-Ideally, the probability sums to 1 across all bin pairs for a given bin. 
-This is complicated by winsorizing, removal of local interactions, removal of low-abundance bins and distance correction.
-If any of these additional settings are active, the sum of probabilities may not be equal to unity, i.e., the values are not strictly interpretable as probabilities.
+Ideally, the probability sums to unity across all bin pairs for a given bin (ignoring \code{NA} entries). 
+This is complicated by winsorizing of high-abundance interactions and removal of local interactions.
+These interactions are not involved in correction, but are still reported in the output \code{truth}.
+As a result, the sum may not equal unity, i.e., values are not strictly interpretable as probabilities.
 }
 
 \examples{
