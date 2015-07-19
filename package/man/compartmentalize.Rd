@@ -35,9 +35,13 @@ If \code{cov.correct=TRUE}, frequencies are also normalized to eliminate coverag
 This is done by computing the average coverage of each row/column, and dividing each matrix entry by the square root averages of the relevant row and column.
 
 Extremely low-coverage regions such as telomeres and centromeres can confound k-means clustering.
-To protect against this, all bins with (distance-corrected) coverages that are more than \code{robust.cov} MAD's away from the median coverage of each chromosome are identified and removed.
+To protect against this, all bins with (distance-corrected) coverages that are more than \code{robust.cov} MADs away from the median coverage of each chromosome are identified and removed.
 These bins will be marked with \code{NA} in the returned \code{compartment} for that chromosome.
 To turn off robustification, set \code{robust.cov} to \code{NA}.
+
+% This differs from correctedContact() robustification, where a proportion of low coverage bins is always ignored.
+% The proportion-based approach is used for consistency with published methods, but is a too aggresssive here.
+% One can imagine situations where there are no outliers, yet a proportion-based method will still remove something.
 
 When \code{inter=FALSE}, clustering is performed for each chromosome separately, using a series of intra-chromosomal contact matrices.
 This saves memory and performs well, given that most information is contained in the intra-chromosomal space.
