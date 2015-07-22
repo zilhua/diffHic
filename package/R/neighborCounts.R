@@ -1,4 +1,4 @@
-neighbourCounts <- function(files, param, width=50000, filter=1L, flank=NULL, exclude=NULL, prior.count=NULL)
+neighborCounts <- function(files, param, width=50000, filter=1L, flank=NULL, exclude=NULL, prior.count=NULL)
 # This does the same thing as squareCounts, except that it simultaneously computes the 
 # filter statistic for each extracted bin pair. This has lower memory requirements as
 # it doesn't need to hold the entire `filter=1` output in memory at once.

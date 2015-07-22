@@ -19,7 +19,7 @@ Streamlined various R utilities used throughout all functions.
 Added iter_map.py to inst/python, for iterative mapping of DNase Hi-C data.
 
 \item
-Added the neighbourCounts() function, for simultaneous read counting and enrichment calculation.
+Added the neighborCounts() function, for simultaneous read counting and enrichment calculation.
 
 \item
 Added exclude for enrichedPairs(), to provide an exclusion zone in the local neighbourhood.
