@@ -880,8 +880,8 @@ Of course, the majority of these bin pairs will have low counts due to the spars
 \section{Peak-calling in the interaction space}
 
 \subsection{Defining enrichment values for each bin pair}
-Peaks in the interaction space refer to those bin pairs that have substantially more reads than their neighbours.
-The \code{enrichedPairs} function computes an enrichment value for each bin pair, defined as the log-fold change of its abundance against that of its neighbours.
+Peaks in the interaction space refer to those bin pairs that have substantially more reads than their neighbors.
+The \code{enrichedPairs} function computes an enrichment value for each bin pair, defined as the log-fold change of its abundance against that of its neighbors.
 Those bin pairs with high enrichment values can then be retained.
 This extends the concept of peak calling on the linear genome to the 2-dimensional interaction space \citep{rao2014kilobase}.
 
@@ -891,19 +891,19 @@ enrichments <- enrichedPairs(data, flank=flank.width)
 summary(enrichments)   
 @
 
-More specifically, the function partitions the neighbourhood into several different regions around the target bin pair.
-The size of the neighbourhood is set by \code{flank}, and is defined in terms of bins (actual distance of $\sim$5 Mbp, in this case).
+More specifically, the function partitions the neighborhood into several different regions around the target bin pair.
+The size of the neighborhood is set by \code{flank}, and is defined in terms of bins (actual distance of $\sim$5 Mbp, in this case).
 The average abundance across each region is computed, and the region with the largest abundance is chosen.
 The enrichment value is defined as the log-fold change between the abundances of the target bin pair and the chosen region.
 Peaks are then defined as those bin pairs with high enrichment values.
-The neighbourhood regions are designed to capture high-intensity structural features like looping domains, TADs or banding patterns \citep{rao2014kilobase}.
+The neighborhood regions are designed to capture high-intensity structural features like looping domains, TADs or banding patterns \citep{rao2014kilobase}.
 Any bin pair inside a feature will be compared to other high-abundance bin pairs from the same feature.
 This avoids spuriously high enrichments due to comparisons with bin pairs outside that feature.
 
 In this example, an enrichment value above 0.5 is required for retention.
 This is a modest threshold that errs on the side of caution, as weak peaks may be DB and should be retained for testing.
 In practice, filtering of enrichment values should be combined with filtering on absolute abundances.
-This eliminates low-abundance bin pairs with high enrichment values, e.g., when the neighbourhood is empty.
+This eliminates low-abundance bin pairs with high enrichment values, e.g., when the neighborhood is empty.
 Near-diagonal elements should also be removed, as these tend to have high enrichment scores without actually being peaks.
 All of these steps can be conveniently applied through the \code{filterPeaks} wrapper function.
 
@@ -914,7 +914,7 @@ sum(peak.keep)
 
 \subsection{Examining some peak-calling diagnostics}
 This filtering strategy can be evaluated by examining the interaction space around each putative peak (see Chapter~\ref{chap:plaid}).
-Briefly, the colour intensity of each ``pixel'' is proportional to the number of read pairs between the corresponding loci on each axis.
+Briefly, the color intensity of each ``pixel'' is proportional to the number of read pairs between the corresponding loci on each axis.
 Red boxes mark the bin pairs retained by filtering, where each side represents a bin.
 In both examples, the bin pairs correspond nicely to punctate high-intensity contacts in the interaction space.
 
@@ -950,16 +950,16 @@ for (chosen in 1:length(a.list)) {
 Another diagnostic is based on the sparsity of putative peaks.
 Bin pairs nested within larger ``parent'' bin pairs are identified using the \code{boxPairs} function.
 Most of these parents should contain low numbers (i.e., less than 5) of nested bin pairs.
-This is because each peak, by definition, should be isolated in its neighbourhood.
+This is because each peak, by definition, should be isolated in its neighborhood.
 Larger proportions suggest that more aggressive filtering on the enrichment score is required, e.g., in the second example. 
 
 <<>>=
-neighbourhood <- (2*flank.width + 1) * exptData(data)$width
-boxed <- boxPairs(data[peak.keep], reference=neighbourhood)
+neighborhood <- (2*flank.width + 1) * exptData(data)$width
+boxed <- boxPairs(data[peak.keep], reference=neighborhood)
 out <- tabulate(tabulate(boxed$indices[[1]]))
 setNames(round(c(out[1:5], sum(out[5:length(out)]))/sum(out)*100, 1), c(1:5, ">5"))
 peak.keep2 <- filterPeaks(data, enrichments, min.enrich=0, min.count=5, min.diag=2L)
-boxed <- boxPairs(data[peak.keep2], reference=neighbourhood)
+boxed <- boxPairs(data[peak.keep2], reference=neighborhood)
 out <- tabulate(tabulate(boxed$indices[[1]]))
 setNames(round(c(out[1:5], sum(out[5:length(out)]))/sum(out)*100, 1), c(1:5, ">5"))
 @
@@ -1823,7 +1823,7 @@ Some loss of statistical rigour may be a necessary price to pay for interpretabl
 
 %This problem can be avoided by performing pre-defined clustering based on large bin pairs.
 %Specifically, a large bin pair is defined and the set of all smaller bin pairs nested therein is defined as a cluster.
-%This is robust to high-density space as the definition of the cluster does not depend on the neighbouring bin pairs.
+%This is robust to high-density space as the definition of the cluster does not depend on the neighboring bin pairs.
 %Misinterpretation of the FDR is mitigated, as fewer bin pairs will represent each interaction when the bins are large.
 %Identification of these clusters can be achieved with the \code{boxPairs} function, as shown below.
 %
@@ -1939,7 +1939,7 @@ Any interesting nested changes can then be interactively identified for a given 
 Plaid plots can be used to visualize the distribution of read pairs in the interaction space \citep{lieberman2009comprehensive}. 
 Briefly, each axis is a chromosome segment. 
 Each ``pixel'' represents an interaction between the corresponding intervals on each axis. 
-The colour of the pixel is proportional to the number of read pairs mapped between the interacting loci.
+The color of the pixel is proportional to the number of read pairs mapped between the interacting loci.
 
 <<label=plaid1,eval=FALSE,echo=FALSE>>=
 plotPlaid(input[1], first=expanded.a, second=expanded.t, max.count=bound1, 
@@ -1991,11 +1991,11 @@ The actual bin pair occurs at the center of the plot and is marked by a rectangl
 \end{center}
 \setkeys{Gin}{width=0.8\textwidth}
 
-The \code{max.count} value controls the relative scale of the colours. 
-Any pixel with a larger count will be set at the maximum colour intensity.
+The \code{max.count} value controls the relative scale of the colors. 
+Any pixel with a larger count will be set at the maximum color intensity.
 This ensures that a few high-count regions do not dominate the plot.
-A smaller \code{max.count} is necessary for smaller libraries so that the intensity of the colours is comparable.
-The actual colour can be set by specifying \code{col}.
+A smaller \code{max.count} is necessary for smaller libraries so that the intensity of the colors is comparable.
+The actual color can be set by specifying \code{col}.
 
 In the example above, the differential interaction is driven mainly by the smaller bin pairs.
 Changes in intensities are particularly prevalent at the top left and bottom right corners of the rectangle.
@@ -2057,7 +2057,7 @@ Alternatively, users may prefer to use \code{rotPlaid} to generate rotated plaid
 These are more space-efficient and are easier to stack onto other genomic tracks, e.g., for ChIP-seq data.
 However, rotated plots are only effective for local interactions within a specified region.
 Some more effort is also required in interpretation.
-In the example below, each coloured box represents an interaction between two bins. 
+In the example below, each colored box represents an interaction between two bins. 
 The coordinates of each interacting bin can be identified by extending lines from opposite sides of the box until they intersect the $x$-axis.
 
 <<eval=FALSE,echo=FALSE,label=rot1>>=
@@ -2119,7 +2119,7 @@ This sharp change would not be observed with larger bin pairs, where the final c
 
 \subsection{Using differential plaid plots}
 In some cases, it may be more informative to display the magnitude of the changes across the interaction space.
-This can be achieved using the \code{plotDI} function, which assigns colours to bin pairs according to the size and direction of the log-fold change.
+This can be achieved using the \code{plotDI} function, which assigns colors to bin pairs according to the size and direction of the log-fold change.
 Visualization of the changes is useful as it highlights the DIs, whereas conventional plaid plots are dominated by high-abundance features like TADs.
 The latter features may be constant between libraries and, thus, not of any particular interest.
 The log-fold changes also incorporate normalization information, which is difficult to represent on a count-based plaid plot.
@@ -2161,9 +2161,9 @@ A rotated DI plot can be similarly constructed using the \code{rotDI} function.
 % If you want to get rid of it, you'll have to explicitly identify compartments and normalize them directly.
 % This is a pain, though we could do it by converting the DIList to a full matrix, and running PCA on the matrix for each chromosome.
 
-Both \code{rotDI} and \code{plotDI} will invisibly return another function that maps log-fold changes to colours.
-This can be used to generate a custom colour bar, as shown below.
-A similar function that maps counts to colours is also returned by \code{plotPlaid} and \code{rotPlaid}.
+Both \code{rotDI} and \code{plotDI} will invisibly return another function that maps log-fold changes to colors.
+This can be used to generate a custom color bar, as shown below.
+A similar function that maps counts to colors is also returned by \code{plotPlaid} and \code{rotPlaid}.
 
 <<label=colorbar,eval=FALSE>>=
 logfc <- -20:20/10
@@ -2279,8 +2279,8 @@ These patterns can be extracted to identify the domain boundaries.
 
 Directionality calculations are performed using the output of the \code{domainDirections} function.
 In the example below, the genome is first partitioned into 100 kbp bins.
-For each bin, the total number of read pairs mapped between that bin and its closest \code{span} upstream neighbours is counted.
-This is repeated for its closest \code{span} downstream neighbours.
+For each bin, the total number of read pairs mapped between that bin and its closest \code{span} upstream neighbors is counted.
+This is repeated for its closest \code{span} downstream neighbors.
 The genomic coordinates of each bin is returned along with the total count in either direction.
 If multiple libraries are specified in \code{input}, the average of the total counts is returned.
 
@@ -2357,11 +2357,11 @@ The red, yellow and orange intervals mark the start, end and center of each doma
 These match up well with the characteristic triangle patterns in the interaction space.
 
 <<eval=FALSE,label=plotdomain>>=
-colours <- c("red", "yellow", "orange")
+colors <- c("red", "yellow", "orange")
 rotPlaid(input[3], mm.param, GRanges("chr1", IRanges(10e6, 20e6)),
     width=1e5, max.count=50)
 rect(start(finder[onchr1]), 0, end(finder[onchr1]), 1e5,
-   col=colours[all.states], border=NA)
+   col=colors[all.states], border=NA)
 @
 
 \setkeys{Gin}{width=0.9\textwidth}
