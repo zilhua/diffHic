@@ -975,14 +975,14 @@ Users should try out the other general filters before proceeding to peak calling
 \subsection{Efficient peak calling at high resolution}
 The \code{enrichedPairs} function requires that all bin pairs are loaded into memory, i.e., with \code{filter=1} during \code{squareCounts}.
 This may not be feasible for high resolution analyses with small bin sizes, where there is a large number of bin pairs with low counts.
-In such cases, it may be more practical to use the \code{neighbourCounts} function.
+In such cases, it may be more practical to use the \code{neighborCounts} function.
 This re-counts the read pairs for each bin pair, storing only a limited portion of the interaction space to compute the enrichment statistic for that bin pair.
 The need to load all non-empty bin pairs is avoided.
 Only bin pairs with count sums greater than or equal to \code{filter} are returned, along with their enrichment values.
 This reduces memory usage at the cost of some speed.
 
 <<>>=
-en.data <- neighbourCounts(input, param, width=1e5, filter=20, flank=5)
+en.data <- neighborCounts(input, param, width=1e5, filter=20, flank=5)
 en.data$interaction
 head(en.data$enrichment)
 @
