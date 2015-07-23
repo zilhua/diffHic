@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 17 July 2015}
+Last revised 22 July 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -901,7 +901,7 @@ Any bin pair inside a feature will be compared to other high-abundance bin pairs
 This avoids spuriously high enrichments due to comparisons with bin pairs outside that feature.
 
 In this example, an enrichment value above 0.5 is required for retention.
-This is a modest threshold that errs on the side of caution, as weak peaks may be DB and should be retained for testing.
+This is a modest threshold that errs on the side of caution, as weak peaks may be DIs and should be retained for testing.
 In practice, filtering of enrichment values should be combined with filtering on absolute abundances.
 This eliminates low-abundance bin pairs with high enrichment values, e.g., when the neighborhood is empty.
 Near-diagonal elements should also be removed, as these tend to have high enrichment scores without actually being peaks.
