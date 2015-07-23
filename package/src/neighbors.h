@@ -1,5 +1,5 @@
-#ifndef NEIGHBOURS_H
-#define NEIGHBOURS_H
+#ifndef NEIGHBORS_H
+#define NEIGHBORS_H
 
 #include "diffhic.h"
 

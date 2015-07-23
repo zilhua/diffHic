@@ -5,6 +5,7 @@ neighborCounts <- function(files, param, width=50000, filter=1L, flank=NULL, exc
 #
 # written by Aaron Lun
 # created 21 May 2015
+# last modified 22 July 2015
 {
 	nlibs <- length(files)
 	if (nlibs==0) { 
@@ -40,7 +41,7 @@ neighborCounts <- function(files, param, width=50000, filter=1L, flank=NULL, exc
 	tol <- formals(mglmOneGroup)$tol
 	disp <- 0.05
 
-	# Other stuff related to calculation of the neighbourhood regions.	
+	# Other stuff related to calculation of the neighborhood regions.	
 	if (is.null(flank)) { flank <- formals(enrichedPairs)$flank }
 	if (is.null(exclude)) { exclude <- formals(enrichedPairs)$exclude }
 	flank <- as.integer(flank)

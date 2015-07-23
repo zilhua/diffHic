@@ -1,11 +1,11 @@
 enrichedPairs <- function(data, flank=5, exclude=0, prior.count=2, abundances=NULL)
-# This function identifies the highest-abundance neighbour in the interaction space
+# This function identifies the highest-abundance neighbor in the interaction space
 # for each bin pair in `data`. The aim is to compare the abundance of each element
-# with the abundance of its neighbour. 
+# with the abundance of its neighbor. 
 #
 # written by Aaron Lun
 # created 23 April 2014
-# last modified 29 April 2015
+# last modified 22 July 2015
 {
 	flank <- as.integer(flank)
 	exclude <- as.integer(exclude)
