@@ -33,7 +33,7 @@ enrichedPairs <- function(data, flank=5, exclude=0, prior.count=2, abundances=NU
 	np <- nrow(data)
 	all.chrs <- as.character(seqnames(regions(data)))
 	aid <- anchors(data, id=TRUE)
-	by.chr <- split(1:np, all.chrs[aid])
+	by.chr <- split(seq_len(np), all.chrs[aid])
 	tid <- targets(data, id=TRUE)
 	output <- numeric(np)
 

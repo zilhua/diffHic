@@ -76,7 +76,7 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 #
 # written by Aaron Lun
 # created 5 March 2015
-# last modified 24 June 2015
+# last modified 22 July 2015
 {
 	if (!is.null(reference)) {
 		actual.ab <- scaledAverage(asDGEList(data), prior.count=prior.count)
@@ -119,7 +119,7 @@ filterTrended <- function(data, span=0.25, prior.count=2, reference=NULL)
 		extra.dist <- log10(extra.dist + .getBinSize(data))
 		trend.threshold <- loessFit(x=c(log.dist, extra.dist), 
 			y=c(ave.ab, rep(empty, length(extra.dist))), 
-			span=span)$fitted[1:length(log.dist)]
+			span=span)$fitted[seq_along(log.dist)]
 	}
 
 	# Using the direct threshold.

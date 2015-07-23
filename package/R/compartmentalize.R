@@ -5,7 +5,7 @@ compartmentalize <- function(data, centers=2, dist.correct=TRUE,
 #
 # written by Aaron Lun
 # created 26 May 2015
-# last modified 28 May 2015
+# last modified 22 July 2015
 {
 	if (!inter) {
 		is.intra <- !is.na(getDistance(data))
@@ -66,7 +66,7 @@ compartmentalize <- function(data, centers=2, dist.correct=TRUE,
 		out <- kmeans(mat, centers=centers, ...)
 		comp <- out$cluster
 	} else {
-		comp <- 1:nrow(mat)
+		comp <- seq_len(nrow(mat))
 	}
 
 	# Filling the robustified bins back in.
