@@ -8,7 +8,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 # last modified 22 July 2015
 {
 	nlibs <- length(files)
-	if (nlibs==0) { 
+	if (nlibs==0L) {
 		stop("number of libraries must be positive")
 	} else if (width < 0) { 
 		stop("width must be a non-negative integer")
@@ -192,7 +192,7 @@ squareCounts <- function(files, param, width=50000, filter=1L)
 # Splits the discard GRanges into a list of constituent chromosomes,
 # along with IRanges for everything. This allows easy access tot he
 {
-	if (is.null(discard) || length(discard)==0) { return(NULL) }
+	if (is.null(discard) || length(discard)==0L) { return(NULL) }
 	discard <- sort(discard)
 	all.chrs <- as.character(runValue(seqnames(discard)))
 	all.len <- runLength(seqnames(discard))

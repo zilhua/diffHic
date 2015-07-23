@@ -8,7 +8,7 @@ neighborCounts <- function(files, param, width=50000, filter=1L, flank=NULL, exc
 # last modified 22 July 2015
 {
 	nlibs <- length(files)
-	if (nlibs==0) { 
+	if (nlibs==0L) {
 		stop("number of libraries must be positive")
 	} else if (width < 0) { 
 		stop("width must be a non-negative integer")
