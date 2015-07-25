@@ -27,7 +27,7 @@ Typically, one compartment is gene-rich and is defined as ``open'', while the ot
 Compartment identification is done by setting up a contact matrix where each row/rolumn represents a bin and each matrix entry contains the frequency of contacts between bins.
 Bins (i.e., rows) with similar interaction profiles (i.e., entries across columns) are clustered together with the k-means method.
 Those with the same ID in the output \code{compartment} vector are in the same compartment.
-Note that clustering is done separately for one chromosome, so bins with the same ID across different chromosomes cannot be interpreted as being in the same compartment.
+Note that clustering is done separately for each chromosome, so bins with the same ID across different chromosomes cannot be interpreted as being in the same compartment.
 
 If \code{dist.correct=TRUE}, frequencies are normalized to mitigate the effect of distance and to improve the visibility of long-range interactions.
 This is done by computing the residuals of the distance-dependent trend - see \code{\link{filterTrended}} for more details.
