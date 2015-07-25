@@ -28,9 +28,11 @@ savePairs <- function(x, file, param)
 	# Identifying stretches with the same chromatin pairs.
 	new.achr <- achr[new.o]
 	new.tchr <- tchr[new.o]
-	is.diff <- c(TRUE, diff(new.achr)!=0L | diff(new.tchr)!=0L)
-	first.in.combo <- which(is.diff)
-	last.in.combo <- c(first.in.combo[-1]-1L, length(new.o))
+	if (length(new.achr) > 0L) {
+		is.diff <- c(TRUE, diff(new.achr)!=0L | diff(new.tchr)!=0L)
+		first.in.combo <- which(is.diff)
+		last.in.combo <- c(first.in.combo[-1]-1L, length(new.o))
+	} else { first.in.combo <- last.in.combo <- integer(0) }
 
 	# Saving results.
 	.initializeH5(file)
