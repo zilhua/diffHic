@@ -808,6 +808,9 @@ direct.keep2 <- direct.keep & count.keep
 % No consideration is given to the presence of biases between bins.
 % Differences in sequencability, mappability or number of restriction sites will result in a misrepresentation of the true interaction intensity.
 % Full consideration of these region-specific biases requires more complex methods such as iterative correction (see Section~\ref{sec:itercor}).
+% 
+% Also, in theory, you could use the mitochondrial-nuclear interactions to get a cleaner estimate of the non-specific ligation rate.
+% Unfortunately, this requires a lot of effort in rescaling because of the differences in size (also copy number) which would preclude accuracy estimation.
 
 \section{Filtering as a function of interaction distance}
 A more complex filter adjusts the threshold according to the distance between the bins in each bin pair. 
