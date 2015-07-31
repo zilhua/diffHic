@@ -1469,6 +1469,8 @@ Discreteness and domination of the fit by low-abundance bin pairs is also avoide
 % You don't want to detect changes in the number of interactions simply because of changes in the amount of bound protein, e.g., due to random ligation.
 % The normalizeCNV function can be applied to eliminate interaction fold-changes that are associated with changes in the coverage of the anchors (i.e., DB).
 % This ensures that you test for differential interactions-per-binding event.
+% I'm not sure you need always it for Capture-C, because the amount of genome should be the same between conditions.
+% Besides, capture happens after ligation, so any capture-specific biases can be absorbed into the interaction biases (and should cancel out in a DI analysis).
 
 \subsection{Visualizing the effect of CNV removal}
 To demonstrate, the \citeauthor{rickman2012oncogene} dataset is used here as it contains more CNVs.
