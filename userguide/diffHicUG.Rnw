@@ -1464,6 +1464,11 @@ Discreteness and domination of the fit by low-abundance bin pairs is also avoide
 %The function also assumes that CNVs in different parts of the genome have the same effect on the interaction intensities.
 %Thus, caution is required when using \code{normalizeCNV}. 
 %The safest choice is to avoid it when there is no evidence for CNVs (see the plot in Section~\ref{sec:marginal}).
+%
+% In theory, the same logic could be applied to accounting for biases due to changes in protein binding if you coupled Hi-C with ChIP.
+% You don't want to detect changes in the number of interactions simply because of changes in the amount of bound protein, e.g., due to random ligation.
+% The normalizeCNV function can be applied to eliminate interaction fold-changes that are associated with changes in the coverage of the anchors (i.e., DB).
+% This ensures that you test for differential interactions-per-binding event.
 
 \subsection{Visualizing the effect of CNV removal}
 To demonstrate, the \citeauthor{rickman2012oncogene} dataset is used here as it contains more CNVs.
