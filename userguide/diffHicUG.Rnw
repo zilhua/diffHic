@@ -45,7 +45,7 @@
 % Set to change date for document, not compile date.
 \date{First edition 12 December 2012\\
 \vspace{6pt}
-Last revised 22 July 2015}
+Last revised 18 August 2015}
 
 % Removing the bibliography title so it shows up in the contents.
 \makeatletter
@@ -93,6 +93,7 @@ Knowledge of \edgeR{} is useful but is not necessary for this guide.
 Most questions about individual functions should be answered by the documentation.
 For example, if you want to know more about \code{preparePairs}, you can bring up the documentation by typing \code{?preparePairs} or \code{help(preparePairs)} at the \R{} prompt.
 Further detail on the methods or the theory can be found in the references at the bottom of each help page.
+The entire \pkgname{} pipeline is also described in its own publication \citep{lun2015diffhic}.
 
 The authors of the package always appreciate receiving reports of bugs in the package functions or in the documentation. 
 The same goes for well-considered suggestions for improvements. 
