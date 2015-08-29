@@ -220,7 +220,7 @@ setMethod("normalize", signature("DIList"), function(object, lib.sizes, ...) {
 	    if (is.null(object$totals)) { warning("library sizes not found in 'totals', setting to NULL") }
 		lib.sizes <- object$totals 
 	}
-	normalizeCounts(counts(object), lib.sizes=lib.sizes, ...)
+	normOffsets(counts(object), lib.sizes=lib.sizes, ...)
 })
 
 ########################################################################################
