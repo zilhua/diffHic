@@ -146,7 +146,7 @@ data <- data[keep,]
 \item normalizing counts between libraries
 <<>>=
 y <- asDGEList(data)
-y$offset <- normalize(data, type="loess")
+y$offset <- normOffsets(data, type="loess")
 @
 \item modelling biological variability
 <<>>=
@@ -1219,7 +1219,7 @@ This accounts for composition biases by assuming that most interactions do not c
 Normalization factors are computed to scale the library sizes, yielding effective sizes that can be used in the downstream differential analysis.
 
 <<>>=
-normfacs <- normalize(data)
+normfacs <- normOffsets(data)
 normfacs
 @
 
@@ -1267,7 +1267,7 @@ An offset term is computed for each bin pair in each library, for use in a gener
 A large offset for a count is equivalent to downscaling that count relative to the counts of other libraries. 
 
 <<>>=
-nb.off <- normalize(data, type="loess")
+nb.off <- normOffsets(data, type="loess")
 head(nb.off)
 @
 
@@ -1280,8 +1280,8 @@ To overcome this, the near-diagonal bin pairs can be normalized separately from 
 redist <- getDistance(data) 
 neardiag <- is.na(redist) | redist > 1.5e6
 nb.off <- matrix(0, nrow=nrow(data), ncol=ncol(data))
-nb.off[neardiag] <- normalize(data[neardiag,], type="loess")
-nb.off[!neardiag] <- normalize(data[!neardiag,], type="loess")
+nb.off[neardiag] <- normOffsets(data[neardiag,], type="loess")
+nb.off[!neardiag] <- normOffsets(data[!neardiag,], type="loess")
 @
 
 The MA plot can be examined after adjusting the log-counts with the offsets.
@@ -1759,7 +1759,7 @@ To demonstrate, a quick-and-dirty differential analysis of the previously loaded
 
 <<>>=
 y.small <- asDGEList(smaller.data)
-y.small$offset <- normalize(smaller.data, type="loess")
+y.small$offset <- normOffsets(smaller.data, type="loess")
 y.small <- estimateDisp(y.small, design)
 fit.small <- glmQLFit(y.small, design, robust=TRUE)
 result.small <- glmQLFTest(fit.small)
