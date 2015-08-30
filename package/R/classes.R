@@ -215,7 +215,7 @@ setMethod("asDGEList", signature("DIList"), function(object, lib.sizes, ...) {
 	DGEList(counts=counts(object), lib.size=lib.sizes, ...)
 })
 
-setMethod("normalize", signature("DIList"), function(object, lib.sizes, ...) {
+setMethod("normOffsets", signature("DIList"), function(object, lib.sizes, ...) {
 	if (missing(lib.sizes)) { 
 	    if (is.null(object$totals)) { warning("library sizes not found in 'totals', setting to NULL") }
 		lib.sizes <- object$totals 
