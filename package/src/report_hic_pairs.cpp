@@ -245,7 +245,6 @@ SEXP internal_loop (const base_finder * const ffptr, int (*check_self_status)(co
 
 			// Checking which deque to put it in, if we're going to keep it.
 			if (! (curdup && rm_dup) && ! curunmap) {
-				current.fragid=ffptr->find_fragment(current.chrid, current.pos, current.reverse, current.alen);
 				std::deque<segment>& current_reads=(isfirst ? read1 : read2);
 				if (current.offset==0) {
 					current_reads.push_front(current);
@@ -278,6 +277,16 @@ SEXP internal_loop (const base_finder * const ffptr, int (*check_self_status)(co
  		 */
 		if (isunmap || (rm_dup && isdup) || read1.empty() || read2.empty() || read1.front().offset || read2.front().offset) { continue; }
 		++mapped;
+
+		// Assigning fragment IDs, if everything else is good.
+		for (size_t i1=0; i1<read1.size(); ++i1) {
+			segment& current=read1[i1];
+			current.fragid=ffptr->find_fragment(current.chrid, current.pos, current.reverse, current.alen);
+		}
+		for (size_t i2=0; i2<read2.size(); ++i2) {
+			segment& current=read2[i2];
+			current.fragid=ffptr->find_fragment(current.chrid, current.pos, current.reverse, current.alen);
+		}
 
 		// Determining the type of construct if they have the same ID.
 		switch ((*check_self_status)(read1.front(), read2.front())) {
