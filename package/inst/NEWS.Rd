@@ -54,6 +54,9 @@ Modified consolidatePairs() to accept index vectors for greater modularity.
 \item 
 Added reference argument for large bin pairs, in filterDirect() and filterTrended().
 
+\item
+Added filterDiag() convenience function for filtering of (near-)diagonal bin pairs.
+
 \item 
 Slight change to preparePairs() diagnostic reports when dedup=FALSE, and for unpaired reads.
 
