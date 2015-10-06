@@ -1142,8 +1142,7 @@ Such irregularities cannot be smoothly normalized and should be removed prior to
 Removal can be achieved by generating the \code{ndiag.keep} logical vector for filtering, as shown below.
 
 <<>>=
-dist <- getDistance(data)
-ndiag.keep <- is.na(dist) | dist > 0L  
+ndiag.keep <- filterDiag(data)
 summary(ndiag.keep)
 @
 
@@ -1277,8 +1276,7 @@ This manifests in the previous MA plot as a distinct mass of points at high abun
 To overcome this, the near-diagonal bin pairs can be normalized separately from the others.
 
 <<>>=
-redist <- getDistance(data) 
-neardiag <- is.na(redist) | redist > 1.5e6
+neardiag <- filterDiag(data, by.dist=1.5e6)
 nb.off <- matrix(0, nrow=nrow(data), ncol=ncol(data))
 nb.off[neardiag] <- normOffsets(data[neardiag,], type="loess")
 nb.off[!neardiag] <- normOffsets(data[!neardiag,], type="loess")
