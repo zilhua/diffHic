@@ -202,7 +202,7 @@ struct check_invalid_by_dist : public check_invalid_chimera {
  		 */
 		return false;
 	};
-	const int get_span() const { return maxspan; }
+	int get_span() const { return maxspan; }
 private:
 	int maxspan;
 };
