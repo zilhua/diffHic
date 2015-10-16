@@ -532,8 +532,11 @@ This provides some robustness to the choice of bin size.
 Sharp interactions can be detected by pairs of smaller bins while diffuse interactions can be detected by larger bin pairs.
 See Section~\ref{sec:mergebins} for more information on consolidating results from multiple bin sizes.
 
-% Smaller bins also provide some protection against edge effects, when an interaction is not 
-% centered within a larger bin.
+% Smaller bins also provide some protection against edge effects, when an interaction is not centered within a larger bin. 
+% We could provide more protection with sliding mats, but that's computationally expensive and a pain to control the FDR over. 
+% In general, you'll avoid counting irrelevant areas if the bins are small enough to fit inside the interaction loci.
+% This is motivated by the same arguments for small windows in ChIP-seq, i.e., detect complex events, avoid ambiguity problems when defining boundaries.
+% The inevitable cost is reduce power from smaller counts, relative to a perfectly centered and sized counting area (if it existed).
 
 \section{Counting with pre-defined regions}
 
