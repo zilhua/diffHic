@@ -1467,6 +1467,7 @@ Discreteness and domination of the fit by low-abundance bin pairs is also avoide
 % In theory, the same logic could be applied to accounting for biases due to changes in protein binding if you coupled Hi-C with ChIP.
 % You don't want to detect changes in the number of interactions simply because of changes in the amount of bound protein, e.g., due to random ligation.
 % The normalizeCNV function can be applied to eliminate interaction fold-changes that are associated with changes in the coverage of the anchors (i.e., DB).
+% The same logic applies for general Hi-C, to protect against spurious interactions due to changes in chromatin accessibility and fragmentation.
 % This ensures that you test for differential interactions-per-binding event.
 % I'm not sure you need always it for Capture-C, because the amount of genome should be the same between conditions.
 % Besides, capture happens after ligation, so any capture-specific biases can be absorbed into the interaction biases (and should cancel out in a DI analysis).
